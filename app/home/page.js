@@ -22,7 +22,7 @@ export default function Home() {
             }
 
             const response = await fetch(
-                `https://www.omdbapi.com/?s=${encodeURIComponent(searchTerm)}&apikey=713527c4`
+                `https://www.omdbapi.com/?s=${encodeURIComponent(searchTerm)}&apikey=${process.env.NEXT_PUBLIC_OMDB_API_KEY}`
             );
 
             if (!response.ok) {
