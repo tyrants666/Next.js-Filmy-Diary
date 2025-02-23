@@ -71,7 +71,7 @@ export default function Home() {
 
     return (
         <div className="min-h-screen flex flex-col">
-            <header className="bg-gray-800 text-white p-4 text-center">
+            <header className="bg-card text-white p-4 m-4 mb-0 rounded-xl text-center">
                 <h1 className="text-2xl font-bold">💗U👧</h1>
             </header>
             <main className="flex-grow p-4">
@@ -81,9 +81,9 @@ export default function Home() {
                         placeholder="Search for a movie (title or IMDb ID)..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-card outline-none p-2 border-none rounded w-full"
+                        className="bg-card outline-none p-2 px-4 border-none rounded-lg w-full"
                     />
-                    <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    <button type="submit" className="bg-cyan-800 hover:bg-cyan-700 text-white py-2 px-4 rounded-lg">
                         Search
                     </button>
                 </form>
@@ -93,7 +93,7 @@ export default function Home() {
 
                 {movies.length > 0 && (
                     <div className="mt-4">
-                        <h2 className="text-xl font-semibold mb-2">Search Results</h2>
+                        <h3 className="text-lg font-semibold mb-2">Search Results</h3>
                         <div className="flex flex-wrap">
                             {movies.map((movie) => (
                               <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`} target='_blank' 
@@ -115,7 +115,7 @@ export default function Home() {
                 )}
             </main>
 
-            <footer className="bg-gray-800 text-white p-4 text-center">
+            <footer className="bg-card text-white p-4 text-center">
               <ol className='mb-5'>
                 <li><strong>💌 Change Logs</strong></li>
                 <li>✨ Added new fonts</li>
