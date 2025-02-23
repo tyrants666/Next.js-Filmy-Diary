@@ -1,17 +1,20 @@
 'use client'; // Add this line at the top
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from "next/image";
 import Link from 'next/link';
 
 export default function Home() {
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState('marvel');
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
 
+
     const handleSearch = async (e) => {
-        e.preventDefault();
+        if (e) {
+          e.preventDefault();
+        }
         setLoading(true);
         setError(null);
         setMovies([]);
@@ -61,10 +64,15 @@ export default function Home() {
         }
     };
 
+    //This is This is a temporaryuse effect to show the initial result for hello search on page load
+    useEffect(() => {
+      handleSearch(); // Run handleSearch when the component mounts
+    }, []); // Empty dependency array means this runs only once
+
     return (
         <div className="min-h-screen flex flex-col">
             <header className="bg-gray-800 text-white p-4 text-center">
-                <h1 className="text-2xl font-bold">Good Evening Kammo Ji 😚. 🔎 your Movie</h1>
+                <h1 className="text-2xl font-bold">Want to be with you for ♾. 🔎 your Movie</h1>
             </header>
             <main className="flex-grow p-4">
                 <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
@@ -86,18 +94,18 @@ export default function Home() {
                 {movies.length > 0 && (
                     <div className="mt-4">
                         <h2 className="text-xl font-semibold mb-2">Search Results</h2>
-                        <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {movies.map((movie) => (
-                                <li key={movie.imdbID} className="border rounded p-4">
+                                <div key={movie.imdbID} className="border rounded p-4">
                                     <img
                                         src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
                                         alt={movie.Title}
                                         className="max-w-full h-auto mb-2"
                                     />
                                     <div className="font-semibold">{movie.Title} ({movie.Year})</div>
-                                </li>
+                                </div>
                             ))}
-                        </ul>
+                        </div>
                     </div>
                 )}
             </main>
