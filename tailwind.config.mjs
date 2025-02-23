@@ -9,6 +9,7 @@ export default {
     extend: {
       colors: {
         background: "var(--background)",
+        card: "var(--card)",
         foreground: "var(--foreground)",
       },
     },

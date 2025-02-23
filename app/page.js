@@ -81,7 +81,7 @@ export default function Home() {
                         placeholder="Search for a movie (title or IMDb ID)..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="p-2 border rounded w-full"
+                        className="bg-card outline-none p-2 border-none rounded w-full"
                     />
                     <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                         Search
@@ -98,16 +98,16 @@ export default function Home() {
                             {movies.map((movie) => (
                               <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`} target='_blank' 
                                 className='flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 basis-[32%] sm:basis-1/4 lg:basis-1/5 xl:basis-[14.28%] 2xl:basis-[12.5%] p-[.4rem] sm:p-2 !shrink-0 max-w-[12rem] !select-none'>
-                                      <span>
+                                      <span className='h-full'>
                                         <img
                                             src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
                                             alt={movie.Title}
                                             className=" !select-none shrink-0 undefined rounded-xl overflow-hidden"
                                         />
                                       </span>
-                                      <div className="text-sm mt-1">
+                                      {/* <div className="text-sm mt-1">
                                         <p>{movie.Title} ({movie.Year})</p>
-                                      </div>
+                                      </div> */}
                                 </a>
                             ))}
                         </div>
