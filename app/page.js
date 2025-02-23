@@ -72,7 +72,7 @@ export default function Home() {
     return (
         <div className="min-h-screen flex flex-col">
             <header className="bg-gray-800 text-white p-4 text-center">
-                <h1 className="text-2xl font-bold">Want to be with you for ♾. 🔎 your Movie</h1>
+                <h1 className="text-2xl font-bold">Want to be with you for ♾.</h1>
             </header>
             <main className="flex-grow p-4">
                 <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
@@ -94,16 +94,20 @@ export default function Home() {
                 {movies.length > 0 && (
                     <div className="mt-4">
                         <h2 className="text-xl font-semibold mb-2">Search Results</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="flex flex-wrap">
                             {movies.map((movie) => (
-                                <div key={movie.imdbID} className="border rounded p-4">
-                                    <img
-                                        src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
-                                        alt={movie.Title}
-                                        className="max-w-full h-auto mb-2"
-                                    />
+                              <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`}>
+                              <div className="min-w-0 shrink-0 grow-0 basis-[32%] sm:basis-1/4 lg:basis-1/5 xl:basis-[14.28%] 2xl:basis-[12.5%] p-[.4rem] sm:p-2 !shrink-0 max-w-[12rem] !select-none">
+                                    <span>
+                                      <img
+                                          src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
+                                          alt={movie.Title}
+                                          className=" !select-none shrink-0 undefined"
+                                      />
+                                    </span>
                                     <div className="font-semibold">{movie.Title} ({movie.Year})</div>
                                 </div>
+                                </a>
                             ))}
                         </div>
                     </div>
@@ -111,6 +115,11 @@ export default function Home() {
             </main>
 
             <footer className="bg-gray-800 text-white p-4 text-center">
+              <ol className='mb-5'>
+                <li><strong>💌 Change Logs</strong></li>
+                <li>🐭 Now On movie click opens IMDB page</li>
+                <li></li>
+              </ol>
                 <div className="flex justify-center gap-6 flex-wrap">
                     <a
                         className="flex items-center gap-2 hover:underline hover:underline-offset-4"
