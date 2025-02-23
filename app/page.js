@@ -96,17 +96,16 @@ export default function Home() {
                         <h2 className="text-xl font-semibold mb-2">Search Results</h2>
                         <div className="flex flex-wrap">
                             {movies.map((movie) => (
-                              <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`}>
-                              <div className="min-w-0 shrink-0 grow-0 basis-[32%] sm:basis-1/4 lg:basis-1/5 xl:basis-[14.28%] 2xl:basis-[12.5%] p-[.4rem] sm:p-2 !shrink-0 max-w-[12rem] !select-none">
-                                    <span>
-                                      <img
-                                          src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
-                                          alt={movie.Title}
-                                          className=" !select-none shrink-0 undefined"
-                                      />
-                                    </span>
-                                    <div className="font-semibold">{movie.Title} ({movie.Year})</div>
-                                </div>
+                              <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`} target='_blank' 
+                                className='flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 basis-[32%] sm:basis-1/4 lg:basis-1/5 xl:basis-[14.28%] 2xl:basis-[12.5%] p-[.4rem] sm:p-2 !shrink-0 max-w-[12rem] !select-none'>
+                                      <span>
+                                        <img
+                                            src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
+                                            alt={movie.Title}
+                                            className=" !select-none shrink-0 undefined rounded-xl overflow-hidden"
+                                        />
+                                      </span>
+                                      <div className="font-semibold">{movie.Title} ({movie.Year})</div>
                                 </a>
                             ))}
                         </div>
