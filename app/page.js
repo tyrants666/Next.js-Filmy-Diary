@@ -105,7 +105,9 @@ export default function Home() {
                                             className=" !select-none shrink-0 undefined rounded-xl overflow-hidden"
                                         />
                                       </span>
-                                      <div className="font-semibold">{movie.Title} ({movie.Year})</div>
+                                      <div className="text-sm mt-1">
+                                        <p>{movie.Title} ({movie.Year})</p>
+                                      </div>
                                 </a>
                             ))}
                         </div>
