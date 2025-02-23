@@ -97,12 +97,12 @@ export default function Home() {
                         <div className="flex flex-wrap">
                             {movies.map((movie) => (
                               <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`} target='_blank' 
-                                className='flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 basis-[32%] sm:basis-1/4 lg:basis-1/5 xl:basis-[14.28%] 2xl:basis-[12.5%] p-[.4rem] sm:p-2 !shrink-0 max-w-[12rem] !select-none'>
-                                      <span className='h-full'>
+                                className='flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 basis-[32%] sm:basis-1/4 lg:basis-1/5 xl:basis-[14.28%] 2xl:basis-[12.5%] p-[.4rem] sm:p-2 max-w-[12rem] !select-none'>
+                                      <span className=''>
                                         <img
                                             src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
                                             alt={movie.Title}
-                                            className="h-full !select-none shrink-0 undefined rounded-xl overflow-hidden"
+                                            className="!select-none shrink-0 undefined rounded-xl overflow-hidden"
                                         />
                                       </span>
                                       {/* <div className="text-sm mt-1">
@@ -118,6 +118,7 @@ export default function Home() {
             <footer className="bg-card text-white p-4 text-center">
               <ol className='mb-5'>
                 <li><strong>💌 Change Logs</strong></li>
+                <li>✨ height fix</li>
                 <li>✨ Added new fonts</li>
                 <li>🐭 Now On movie click opens IMDB page</li>
                 <li></li>
