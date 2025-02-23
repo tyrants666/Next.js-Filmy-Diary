@@ -102,7 +102,7 @@ export default function Home() {
                                         <img
                                             src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
                                             alt={movie.Title}
-                                            className=" !select-none shrink-0 undefined rounded-xl overflow-hidden"
+                                            className="h-full !select-none shrink-0 undefined rounded-xl overflow-hidden"
                                         />
                                       </span>
                                       {/* <div className="text-sm mt-1">
