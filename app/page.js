@@ -64,7 +64,7 @@ export default function Home() {
     return (
         <div className="min-h-screen flex flex-col">
             <header className="bg-gray-800 text-white p-4 text-center">
-                <h1 className="text-2xl font-bold">Hello Kammo Ji 👀. 🔎 your Movie</h1>
+                <h1 className="text-2xl font-bold">Good Evening Kammo Ji 😚. 🔎 your Movie</h1>
             </header>
             <main className="flex-grow p-4">
                 <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
