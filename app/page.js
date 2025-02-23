@@ -72,7 +72,7 @@ export default function Home() {
     return (
         <div className="min-h-screen flex flex-col">
             <header className="bg-gray-800 text-white p-4 text-center">
-                <h1 className="text-2xl font-bold">Want to be with you for ♾.</h1>
+                <h1 className="text-2xl font-bold">💗U👧</h1>
             </header>
             <main className="flex-grow p-4">
                 <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
@@ -116,6 +116,7 @@ export default function Home() {
             <footer className="bg-gray-800 text-white p-4 text-center">
               <ol className='mb-5'>
                 <li><strong>💌 Change Logs</strong></li>
+                <li>✨ Added new fonts</li>
                 <li>🐭 Now On movie click opens IMDB page</li>
                 <li></li>
               </ol>
