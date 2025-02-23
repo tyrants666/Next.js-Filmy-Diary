@@ -23,9 +23,16 @@ export default function Home() {
                 return;
             }
 
-            const response = await fetch(
-                `https://www.omdbapi.com/?s=${encodeURIComponent(searchTerm)}&apikey=${process.env.NEXT_PUBLIC_OMDB_API_KEY}`
-            );
+            let apiUrl = `https://www.omdbapi.com/?apikey=${process.env.NEXT_PUBLIC_OMDB_API_KEY}`;
+
+            // Check if the search term looks like an IMDb ID (starts with "tt" followed by numbers)
+            if (searchTerm.startsWith('tt') && !isNaN(searchTerm.slice(2))) {
+                apiUrl += `&i=${searchTerm}`;
+            } else {
+                apiUrl += `&s=${encodeURIComponent(searchTerm)}`;
+            }
+
+            const response = await fetch(apiUrl);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -33,8 +40,16 @@ export default function Home() {
 
             const data = await response.json();
 
+            //Console list of resulted data
+            console.log(data);
+
             if (data.Response === 'True') {
-                setMovies(data.Search);
+                if (data.Search) {
+                    setMovies(data.Search);
+                } else {
+                    // If searching by IMDb ID, the result is a single movie object, not an array
+                    setMovies([data]);
+                }
             } else {
                 setError(data.Error);
             }
@@ -55,7 +70,7 @@ export default function Home() {
                 <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
                     <input
                         type="text"
-                        placeholder="Search for a movie..."
+                        placeholder="Search for a movie (title or IMDb ID)..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="p-2 border rounded w-full"
