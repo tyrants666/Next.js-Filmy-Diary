@@ -12,6 +12,9 @@ export default {
         card: "var(--card)",
         foreground: "var(--foreground)",
       },
+      boxShadow:{
+        'custom': "0px 0px 14px 3px var(--shadow)",
+      }
     },
   },
   plugins: [],

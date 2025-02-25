@@ -94,10 +94,10 @@ export default function Home() {
                 {movies.length > 0 && (
                     <div className="mt-4">
                         <h3 className="text-lg font-semibold mb-2">Search Results</h3>
-                        <div className="flex flex-wrap">
+                        <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
                             {movies.map((movie) => (
                               <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`} target='_blank' 
-                                className='flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 basis-[33.3%] sm:basis-1/4 lg:basis-1/5 xl:basis-[14.28%] 2xl:basis-[11.1%] p-[.4rem] sm:p-2 max-w-[15rem] !select-none'>
+                                    className='shadow-custom flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 basis-[31.5%] sm:basis-[23.5%] lg:basis-[19%] xl:basis-[14.28%] 2xl:basis-[11.8%] p-[.3rem] sm:p-2 max-w-[15rem] !select-none'>
                                       <span className=''>
                                         <img
                                             src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
@@ -115,7 +115,7 @@ export default function Home() {
                 )}
             </main>
 
-            <footer className="bg-card text-white p-4 text-center">
+            <footer className="bg-card p-4 text-center">
               <ol className='mb-5'>
                 <li><strong>💌 Change Logs</strong></li>
                 <li>✨ height fix</li>
