@@ -92,7 +92,7 @@ export default function Home() {
 
             <div className='container mx-auto'>
                 <header className="p-4 m-4 mb-0 rounded-xl text-center">
-                    <h1 className="text-2xl">🌼🌼🌼</h1>
+                    <h1 className="text-2xl">kammo Ji! 🌼</h1>
                 </header>
                 <main className="flex-grow p-4">
                     <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
@@ -131,6 +131,16 @@ export default function Home() {
                         </div>
                     )}
                 </main>
+            </div>
+
+            <div className='text-center w-full flex justify-center m-[-10px]'>
+                <Image 
+                    src="/images/pokemon.gif" 
+                    alt="Pokemon" 
+                    width={100} 
+                    height={100} 
+                    priority // Ensures it's loaded quickly
+                />
             </div>
 
             <footer className="bg-card p-4 text-center">
