@@ -31,7 +31,7 @@ body {
 .blur-overlay{
   background: hsl(0deg 0% 28.63% / 61%);;
   /* background: hsla(0, 0%, 29%, 0.788); */
-  backdrop-filter: blur(25px);
+  /* backdrop-filter: blur(25px); */
   transition: .3s;
 }
 
