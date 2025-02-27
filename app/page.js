@@ -81,7 +81,7 @@ export default function Home() {
                         placeholder="Search for a movie (title or IMDb ID)..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-card outline-none p-2 px-4 border-none rounded-lg w-full"
+                        className=" bg-white/[.08] text-sm outline-none p-2 px-4 border-none rounded-lg w-full"
                     />
                     <button type="submit" className="bg-gray-800/60 hover:bg-gray-700/60 py-2 px-4 rounded-lg">
                         Search
