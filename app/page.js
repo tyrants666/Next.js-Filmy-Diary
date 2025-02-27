@@ -92,7 +92,7 @@ export default function Home() {
 
             <div className='container mx-auto'>
                 <header className="p-4 m-4 mb-0 rounded-xl text-center">
-                    <h1 className="text-2xl">Take care 🐳</h1>
+                    <h1 className="text-2xl">🌼🌼🌼</h1>
                 </header>
                 <main className="flex-grow p-4">
                     <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
