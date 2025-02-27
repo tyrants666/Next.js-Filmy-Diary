@@ -71,7 +71,7 @@ export default function Home() {
 
     return (
         <div className="min-h-screen flex flex-col relative z-3">
-            <header className="bg-card text-white p-4 m-4 mb-0 rounded-xl text-center">
+            <header className="p-4 m-4 mb-0 rounded-xl text-center">
                 <h1 className="text-2xl font-bold">💗U👧</h1>
             </header>
             <main className="flex-grow p-4">
@@ -83,7 +83,7 @@ export default function Home() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="bg-card outline-none p-2 px-4 border-none rounded-lg w-full"
                     />
-                    <button type="submit" className="bg-gray-800/60 hover:bg-gray-700/60 text-white py-2 px-4 rounded-lg">
+                    <button type="submit" className="bg-gray-800/60 hover:bg-gray-700/60 py-2 px-4 rounded-lg">
                         Search
                     </button>
                 </form>
@@ -93,7 +93,7 @@ export default function Home() {
 
                 {movies.length > 0 && (
                     <div className="mt-4">
-                        <h3 className="text-lg font-semibold mb-2">Search Results</h3>
+                        <h3 className="text-lg mb-2">Search Results</h3>
                         <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
                             {movies.map((movie) => (
                               <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`} target='_blank' 
