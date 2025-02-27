@@ -5,18 +5,22 @@
 :root {
   --background: #353535;
   --foreground: #ededed;
-  /* --card: #262626; */
-  /* --shadow: #272626; */
   --card: #26262663;
   --shadow: #3b3b3b70;
+  /* --card: #262626; */
+  /* --shadow: #272626; */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #ffffff;
+    --background: #353535;
+    --foreground: #ededed;
+    --card: #26262663;
+    --shadow: #3b3b3b70;
+    /* --background: #ffffff;
     --foreground: #171717;
     --card: #f3f3f3;
-    --shadow: #cccccc91;
+    --shadow: #cccccc91; */
   }
 }
 

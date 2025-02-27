@@ -133,7 +133,7 @@ export default function Home() {
                 </main>
             </div>
 
-            <div className='text-center w-full flex justify-center m-[-10px]'>
+            <div className='text-center w-full flex justify-center mb-[-10px]'>
                 <Image 
                     src="/images/pokemon.gif" 
                     alt="Pokemon" 
