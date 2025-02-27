@@ -7,7 +7,7 @@ import MovieCard from './components/MovieCard';
 import Link from 'next/link';
 
 export default function Home() {
-    const [searchTerm, setSearchTerm] = useState('sholay');
+    const [searchTerm, setSearchTerm] = useState('dragon');
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
