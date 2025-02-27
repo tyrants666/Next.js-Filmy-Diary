@@ -12,14 +12,13 @@ export default function Home() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [backgroundImage, setBackgroundImage] = useState('https://m.media-amazon.com/images/M/MV5BMzgzYjM4NTUtOTlhMS00MTJmLTkxZjgtYWY4NjI1ZWRiNGU4XkEyXkFqcGc@._V1_SX300.jpg');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalResults, setTotalResults] = useState(0);
+    const [hasMorePages, setHasMorePages] = useState(false);
 
-    const handleSearch = async (e) => {
-        if (e) {
-            e.preventDefault();
-        }
+    const fetchMovies = async (page = 1) => {
         setLoading(true);
         setError(null);
-        setMovies([]);
 
         try {
             if (!searchTerm.trim()) {
@@ -34,7 +33,7 @@ export default function Home() {
             if (searchTerm.startsWith('tt') && !isNaN(searchTerm.slice(2))) {
                 apiUrl += `&i=${searchTerm}`;
             } else {
-                apiUrl += `&s=${encodeURIComponent(searchTerm)}`;
+                apiUrl += `&s=${encodeURIComponent(searchTerm)}&page=${page}`;
             }
 
             const response = await fetch(apiUrl);
@@ -50,27 +49,60 @@ export default function Home() {
 
             if (data.Response === 'True') {
                 if (data.Search) {
-                    setMovies(data.Search);
-                    // Set the first movie's poster as the background if available
-                    if (data.Search.length > 0 && data.Search[0].Poster !== "N/A") {
-                        setBackgroundImage(data.Search[0].Poster);
+                    // If it's the first page, replace movies, otherwise append
+                    if (page === 1) {
+                        setMovies(data.Search);
+                        // Set the first movie's poster as the background if available
+                        if (data.Search.length > 0 && data.Search[0].Poster !== "N/A") {
+                            setBackgroundImage(data.Search[0].Poster);
+                        }
+                    } else {
+                        setMovies(prevMovies => [...prevMovies, ...data.Search]);
                     }
+                    
+                    // Update total results count
+                    setTotalResults(parseInt(data.totalResults, 10));
+                    
+                    // Check if there are more pages
+                    const totalPages = Math.ceil(parseInt(data.totalResults, 10) / 10);
+                    setHasMorePages(page < totalPages);
+                    
                 } else {
                     // If searching by IMDb ID, the result is a single movie object, not an array
                     setMovies([data]);
                     if (data.Poster !== "N/A") {
                         setBackgroundImage(data.Poster);
                     }
+                    setHasMorePages(false);
                 }
             } else {
                 setError(data.Error);
+                setHasMorePages(false);
             }
         } catch (err) {
             setError('An error occurred. Please try again.');
             console.error(err);
+            setHasMorePages(false);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSearch = async (e) => {
+        if (e) {
+            e.preventDefault();
+        }
+        
+        // Reset to page 1 when performing a new search
+        setCurrentPage(1);
+        setMovies([]);
+        await fetchMovies(1);
+    };
+
+    const loadMoreMovies = async () => {
+        const nextPage = currentPage + 1;
+        setCurrentPage(nextPage);
+        await fetchMovies(nextPage);
     };
 
     // Handle hover on movie card
@@ -110,12 +142,14 @@ export default function Home() {
                         </button>
                     </form>
 
-                    {loading && <p className="text-center">Loading...</p>}
-                    {error && <p className="text-red-500 text-center">{error}</p>}
+                    {loading && currentPage === 1 && <p className="text-center">Loading...</p>}
+                    {error && <p className="text-center">{error}</p>}
 
                     {movies.length > 0 && (
                         <div className="mt-4">
-                            <h3 className="text-lg mb-2">Search Results</h3>
+                            <h3 className="text-lg mb-2">
+                                Search Results <small className='text-gray-400'>{totalResults > 0 ? `(${movies.length} of ${totalResults})` : ''}</small>
+                            </h3>
                             <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
 
                                 {movies.map((movie) => (
@@ -128,6 +162,18 @@ export default function Home() {
                                 ))}
 
                             </div>
+                            
+                            {hasMorePages && (
+                                <div className="text-center mt-4 mb-6">
+                                    <button 
+                                        onClick={loadMoreMovies} 
+                                        disabled={loading}
+                                        className="bg-white/[.08] hover:bg-white/[.18] py-2 px-6 rounded-lg"
+                                    >
+                                        {loading ? 'Loading...' : 'Load More Movies'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </main>
@@ -148,6 +194,7 @@ export default function Home() {
                     <li><strong>💌 Change Logs</strong></li>
                     <li>🐭 Now On movie click opens IMDB page</li>
                     <li>✨ Background changes based on hovered movie poster</li>
+                    <li>🔄 Added pagination to load more than 10 movies</li>
                 </ol>
                 <div className="flex justify-center gap-6 flex-wrap">
                     <a
