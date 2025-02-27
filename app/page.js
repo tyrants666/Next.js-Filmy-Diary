@@ -82,10 +82,13 @@ export default function Home() {
                             placeholder="Search for a movie (title or IMDb ID)..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className=" bg-white/[.08] text-sm outline-none p-2 px-4 border-none rounded-lg w-full"
+                            className=" bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg w-full"
                         />
-                        <button type="submit" className="bg-gray-800/60 hover:bg-gray-700/60 py-2 px-4 rounded-lg">
-                            Search
+                        {/* <button type="submit" className="bg-gray-800/60 hover:bg-gray-700/60 py-2 px-4 rounded-lg"> */}
+                        <button type="submit" className="bg-white/[.08] hover:bg-white/[.18] py-2 px-4 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" 
+                                class="text-gray-300"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path>
+                            </svg>
                         </button>
                     </form>
 
