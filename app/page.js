@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from 'next/link';
 
 export default function Home() {
-    const [searchTerm, setSearchTerm] = useState('dragon');
+    const [searchTerm, setSearchTerm] = useState('sholay');
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -113,7 +113,7 @@ export default function Home() {
                             placeholder="Search for a movie (title or IMDb ID)..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className=" bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg w-full placeholder-gray-400"
+                            className=" bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg w-full placeholder-gray-300"
                         />
                         <button type="submit" className="bg-white/[.08] hover:bg-white/[.18] py-2 px-4 rounded-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -138,11 +138,11 @@ export default function Home() {
                                         onMouseEnter={() => handleMovieHover(movie.Poster)}
                                         onMouseLeave={() => null} // Optional: reset to default or keep the last hovered image
                                     >
-                                        <span className=''>
+                                        <span className='h-full w-full'>
                                             <img
                                                 src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
                                                 alt={movie.Title}
-                                                className="!select-none shrink-0 undefined rounded-xl overflow-hidden"
+                                                className="h-full w-full object-cover !select-none shrink-0 undefined rounded-xl overflow-hidden"
                                             />
                                         </span>
                                     </a>
