@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from "next/image";
+import BackBlur from './components/BackBlur';
 import Link from 'next/link';
 
 export default function Home() {
@@ -86,21 +87,7 @@ export default function Home() {
     return (
         <div className="min-h-screen flex flex-col relative z-3">
 
-            <div className="blur-3xl absolute h-full w-full -z-50">
-                <span
-                    style={{
-                        backgroundImage: `url(${backgroundImage})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'top',
-                        display: 'block',
-                        height: '100%',
-                        width: '100%',
-                        transition: 'background-image .4s ease'
-                    }}
-                    className=''
-                ></span>
-                <span className="blur-overlay block absolute h-full w-full z-1 top-0 left-0"></span>
-            </div>
+            <BackBlur backgroundImage={backgroundImage}/>
 
             <div className='container mx-auto'>
                 <header className="p-4 m-4 mb-0 rounded-xl text-center">
