@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from 'next/link';
 
 export default function Home() {
-    const [searchTerm, setSearchTerm] = useState('marvel');
+    const [searchTerm, setSearchTerm] = useState('hello');
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -73,7 +73,7 @@ export default function Home() {
         <div className="min-h-screen flex flex-col relative z-3">
             <div className='container mx-auto'>
                 <header className="p-4 m-4 mb-0 rounded-xl text-center">
-                    <h1 className="text-2xl font-bold">💗U👧</h1>
+                    <h1 className="text-2xl">Take care 👧</h1>
                 </header>
                 <main className="flex-grow p-4">
                     <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
