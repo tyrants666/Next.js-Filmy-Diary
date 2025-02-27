@@ -33,8 +33,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased relative`}
       >
+        <img
+          src="https://m.media-amazon.com/images/M/MV5BZDI1NGU2ODAtNzBiNy00MWY5LWIyMGEtZjUxZjUwZmZiNjBlXkEyXkFqcGc@._V1_SX300.jpg"
+          alt="title"
+          className="smoothie absolute object-cover h-full w-full z-1"
+        />
+        <span className="block absolute h-full w-full body-overlay"></span>
         {children}
       </body>
     </html>
