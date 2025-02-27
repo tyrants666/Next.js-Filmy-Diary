@@ -71,50 +71,52 @@ export default function Home() {
 
     return (
         <div className="min-h-screen flex flex-col relative z-3">
-            <header className="p-4 m-4 mb-0 rounded-xl text-center">
-                <h1 className="text-2xl font-bold">💗U👧</h1>
-            </header>
-            <main className="flex-grow p-4">
-                <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
-                    <input
-                        type="text"
-                        placeholder="Search for a movie (title or IMDb ID)..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className=" bg-white/[.08] text-sm outline-none p-2 px-4 border-none rounded-lg w-full"
-                    />
-                    <button type="submit" className="bg-gray-800/60 hover:bg-gray-700/60 py-2 px-4 rounded-lg">
-                        Search
-                    </button>
-                </form>
+            <div className='container mx-auto'>
+                <header className="p-4 m-4 mb-0 rounded-xl text-center">
+                    <h1 className="text-2xl font-bold">💗U👧</h1>
+                </header>
+                <main className="flex-grow p-4">
+                    <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
+                        <input
+                            type="text"
+                            placeholder="Search for a movie (title or IMDb ID)..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className=" bg-white/[.08] text-sm outline-none p-2 px-4 border-none rounded-lg w-full"
+                        />
+                        <button type="submit" className="bg-gray-800/60 hover:bg-gray-700/60 py-2 px-4 rounded-lg">
+                            Search
+                        </button>
+                    </form>
 
-                {loading && <p className="text-center">Loading...</p>}
-                {error && <p className="text-red-500 text-center">{error}</p>}
+                    {loading && <p className="text-center">Loading...</p>}
+                    {error && <p className="text-red-500 text-center">{error}</p>}
 
-                {movies.length > 0 && (
-                    <div className="mt-4">
-                        <h3 className="text-lg mb-2">Search Results</h3>
-                        <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
-                            {movies.map((movie) => (
-                              <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`} target='_blank' 
-                                    className='shadow-custom flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 
-                                    basis-[31.5%] sm:basis-[18.4%] lg:basis-[13.2%] xl:basis-[11.6%] 2xl:basis-[9.3%] max-w-[180px] !select-none'>
-                                      <span className=''>
-                                        <img
-                                            src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
-                                            alt={movie.Title}
-                                            className="!select-none shrink-0 undefined rounded-xl overflow-hidden"
-                                        />
-                                      </span>
-                                      {/* <div className="text-sm mt-1">
-                                        <p>{movie.Title} ({movie.Year})</p>
-                                      </div> */}
-                                </a>
-                            ))}
+                    {movies.length > 0 && (
+                        <div className="mt-4">
+                            <h3 className="text-lg mb-2">Search Results</h3>
+                            <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
+                                {movies.map((movie) => (
+                                <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`} target='_blank' 
+                                        className='shadow-custom flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 
+                                        basis-[31.5%] sm:basis-[18.4%] lg:basis-[13.2%] xl:basis-[11.6%] 2xl:basis-[10.4%] max-w-[180px] !select-none'>
+                                        <span className=''>
+                                            <img
+                                                src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
+                                                alt={movie.Title}
+                                                className="!select-none shrink-0 undefined rounded-xl overflow-hidden"
+                                            />
+                                        </span>
+                                        {/* <div className="text-sm mt-1">
+                                            <p>{movie.Title} ({movie.Year})</p>
+                                        </div> */}
+                                    </a>
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                )}
-            </main>
+                    )}
+                </main>
+            </div>
 
             <footer className="bg-card p-4 text-center">
               <ol className='mb-5'>
