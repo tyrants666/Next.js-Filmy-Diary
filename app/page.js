@@ -70,7 +70,7 @@ export default function Home() {
     }, []); // Empty dependency array means this runs only once
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col relative z-3">
             <header className="bg-card text-white p-4 m-4 mb-0 rounded-xl text-center">
                 <h1 className="text-2xl font-bold">💗U👧</h1>
             </header>
@@ -83,7 +83,7 @@ export default function Home() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="bg-card outline-none p-2 px-4 border-none rounded-lg w-full"
                     />
-                    <button type="submit" className="bg-cyan-800 hover:bg-cyan-700 text-white py-2 px-4 rounded-lg">
+                    <button type="submit" className="bg-gray-800/60 hover:bg-gray-700/60 text-white py-2 px-4 rounded-lg">
                         Search
                     </button>
                 </form>
@@ -97,7 +97,7 @@ export default function Home() {
                         <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
                             {movies.map((movie) => (
                               <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`} target='_blank' 
-                                    className='shadow-custom flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 basis-[31.5%] sm:basis-[23.5%] lg:basis-[19%] xl:basis-[14.28%] 2xl:basis-[11.8%] p-[.3rem] sm:p-2 max-w-[15rem] !select-none'>
+                                    className='shadow-custom flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 basis-[31.5%] sm:basis-[23.5%] lg:basis-[19%] xl:basis-[14.28%] 2xl:basis-[9.6%] max-w-[15rem] !select-none'>
                                       <span className=''>
                                         <img
                                             src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
