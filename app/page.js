@@ -1,4 +1,4 @@
-'use client'; // Add this line at the top
+'use client';
 
 import { useState, useEffect } from 'react';
 import Image from "next/image";
@@ -9,11 +9,11 @@ export default function Home() {
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
-
+    const [backgroundImage, setBackgroundImage] = useState('https://m.media-amazon.com/images/M/MV5BMzgzYjM4NTUtOTlhMS00MTJmLTkxZjgtYWY4NjI1ZWRiNGU4XkEyXkFqcGc@._V1_SX300.jpg');
 
     const handleSearch = async (e) => {
         if (e) {
-          e.preventDefault();
+            e.preventDefault();
         }
         setLoading(true);
         setError(null);
@@ -49,9 +49,16 @@ export default function Home() {
             if (data.Response === 'True') {
                 if (data.Search) {
                     setMovies(data.Search);
+                    // Set the first movie's poster as the background if available
+                    if (data.Search.length > 0 && data.Search[0].Poster !== "N/A") {
+                        setBackgroundImage(data.Search[0].Poster);
+                    }
                 } else {
                     // If searching by IMDb ID, the result is a single movie object, not an array
                     setMovies([data]);
+                    if (data.Poster !== "N/A") {
+                        setBackgroundImage(data.Poster);
+                    }
                 }
             } else {
                 setError(data.Error);
@@ -64,19 +71,26 @@ export default function Home() {
         }
     };
 
-    //This is This is a temporaryuse effect to show the initial result for hello search on page load
+    // Handle hover on movie card
+    const handleMovieHover = (poster) => {
+        if (poster !== "N/A") {
+            setBackgroundImage(poster);
+        }
+    };
+
+    //This is a temporary use effect to show the initial result for hello search on page load
     useEffect(() => {
-      handleSearch(); // Run handleSearch when the component mounts
+        handleSearch(); // Run handleSearch when the component mounts
     }, []); // Empty dependency array means this runs only once
 
     return (
         <div className="min-h-screen flex flex-col relative z-3">
 
-            <div className="blur-3xl absolute h-full w-full -z-1">
+            <div className="blur-3xl absolute h-full w-full -z-50">
                 <img
-                    src="https://m.media-amazon.com/images/M/MV5BMzgzYjM4NTUtOTlhMS00MTJmLTkxZjgtYWY4NjI1ZWRiNGU4XkEyXkFqcGc@._V1_SX300.jpg"
-                    alt="title"
-                    className="smoothie object-cover object-top h-full w-full"
+                    src={backgroundImage}
+                    alt="background"
+                    className="smoothie object-cover object-top h-full w-full transition-all duration-500"
                 />
                 <span className="blur-overlay block absolute h-full w-full z-1 top-0 left-0"></span>
             </div>
@@ -92,11 +106,10 @@ export default function Home() {
                             placeholder="Search for a movie (title or IMDb ID)..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className=" bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg w-full"
+                            className=" bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg w-full placeholder-gray-300"
                         />
-                        {/* <button type="submit" className="bg-gray-800/60 hover:bg-gray-700/60 py-2 px-4 rounded-lg"> */}
                         <button type="submit" className="bg-white/[.08] hover:bg-white/[.18] py-2 px-4 rounded-lg">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" 
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                                 className="text-gray-300"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path>
                             </svg>
                         </button>
@@ -110,9 +123,15 @@ export default function Home() {
                             <h3 className="text-lg mb-2">Search Results</h3>
                             <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
                                 {movies.map((movie) => (
-                                <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`} target='_blank' 
+                                    <a
+                                        key={movie.imdbID}
+                                        href={`https://www.imdb.com/title/${movie.imdbID}/`}
+                                        target='_blank'
                                         className='shadow-custom flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 
-                                        basis-[31.7%] sm:basis-[18.4%] lg:basis-[13.24%] xl:basis-[11.65%] 2xl:basis-[10.4%] max-w-[180px] !select-none'>
+                                    basis-[31.7%] sm:basis-[18.4%] lg:basis-[13.24%] xl:basis-[11.65%] 2xl:basis-[10.4%] max-w-[180px] !select-none'
+                                        onMouseEnter={() => handleMovieHover(movie.Poster)}
+                                        onMouseLeave={() => null} // Optional: reset to default or keep the last hovered image
+                                    >
                                         <span className=''>
                                             <img
                                                 src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
@@ -120,9 +139,6 @@ export default function Home() {
                                                 className="!select-none shrink-0 undefined rounded-xl overflow-hidden"
                                             />
                                         </span>
-                                        {/* <div className="text-sm mt-1">
-                                            <p>{movie.Title} ({movie.Year})</p>
-                                        </div> */}
                                     </a>
                                 ))}
                             </div>
@@ -132,13 +148,13 @@ export default function Home() {
             </div>
 
             <footer className="bg-card p-4 text-center">
-              <ol className='mb-5'>
-                <li><strong>💌 Change Logs</strong></li>
-                <li>✨ height fix</li>
-                <li>✨ Added new fonts</li>
-                <li>🐭 Now On movie click opens IMDB page</li>
-                <li></li>
-              </ol>
+                <ol className='mb-5'>
+                    <li><strong>💌 Change Logs</strong></li>
+                    <li>✨ height fix</li>
+                    <li>✨ Added new fonts</li>
+                    <li>🐭 Now On movie click opens IMDB page</li>
+                    <li>✨ Background changes based on hovered movie poster</li>
+                </ol>
                 <div className="flex justify-center gap-6 flex-wrap">
                     <a
                         className="flex items-center gap-2 hover:underline hover:underline-offset-4"
