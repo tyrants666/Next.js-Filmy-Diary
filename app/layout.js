@@ -26,7 +26,7 @@ const poppins = Poppins({
 
 export const metadata = {
   title: "Filmy Diary",
-  description: "A Savelist diary of your watched movies to share with your friends and families.",
+  description: "Keep a fun movie diary and easily share your watch list with friends and family!",
 };
 
 export default function RootLayout({ children }) {
