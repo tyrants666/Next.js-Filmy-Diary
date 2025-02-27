@@ -71,6 +71,16 @@ export default function Home() {
 
     return (
         <div className="min-h-screen flex flex-col relative z-3">
+
+            <div className="blur-3xl absolute h-full w-full -z-1">
+                <img
+                    src="https://m.media-amazon.com/images/M/MV5BMzgzYjM4NTUtOTlhMS00MTJmLTkxZjgtYWY4NjI1ZWRiNGU4XkEyXkFqcGc@._V1_SX300.jpg"
+                    alt="title"
+                    className="smoothie object-cover object-top h-full w-full"
+                />
+                <span className="blur-overlay block absolute h-full w-full z-1 top-0 left-0"></span>
+            </div>
+
             <div className='container mx-auto'>
                 <header className="p-4 m-4 mb-0 rounded-xl text-center">
                     <h1 className="text-2xl">Take care 👧</h1>
@@ -86,8 +96,8 @@ export default function Home() {
                         />
                         {/* <button type="submit" className="bg-gray-800/60 hover:bg-gray-700/60 py-2 px-4 rounded-lg"> */}
                         <button type="submit" className="bg-white/[.08] hover:bg-white/[.18] py-2 px-4 rounded-lg">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" 
-                                class="text-gray-300"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" 
+                                className="text-gray-300"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path>
                             </svg>
                         </button>
                     </form>
