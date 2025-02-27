@@ -87,11 +87,18 @@ export default function Home() {
         <div className="min-h-screen flex flex-col relative z-3">
 
             <div className="blur-3xl absolute h-full w-full -z-50">
-                <img
-                    src={backgroundImage}
-                    alt="background"
-                    className="smoothie object-cover object-top h-full w-full transition-all duration-500"
-                />
+                <span
+                    style={{
+                        backgroundImage: `url(${backgroundImage})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'top',
+                        display: 'block',
+                        height: '100%',
+                        width: '100%',
+                        transition: 'background-image .4s ease'
+                    }}
+                    className=''
+                ></span>
                 <span className="blur-overlay block absolute h-full w-full z-1 top-0 left-0"></span>
             </div>
 
@@ -106,7 +113,7 @@ export default function Home() {
                             placeholder="Search for a movie (title or IMDb ID)..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className=" bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg w-full placeholder-gray-300"
+                            className=" bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg w-full placeholder-gray-400"
                         />
                         <button type="submit" className="bg-white/[.08] hover:bg-white/[.18] py-2 px-4 rounded-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -131,11 +138,11 @@ export default function Home() {
                                         onMouseEnter={() => handleMovieHover(movie.Poster)}
                                         onMouseLeave={() => null} // Optional: reset to default or keep the last hovered image
                                     >
-                                        <span className='h-full w-full'>
+                                        <span className=''>
                                             <img
                                                 src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
                                                 alt={movie.Title}
-                                                className="h-full w-full object-cover !select-none shrink-0 undefined rounded-xl overflow-hidden"
+                                                className="!select-none shrink-0 undefined rounded-xl overflow-hidden"
                                             />
                                         </span>
                                     </a>
@@ -153,6 +160,7 @@ export default function Home() {
                     <li>✨ Added new fonts</li>
                     <li>🐭 Now On movie click opens IMDB page</li>
                     <li>✨ Background changes based on hovered movie poster</li>
+                    <li>🔄 Updated to use background-image instead of img tag</li>
                 </ol>
                 <div className="flex justify-center gap-6 flex-wrap">
                     <a
