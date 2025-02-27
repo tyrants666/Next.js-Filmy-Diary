@@ -8,7 +8,7 @@
   /* --card: #262626; */
   /* --shadow: #272626; */
   --card: #26262663;
-  --shadow: #3b3b3bb3;
+  --shadow: #3b3b3b70;
 }
 
 @media (prefers-color-scheme: dark) {
