@@ -97,7 +97,8 @@ export default function Home() {
                         <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
                             {movies.map((movie) => (
                               <a key={movie.imdbID} href={`https://www.imdb.com/title/${movie.imdbID}/`} target='_blank' 
-                                    className='shadow-custom flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 basis-[31.5%] sm:basis-[23.5%] lg:basis-[19%] xl:basis-[14.28%] 2xl:basis-[9.3%] max-w-[15rem] !select-none'>
+                                    className='shadow-custom flex flex-col hover:scale-105 rounded-xl overflow-hidden smoothie relative group min-w-0 shrink-0 grow-0 
+                                    basis-[31.5%] sm:basis-[18.4%] lg:basis-[13.2%] xl:basis-[11.6%] 2xl:basis-[9.3%] max-w-[180px] !select-none'>
                                       <span className=''>
                                         <img
                                             src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
