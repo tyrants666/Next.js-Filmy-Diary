@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 const MovieCard = ({ movie, onHover, onLeave }) => {
     return (
@@ -9,12 +10,24 @@ const MovieCard = ({ movie, onHover, onLeave }) => {
             onMouseEnter={onHover}
             onMouseLeave={onLeave}
         >
-            <span className="h-full w-full">
-                <img
-                    src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
-                    alt={movie.Title}
-                    className="h-full w-full object-cover !select-none shrink-0 undefined rounded-xl overflow-hidden"
-                />
+            <span className="h-full w-full flex items-center">
+                { movie.Poster !== 'N/A' ? (
+                    <img
+                        src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
+                        alt={movie.Title}
+                        className="h-full w-full object-cover !select-none shrink-0 undefined rounded-xl overflow-hidden"
+                    />
+                    // <Image
+                    //     src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
+                    //     alt={movie.Title}
+                    //     fill
+                    //     className="object-cover !select-none rounded-xl"
+                    //     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    //     priority={false} // Set to true if optimizing LCP for the first image
+                    // />
+                ) : (
+                    <p className="px-2 text-sm text-center w-full">Poster Not<br/> Available</p>
+                )}
             </span>
         </a>
     );
