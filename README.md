@@ -33,6 +33,8 @@ npm run dev
 ## Tools Used
 
 1. Favicon: [React Icons](https://react-icons.github.io/react-icons/)
+1. Movie API: [OMDB](https://www.omdbapi.com/)
+1. Database: [Supabase](https://supabase.com/)
 1. Code Editor: [VS Code](https://code.visualstudio.com/)
 
 ## License
