@@ -153,6 +153,7 @@ export default function MovieSearch({ onBackgroundChange }) {
                 .from('user_movies')
                 .upsert({
                     user_id: sessionData.session.user.id,
+                    user_email: sessionData.session.user.email,
                     movie_id: movieId,
                     status
                 });
