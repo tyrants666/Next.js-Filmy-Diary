@@ -170,8 +170,7 @@ export default function Home() {
                     <li><strong>💌 Change Logs</strong></li>
                     <li>🔐 Added Google authentication</li>
                     <li>💾 Save movies to your personal collection</li>
-                    <li>🎬 Organize movies as "Watched" or "Currently Watching"</li>
-                    <li>✨ Background changes based on hovered movie poster</li>
+                    <li>🎬 Organize movies as Watched or Currently Watching</li>
                 </ol>
                 <div className="flex justify-center gap-6 flex-wrap">
                     <a
