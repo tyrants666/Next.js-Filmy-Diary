@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 const jost = Jost({
-  subsets: ['latin'], 
+  subsets: ['latin'],
   variable: '--font-jost',
 });
 
