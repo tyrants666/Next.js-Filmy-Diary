@@ -26,6 +26,7 @@ export function AuthProvider({ children }) {
 
             // Create profile if it doesn't exist
             if (!profile) {
+              alert("first")
               // Extract name from metadata - Google provides different keys than expected
               // first_name is in given_name, last_name is in family_name
               const firstName = session.user.user_metadata?.given_name ||
@@ -44,6 +45,7 @@ export function AuthProvider({ children }) {
                   last_name: lastName,
                   avatar_url: session.user.user_metadata?.picture || session.user.user_metadata?.avatar_url,
                   phone: null, // Initialize phone as NULL
+                  total_login: 1  // Initialize total_login counter
                 });
 
               if (error) console.error('Error creating profile:', error);
@@ -59,10 +61,35 @@ export function AuthProvider({ children }) {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // If this is a sign-in event, update the login count
+        if (event === 'SIGNED_IN' && session?.user) {
+          updateLoginCount(session.user.id);
+        }
+        
         setUser(session?.user || null)
         setLoading(false)
       }
     )
+
+    // Function to update login count on sign-in events
+    const updateLoginCount = async (userId) => {
+      // Get current count
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('total_login')
+        .eq('id', userId)
+        .single();
+
+      if (profile) {
+        // Increment the count
+        await supabase
+          .from('profiles')
+          .update({
+            total_login: profile.total_login + 1
+          })
+          .eq('id', userId);
+      }
+    };
 
     return () => {
       subscription.unsubscribe()
