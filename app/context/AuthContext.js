@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
                 .eq('id', session.user.id)
                 .single();
 
-            // Create profile if it doesn't exist
+            // First time Login - Create profile if it doesn't exist
             if (!profile) {
               alert("first")
               // Extract name from metadata - Google provides different keys than expected
@@ -87,7 +87,6 @@ export function AuthProvider({ children }) {
 
       if (profile) {
         // Increment the count
-        alert("incremented")
         await supabase
           .from('profiles')
           .update({

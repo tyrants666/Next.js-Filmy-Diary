@@ -155,6 +155,8 @@ export default function MovieSearch({ onBackgroundChange }) {
                     user_id: sessionData.session.user.id,
                     user_email: sessionData.session.user.email,
                     movie_id: movieId,
+                    movie_imdb_id: movie.imdbID,
+                    movie_name: movie.Title,
                     status
                 });
                 
