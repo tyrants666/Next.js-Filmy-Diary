@@ -161,6 +161,26 @@ export default function MovieSearch({ onBackgroundChange }) {
             if (listError) {
                 throw listError;
             }
+
+            // Update saved_movies count in profiles table
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('saved_movies')
+                .eq('id', sessionData.session.user.id)
+                .single();
+
+            if (profile !== null) {
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({
+                        saved_movies: (profile.saved_movies || 0) + 1
+                    })
+                    .eq('id', sessionData.session.user.id);
+
+                if (updateError) {
+                    console.error('Error updating saved_movies count:', updateError);
+                }
+            }
             
             alert(`Added "${movie.Title}" to your ${status.replace('_', ' ')} list!`);
             
