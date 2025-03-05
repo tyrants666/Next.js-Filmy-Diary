@@ -60,10 +60,15 @@ export function AuthProvider({ children }) {
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        // If this is a sign-in event, update the login count
+      async (event, session) => {
+        // Only update login count on SIGNED_IN event that's not from an initial session
         if (event === 'SIGNED_IN' && session?.user) {
-          updateLoginCount(session.user.id);
+          const { data: existingSession } = await supabase.auth.getSession();
+          // Check if this is a new sign-in rather than an existing session
+          const isNewSignIn = !existingSession?.data?.session?.user;
+          if (isNewSignIn) {
+            updateLoginCount(session.user.id);
+          }
         }
         
         setUser(session?.user || null)
@@ -82,6 +87,7 @@ export function AuthProvider({ children }) {
 
       if (profile) {
         // Increment the count
+        alert("incremented")
         await supabase
           .from('profiles')
           .update({
