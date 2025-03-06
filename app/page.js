@@ -69,7 +69,7 @@ export default function Home() {
                 <header className="py-4 m-4 mb-0 rounded-xl text-center flex justify-between items-center">
                     <h1 className="text-2xl font-bold">Filmy Diary</h1>
                     <div className="flex items-center gap-4">
-                        <span>Welcome, {user.email}</span>
+                        <span>{user.user_metadata?.name?.split(' ')[0] || user.email}</span>
                         <button onClick={signOut} className="bg-white/[.08] hover:bg-white/[.18] py-2 px-4 rounded-lg">
                             Sign Out
                         </button>

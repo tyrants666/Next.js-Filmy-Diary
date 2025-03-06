@@ -25,14 +25,11 @@ export function AuthProvider({ children }) {
                 .single();
 
             // First time Login - Create profile if it doesn't exist
+            {console.log( session.user.user_metadata)}
             if (!profile) {
-              alert("first")
               // Extract name from metadata - Google provides different keys than expected
-              // first_name is in given_name, last_name is in family_name
-              const firstName = session.user.user_metadata?.given_name ||
-                session.user.user_metadata?.name?.split(' ')[0] || '';
-              const lastName = session.user.user_metadata?.family_name ||
-                (session.user.user_metadata?.name?.split(' ').length > 1
+              const firstName = session.user.user_metadata?.name?.split(' ')[0] || '';
+              const lastName = (session.user.user_metadata?.name?.split(' ').length > 1
                   ? session.user.user_metadata?.name?.split(' ').slice(1).join(' ')
                   : '');
 
