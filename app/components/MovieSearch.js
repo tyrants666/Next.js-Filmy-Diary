@@ -12,6 +12,7 @@ export default function MovieSearch({ onBackgroundChange }) {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalResults, setTotalResults] = useState(0);
     const [hasMorePages, setHasMorePages] = useState(false);
+    const [moviesPerPage, setMoviesPerPage] = useState(18);
 
     const fetchMovies = async (page = 1) => {
         setLoadingMovie(true);
@@ -31,7 +32,68 @@ export default function MovieSearch({ onBackgroundChange }) {
             if (searchTerm.startsWith('tt') && !isNaN(searchTerm.slice(2))) {
                 apiUrl += `&i=${searchTerm}`;
             } else {
-                apiUrl += `&s=${encodeURIComponent(searchTerm)}&page=${page}`;
+                // Calculate how many pages we need to fetch to get the desired number of movies
+                const pagesNeeded = Math.ceil(moviesPerPage / 10);
+                let allMovies = [];
+                let totalResultsCount = 0;
+                
+                // Fetch all required pages
+                for (let i = 0; i < pagesNeeded; i++) {
+                    const currentPageUrl = `${apiUrl}&s=${encodeURIComponent(searchTerm)}&page=${page + i}`;
+                    const response = await fetch(currentPageUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.Response === 'True' && data.Search) {
+                        // Only add movies that aren't already in the list
+                        const newMovies = data.Search.filter(movie => 
+                            !allMovies.some(existingMovie => existingMovie.imdbID === movie.imdbID)
+                        );
+                        allMovies = [...allMovies, ...newMovies];
+                        
+                        // Store total results from first call
+                        if (i === 0) {
+                            totalResultsCount = parseInt(data.totalResults, 10);
+                        }
+                        
+                        // If we've reached the total results or got enough movies, break
+                        if (allMovies.length >= moviesPerPage || allMovies.length >= totalResultsCount) {
+                            break;
+                        }
+                    } else {
+                        throw new Error(data.Error || 'Failed to fetch movies');
+                    }
+                }
+                
+                // Trim the array to the exact number of movies requested
+                allMovies = allMovies.slice(0, moviesPerPage);
+                
+                // If it's the first page, replace movies, otherwise append
+                if (page === 1) {
+                    setMovies(allMovies);
+                    if (allMovies.length > 0 && allMovies[0].Poster !== "N/A") {
+                        onBackgroundChange(allMovies[0].Poster);
+                    }
+                } else {
+                    // Filter out any duplicates before appending
+                    const existingIds = new Set(movies.map(m => m.imdbID));
+                    const newMovies = allMovies.filter(movie => !existingIds.has(movie.imdbID));
+                    setMovies(prevMovies => [...prevMovies, ...newMovies]);
+                }
+                
+                // Update total results count
+                setTotalResults(totalResultsCount);
+                
+                // Check if there are more pages
+                const totalPages = Math.ceil(totalResultsCount / 10);
+                setHasMorePages(page + pagesNeeded - 1 < totalPages);
+                
+                setLoadingMovie(false);
+                return;
             }
 
             const response = await fetch(apiUrl);
@@ -95,7 +157,7 @@ export default function MovieSearch({ onBackgroundChange }) {
     };
 
     const loadMoreMovies = async () => {
-        const nextPage = currentPage + 1;
+        const nextPage = currentPage + Math.ceil(moviesPerPage / 10);
         setCurrentPage(nextPage);
         await fetchMovies(nextPage);
     };
@@ -207,6 +269,22 @@ export default function MovieSearch({ onBackgroundChange }) {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg w-full placeholder-gray-300"
                 />
+                <select
+                    value={moviesPerPage}
+                    onChange={(e) => {
+                        setMoviesPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                        setMovies([]);
+                        fetchMovies(1);
+                    }}
+                    className="bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg text-gray-300"
+                >
+                    <option value="10">10 per page</option>
+                    <option value="20">20 per page</option>
+                    <option value="30">30 per page</option>
+                    <option value="50">50 per page</option>
+                    <option value="100">100 per page</option>
+                </select>
                 <button type="submit" className="bg-white/[.08] hover:bg-white/[.18] py-2 px-4 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                         className="text-gray-300"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path>
