@@ -90,7 +90,8 @@ export default function MovieSearch({ onBackgroundChange }) {
                 
                 // Check if there are more pages
                 const totalPages = Math.ceil(totalResultsCount / 10);
-                setHasMorePages(page + pagesNeeded - 1 < totalPages);
+                const currentPageWithOffset = page + (pagesNeeded - 1);
+                setHasMorePages(currentPageWithOffset < totalPages);
                 
                 setLoadingMovie(false);
                 return;
@@ -254,6 +255,15 @@ export default function MovieSearch({ onBackgroundChange }) {
         }
     };
 
+    //Check back again when you implement per page select
+    // const handleMoviesPerPageChange = async (e) => {
+    //     const newValue = Number(e.target.value);
+    //     setMoviesPerPage(newValue);
+    //     setCurrentPage(1);
+    //     setMovies([]);
+    //     await fetchMovies(1);
+    // };
+
     // This effect runs the initial search when component mounts
     useEffect(() => {
         handleSearch();
@@ -269,22 +279,17 @@ export default function MovieSearch({ onBackgroundChange }) {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg w-full placeholder-gray-300"
                 />
-                <select
+                {/* <select
                     value={moviesPerPage}
-                    onChange={(e) => {
-                        setMoviesPerPage(Number(e.target.value));
-                        setCurrentPage(1);
-                        setMovies([]);
-                        fetchMovies(1);
-                    }}
+                    onChange={handleMoviesPerPageChange}
                     className="bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg text-gray-300"
                 >
-                    <option value="10">10 per page</option>
-                    <option value="20">20 per page</option>
+                    <option value="9">9 per page</option>
+                    <option value="18">18 per page</option>
                     <option value="30">30 per page</option>
                     <option value="50">50 per page</option>
                     <option value="100">100 per page</option>
-                </select>
+                </select> */}
                 <button type="submit" className="bg-white/[.08] hover:bg-white/[.18] py-2 px-4 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                         className="text-gray-300"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path>
