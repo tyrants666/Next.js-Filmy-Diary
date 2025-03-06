@@ -77,7 +77,7 @@ export default function Home() {
                 </header>
                 <main className="flex-grow p-4">
                     {/* Search section */}
-                    <MovieSearch onBackgroundChange={setBackgroundImage} />
+                    <MovieSearch onBackgroundChange={setBackgroundImage} savedMovies={savedMovies} />
                     
                     {/* Saved movies section */}
                     {loadingSavedMovies ? (

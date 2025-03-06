@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import MovieCard from './MovieCard';
 
-export default function MovieSearch({ onBackgroundChange }) {
+export default function MovieSearch({ onBackgroundChange, savedMovies = [] }) {
     const [searchTerm, setSearchTerm] = useState('dragon');
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
@@ -13,6 +13,13 @@ export default function MovieSearch({ onBackgroundChange }) {
     const [totalResults, setTotalResults] = useState(0);
     const [hasMorePages, setHasMorePages] = useState(false);
     const [moviesPerPage, setMoviesPerPage] = useState(18);
+
+    // Create a Set of watched movie IDs for O(1) lookup
+    const watchedMovies = new Set(
+        savedMovies
+            .filter(item => item.status === 'watched')
+            .map(item => item.movies.movie_id)
+    );
 
     const fetchMovies = async (page = 1) => {
         setLoadingMovie(true);
@@ -264,6 +271,29 @@ export default function MovieSearch({ onBackgroundChange }) {
     //     await fetchMovies(1);
     // };
 
+    // Fetch user's watched movies
+    const fetchWatchedMovies = async () => {
+        try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            
+            if (!sessionData.session) return;
+
+            const { data, error } = await supabase
+                .from('user_movies')
+                .select('movie_imdb_id')
+                .eq('user_id', sessionData.session.user.id)
+                .eq('status', 'watched');
+
+            if (error) throw error;
+
+            // Create a Set of watched movie IDs for O(1) lookup
+            const watchedSet = new Set(data.map(item => item.movie_imdb_id));
+            setWatchedMovies(watchedSet);
+        } catch (error) {
+            console.error('Error fetching watched movies:', error);
+        }
+    };
+
     // This effect runs the initial search when component mounts
     useEffect(() => {
         handleSearch();
@@ -307,15 +337,15 @@ export default function MovieSearch({ onBackgroundChange }) {
                     </h3>
                     <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
                         {movies.map((movie) => (
-                                <MovieCard
-                                    key={movie.imdbID}
-                                    movie={movie}
-                                    onHover={() => handleMovieHover(movie.Poster)}
-                                    onLeave={() => null}
-                                    onClickWatched={() => addMovieToList(movie, 'watched')}
-                                    onClickWatching={() => addMovieToList(movie, 'watching')}
-                                />
-                                
+                            <MovieCard
+                                key={movie.imdbID}
+                                movie={movie}
+                                onHover={() => handleMovieHover(movie.Poster)}
+                                onLeave={() => null}
+                                onClickWatched={() => addMovieToList(movie, 'watched')}
+                                onClickWatching={() => addMovieToList(movie, 'watching')}
+                                watched={watchedMovies.has(movie.imdbID)}
+                            />
                         ))}
                     </div>
                     
