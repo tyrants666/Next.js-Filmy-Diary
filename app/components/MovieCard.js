@@ -31,13 +31,13 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching })
             <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm p-2 rounded-b-md opacity-0 group-hover:opacity-100 transition-opacity flex justify-around">
                 <button
                     onClick={onClickWatched}
-                    className="text-xs px-2 py-1 bg-green-700/50 hover:bg-green-700 rounded"
+                    className="text-xs px-2 py-1 bg-white/10 hover:bg-white/20 rounded transition-colors"
                 >
                     Watched
                 </button>
                 <button
                     onClick={onClickWatching}
-                    className="text-xs px-2 py-1 bg-blue-700/50 hover:bg-blue-700 rounded"
+                    className="text-xs px-2 py-1 bg-white/10 hover:bg-white/20 rounded transition-colors"
                 >
                     Watching
                 </button>
