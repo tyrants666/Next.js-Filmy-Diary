@@ -17,22 +17,23 @@ export function AuthProvider({ children }) {
 
         //Add Authenticated user info to Profiles column
         if (session?.user) {
+          console.log("%cSession User Details Below 👇",'color: lightgreen;');
+            console.log(session.user);
             // Check if profile exists
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('id')
-                .eq('id', session.user.id)
+                .select('user_email')
+                .eq('user_email', session.user.email)
                 .single();
 
             // First time Login - Create profile if it doesn't exist
-            {console.log( session.user.user_metadata)}
             if (!profile) {
               // Extract name from metadata - Google provides different keys than expected
               const firstName = session.user.user_metadata?.name?.split(' ')[0] || '';
               const lastName = (session.user.user_metadata?.name?.split(' ').length > 1
                   ? session.user.user_metadata?.name?.split(' ').slice(1).join(' ')
                   : '');
-
+                  
               const { error } = await supabase
                 .from('profiles')
                 .insert({
@@ -45,7 +46,9 @@ export function AuthProvider({ children }) {
                   total_login: 1  // Initialize total_login counter
                 });
 
-              if (error) console.error('Error creating profile:', error);
+              if (error) console.error('Filmy Diary - Error creating profile:', error);
+            }else{
+              console.log("%cProfile already exists in the database", "color: lightgreen;");
             }
         }
 
