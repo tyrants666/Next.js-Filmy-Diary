@@ -3,177 +3,153 @@
 import { useState, useEffect } from 'react';
 import Image from "next/image";
 import BackBlur from './components/BackBlur';
-import MovieCard from './components/MovieCard';
-import Link from 'next/link';
+import MovieSearch from './components/MovieSearch';
+import { useRouter } from 'next/navigation'
+import { useAuth } from './context/AuthContext'
+import { supabase } from './lib/supabaseClient';
 
 export default function Home() {
-    const [searchTerm, setSearchTerm] = useState('dragon');
-    const [movies, setMovies] = useState([]);
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [backgroundImage, setBackgroundImage] = useState('https://m.media-amazon.com/images/M/MV5BMzgzYjM4NTUtOTlhMS00MTJmLTkxZjgtYWY4NjI1ZWRiNGU4XkEyXkFqcGc@._V1_SX300.jpg');
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalResults, setTotalResults] = useState(0);
-    const [hasMorePages, setHasMorePages] = useState(false);
+    const [backgroundImage, setBackgroundImage] = useState('http://localhost:3000/_next/image?url=https%3A%2F%2Fm.media-amazon.com%2Fimages%2FM%2FMV5BMWM1YmJmYWMtMDM1Ni00ZGM2LTkxODYtOTU1ZjA4MTFkMDM1XkEyXkFqcGc%40._V1_SX300.jpg&w=640&q=75');
+    const [savedMovies, setSavedMovies] = useState([]);
+    const [loadingSavedMovies, setLoadingSavedMovies] = useState(false);
+    const { user, loading, signOut } = useAuth()
+    const router = useRouter()
 
-    const fetchMovies = async (page = 1) => {
-        setLoading(true);
-        setError(null);
-
-        try {
-            if (!searchTerm.trim()) {
-                setError('Please enter a search term.');
-                setLoading(false);
-                return;
-            }
-
-            let apiUrl = `https://www.omdbapi.com/?apikey=${process.env.NEXT_PUBLIC_OMDB_API_KEY}`;
-
-            // Check if the search term looks like an IMDb ID (starts with "tt" followed by numbers)
-            if (searchTerm.startsWith('tt') && !isNaN(searchTerm.slice(2))) {
-                apiUrl += `&i=${searchTerm}`;
-            } else {
-                apiUrl += `&s=${encodeURIComponent(searchTerm)}&page=${page}`;
-            }
-
-            const response = await fetch(apiUrl);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            //Console list of resulted data
-            console.log(data);
-
-            if (data.Response === 'True') {
-                if (data.Search) {
-                    // If it's the first page, replace movies, otherwise append
-                    if (page === 1) {
-                        setMovies(data.Search);
-                        // Set the first movie's poster as the background if available
-                        if (data.Search.length > 0 && data.Search[0].Poster !== "N/A") {
-                            setBackgroundImage(data.Search[0].Poster);
-                        }
-                    } else {
-                        setMovies(prevMovies => [...prevMovies, ...data.Search]);
-                    }
-                    
-                    // Update total results count
-                    setTotalResults(parseInt(data.totalResults, 10));
-                    
-                    // Check if there are more pages
-                    const totalPages = Math.ceil(parseInt(data.totalResults, 10) / 10);
-                    setHasMorePages(page < totalPages);
-                    
-                } else {
-                    // If searching by IMDb ID, the result is a single movie object, not an array
-                    setMovies([data]);
-                    if (data.Poster !== "N/A") {
-                        setBackgroundImage(data.Poster);
-                    }
-                    setHasMorePages(false);
-                }
-            } else {
-                setError(data.Error);
-                setHasMorePages(false);
-            }
-        } catch (err) {
-            setError('An error occurred. Please try again.');
-            console.error(err);
-            setHasMorePages(false);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSearch = async (e) => {
-        if (e) {
-            e.preventDefault();
-        }
+    // Fetch user's saved movies
+    const fetchSavedMovies = async () => {
+        if (!user) return;
         
-        // Reset to page 1 when performing a new search
-        setCurrentPage(1);
-        setMovies([]);
-        await fetchMovies(1);
-    };
-
-    const loadMoreMovies = async () => {
-        const nextPage = currentPage + 1;
-        setCurrentPage(nextPage);
-        await fetchMovies(nextPage);
-    };
-
-    // Handle hover on movie card
-    const handleMovieHover = (poster) => {
-        if (poster !== "N/A") {
-            setBackgroundImage(poster);
+        setLoadingSavedMovies(true);
+        try {
+            const { data, error } = await supabase
+                .from('user_movies')
+                .select(`
+                    id,
+                    status,
+                    movies (
+                        id,
+                        movie_id,
+                        title,
+                        poster,
+                        year
+                    )
+                `)
+                .eq('user_id', user.id);
+                
+            if (error) throw error;
+            setSavedMovies(data || []);
+        } catch (error) {
+            console.error('Error fetching saved movies:', error);
+        } finally {
+            setLoadingSavedMovies(false);
         }
     };
 
-    //This is a temporary use effect to show the initial result for hello search on page load
     useEffect(() => {
-        handleSearch(); // Run handleSearch when the component mounts
-    }, []); // Empty dependency array means this runs only once
+        if (!loading && !user) {
+            router.push('/login')
+        } else if (user) {
+            fetchSavedMovies();
+        }
+    }, [user, loading, router]);
+
+    if (loading) {
+        return <div>Loading...</div>
+    }
+
+    if (!user) {
+        return null
+    }
 
     return (
         <div className="min-h-screen flex flex-col relative z-3">
-
             <BackBlur backgroundImage={backgroundImage}/>
 
             <div className='container mx-auto'>
-                <header className="p-4 m-4 mb-0 rounded-xl text-center">
-                    <h1 className="text-2xl">kammo Ji! 🌼</h1>
+                <header className="py-4 m-4 mb-0 rounded-xl text-center flex justify-between items-center">
+                    <h1 className="text-2xl font-bold">Filmy Diary</h1>
+                    <div className="flex items-center gap-4">
+                        <span>{user.user_metadata?.name?.split(' ')[0] || user.email}</span>
+                        <button onClick={signOut} className="bg-white/[.08] hover:bg-white/[.18] py-2 px-4 rounded-lg">
+                            Sign Out
+                        </button>
+                    </div>
                 </header>
                 <main className="flex-grow p-4">
-                    <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
-                        <input
-                            type="text"
-                            placeholder="Search for a movie (title or IMDb ID)..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className=" bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg w-full placeholder-gray-300"
-                        />
-                        <button type="submit" className="bg-white/[.08] hover:bg-white/[.18] py-2 px-4 rounded-lg">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                className="text-gray-300"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path>
-                            </svg>
-                        </button>
-                    </form>
-
-                    {loading && currentPage === 1 && <p className="text-center">Loading...</p>}
-                    {error && <p className="text-center">{error}</p>}
-
-                    {movies.length > 0 && (
-                        <div className="mt-4">
-                            <h3 className="text-lg mb-2">
-                                Search Results <small className='text-gray-400'>{totalResults > 0 ? `(${movies.length} of ${totalResults})` : ''}</small>
-                            </h3>
-                            <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
-
-                                {movies.map((movie) => (
-                                    <MovieCard
-                                        key={movie.imdbID}
-                                        movie={movie}
-                                        onHover={() => handleMovieHover(movie.Poster)}
-                                        onLeave={() => null}
-                                    />
-                                ))}
-
-                            </div>
+                    {/* Search section */}
+                    <MovieSearch onBackgroundChange={setBackgroundImage} savedMovies={savedMovies} />
+                    
+                    {/* Saved movies section */}
+                    {loadingSavedMovies ? (
+                        <p className="text-center mt-8">Loading your saved movies...</p>
+                    ) : savedMovies.length > 0 ? (
+                        <div className="mt-8">
+                            <h2 className="text-xl font-bold mb-4">Your Movie Collections</h2>
                             
-                            {hasMorePages && (
-                                <div className="text-center mt-4 mb-6">
-                                    <button 
-                                        onClick={loadMoreMovies} 
-                                        disabled={loading}
-                                        className="bg-white/[.08] hover:bg-white/[.18] py-2 px-6 rounded-lg"
-                                    >
-                                        {loading ? 'Loading...' : 'Load More Movies'}
-                                    </button>
+                            {/* Watched movies */}
+                            {savedMovies.some(item => item.status === 'watched') && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-medium mb-2">Watched Movies</h3>
+                                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                                        {savedMovies
+                                            .filter(item => item.status === 'watched')
+                                            .map(item => (
+                                                <div 
+                                                    key={item.id}
+                                                    className="relative"
+                                                    onMouseEnter={() => setBackgroundImage(item.movies.poster)}
+                                                >
+                                                    <div className="w-32 h-48 rounded-md overflow-hidden">
+                                                        <img 
+                                                            src={item.movies.poster} 
+                                                            alt={item.movies.title}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                    <div className="absolute top-0 right-0 bg-green-600 text-white text-xs px-1 rounded-bl">
+                                                        Watched
+                                                    </div>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
                                 </div>
                             )}
+                            
+                            {/* Currently watching movies */}
+                            {savedMovies.some(item => item.status === 'watching') && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-medium mb-2">Currently Watching</h3>
+                                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                                        {savedMovies
+                                            .filter(item => item.status === 'watching')
+                                            .map(item => (
+                                                <div 
+                                                    key={item.id}
+                                                    className="relative"
+                                                    onMouseEnter={() => setBackgroundImage(item.movies.poster)}
+                                                >
+                                                    <div className="w-32 h-48 rounded-md overflow-hidden">
+                                                        <img 
+                                                            src={item.movies.poster} 
+                                                            alt={item.movies.title}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                    <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs px-1 rounded-bl">
+                                                        Watching
+                                                    </div>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="text-center mt-8 p-6 bg-white/[.08] rounded-lg">
+                            <p>You haven't saved any movies yet.</p>
+                            <p className="mt-2 text-gray-400">Search for movies and add them to your collection!</p>
                         </div>
                     )}
                 </main>
@@ -185,16 +161,16 @@ export default function Home() {
                     alt="Pokemon" 
                     width={100} 
                     height={100} 
-                    priority // Ensures it's loaded quickly
+                    priority
                 />
             </div>
 
             <footer className="bg-card p-4 text-center">
                 <ol className='mb-5'>
                     <li><strong>💌 Change Logs</strong></li>
-                    <li>🐭 Now On movie click opens IMDB page</li>
-                    <li>✨ Background changes based on hovered movie poster</li>
-                    <li>🔄 Added pagination to load more than 10 movies</li>
+                    <li>🔐 Added Google authentication</li>
+                    <li>💾 Save movies to your personal collection</li>
+                    <li>🎬 Organize movies as Watched or Currently Watching</li>
                 </ol>
                 <div className="flex justify-center gap-6 flex-wrap">
                     <a

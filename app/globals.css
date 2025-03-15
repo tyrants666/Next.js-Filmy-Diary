@@ -6,7 +6,8 @@
   --background: #353535;
   --foreground: #ededed;
   --card: #26262663;
-  --shadow: #3b3b3b70;
+  --shadow: #3b3b3b3d;
+  /* --shadow: #3b3b3b70; */
   /* --card: #262626; */
   /* --shadow: #272626; */
 }
