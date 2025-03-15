@@ -22,9 +22,14 @@ export function AuthProvider({ children }) {
             // Check if profile exists
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('user_email')
-                .eq('user_email', session.user.email)
+                .select('id')
+                .eq('id', session.user.id)
                 .single();
+            // const { data: profile } = await supabase
+            //     .from('profiles')
+            //     .select('user_email')
+            //     .eq('user_email', session.user.email)
+            //     .single();
 
             // First time Login - Create profile if it doesn't exist
             if (!profile) {
