@@ -71,7 +71,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, w
                 )}
             </a>
 
-            <a className="px-2 pb-2 flex w-full flex-col gap-1" href="{`https://www.imdb.com/title/${movie.imdbID}/`}">
+            <a className="px-2 pb-2 flex w-full flex-col gap-1" href={`https://www.imdb.com/title/${movie.imdbID}/`}>
                 <div className="flex text-xs text-gray-300 justify-between">
                     <span className="uppercase">{movie.Type}</span><span>{movie.Year.replace(/\D/g, '')}</span>
                 </div>
