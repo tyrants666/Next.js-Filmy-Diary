@@ -54,7 +54,7 @@ export default function Home() {
     }, [user, loading, router]);
 
     if (loading) {
-        return <div>Loading...</div>
+        return <div className="min-h-screen flex items-center justify-center">Please wait while Mr Babu Rao fixes his dhoti...</div>
     }
 
     if (!user) {
@@ -77,9 +77,15 @@ export default function Home() {
                 </header>
                 <main className="flex-grow p-4">
                     {/* Search section */}
-                    <MovieSearch onBackgroundChange={setBackgroundImage} savedMovies={savedMovies} />
+                    <MovieSearch 
+                        onBackgroundChange={setBackgroundImage} 
+                        savedMovies={savedMovies} 
+                        fetchSavedMovies={fetchSavedMovies}
+                    />
                     
-                    {/* Saved movies section */}
+                    {/* ======================================== Saved movies section ======================================== */}
+                    {/* ======================================== Saved movies section ======================================== */}
+                    
                     {loadingSavedMovies ? (
                         <p className="text-center mt-8">Loading your saved movies...</p>
                     ) : savedMovies.length > 0 ? (
@@ -96,7 +102,7 @@ export default function Home() {
                                             .map(item => (
                                                 <div 
                                                     key={item.id}
-                                                    className="relative"
+                                                    className="relative overflow-hidden rounded-xl"
                                                     onMouseEnter={() => setBackgroundImage(item.movies.poster)}
                                                 >
                                                     <div className="w-32 h-48 rounded-md overflow-hidden">
@@ -126,7 +132,7 @@ export default function Home() {
                                             .map(item => (
                                                 <div 
                                                     key={item.id}
-                                                    className="relative"
+                                                    className="relative overflow-hidden rounded-xl"
                                                     onMouseEnter={() => setBackgroundImage(item.movies.poster)}
                                                 >
                                                     <div className="w-32 h-48 rounded-md overflow-hidden">
@@ -172,7 +178,7 @@ export default function Home() {
                     <li>💾 Save movies to your personal collection</li>
                     <li>🎬 Organize movies as Watched or Currently Watching</li>
                 </ol>
-                <div className="flex justify-center gap-6 flex-wrap">
+                {/* <div className="flex justify-center gap-6 flex-wrap">
                     <a
                         className="flex items-center gap-2 hover:underline hover:underline-offset-4"
                         href="/home"
@@ -182,7 +188,7 @@ export default function Home() {
                         <Image aria-hidden src="/file.svg" alt="File icon" width={16} height={16} />
                         Next.JS Home
                     </a>
-                </div>
+                </div> */}
             </footer>
         </div>
     );

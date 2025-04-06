@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import MovieCard from './MovieCard';
 
-export default function MovieSearch({ onBackgroundChange, savedMovies = [] }) {
+export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetchSavedMovies }) {
     const [searchTerm, setSearchTerm] = useState('dragon');
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
@@ -181,6 +181,7 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [] }) {
     const addMovieToList = async (movie, status) => {
         try {
             const { data: sessionData } = await supabase.auth.getSession();
+            alert('Bugfix watched movie doesnt enters here');
             
             if (!sessionData.session) {
                 alert('You need to be logged in to save movies');
@@ -252,6 +253,11 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [] }) {
                 if (updateError) {
                     console.error('Error updating saved_movies count:', updateError);
                 }
+            }
+
+             // Call the callback to refresh the parent's savedMovies list
+            if (fetchSavedMovies) {
+                await fetchSavedMovies();
             }
             
             alert(`Added "${movie.Title}" to your ${status.replace('_', ' ')} list!`);
