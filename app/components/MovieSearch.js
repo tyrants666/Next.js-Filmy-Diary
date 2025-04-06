@@ -336,11 +336,41 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
             {loadingMovie && currentPage === 1 && <p className="text-center">Loading...</p>}
             {error && <p className="text-center">{error}</p>}
 
-            {movies.length > 0 && (
+            {movies.length > 0 && ( 
                 <div className="mt-4">
-                    <h3 className="text-lg mb-2">
-                        Search Results <small className='text-gray-400'>{totalResults > 0 ? `(${movies.length} of ${totalResults})` : ''}</small>
-                    </h3>
+                    {/* ======================================== Search results section ======================================== */}
+                    {/* ======================================== Search results section ======================================== */}
+
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-lg mb-2">
+                            Search Results <small className='text-gray-400'>{totalResults > 0 ? `(${movies.length} of ${totalResults})` : ''}</small>
+                        </h3>
+                        <h3 className="gap-[7px] text-lg mb-2 flex">
+                            <div className="flex items-center gap-2  text-sm">
+                                {/* <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <circle cx="12" cy="12" r="3" className="fill-gray-400"/>
+                                </svg> */}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse">
+                                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
+                                    <polyline points="17 2 12 7 7 2"/>
+                                    {/* <line x1="7" y1="12" x2="17" y2="12"/>
+                                    <line x1="7" y1="15" x2="17" y2="15"/>
+                                    <line x1="7" y1="18" x2="17" y2="18"/> */}
+                                </svg>
+                            </div>
+                            <span className='text-sm'>How to Train Your Dragon 2</span>
+                            {/* {savedMovies.filter(m => m.status === 'watching').map(movie => (
+                                <span key={movie.id} className="text-sm">
+                                    {movie.movies.title}
+                                </span>
+                            ))} */}
+                        </h3>
+                    </div>
+
+                    {/* ======================================== Movie cards section ======================================== */}
+                    {/* ======================================== Movie cards section ======================================== */}
+
                     <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
                         {movies.map((movie) => (
                             <MovieCard
