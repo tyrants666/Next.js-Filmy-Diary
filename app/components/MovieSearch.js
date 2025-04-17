@@ -13,13 +13,17 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
     const [totalResults, setTotalResults] = useState(0);
     const [hasMorePages, setHasMorePages] = useState(false);
     const [moviesPerPage, setMoviesPerPage] = useState(18);
+    const [watchedMovies, setWatchedMovies] = useState(new Set());
 
     // Create a Set of watched movie IDs for O(1) lookup
-    const watchedMovies = new Set(
-        savedMovies
-            .filter(item => item.status === 'watched')
-            .map(item => item.movies.movie_id)
-    );
+    useEffect(() => {
+        const watchedSet = new Set(
+            savedMovies
+                .filter(item => item.status === 'watched')
+                .map(item => item.movies.movie_id)
+        );
+        setWatchedMovies(watchedSet);
+    }, [savedMovies]);
 
     const fetchMovies = async (page = 1) => {
         setLoadingMovie(true);
@@ -268,6 +272,71 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
         }
     };
 
+    // Remove movie from watched list
+    const removeWatchedStatus = async (movie) => {
+        try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            
+            if (!sessionData.session) {
+                alert('You need to be logged in to remove movies');
+                return;
+            }
+
+            // Delete the movie from user_movies
+            const { error: deleteError } = await supabase
+                .from('user_movies')
+                .delete()
+                .eq('user_id', sessionData.session.user.id)
+                .eq('movie_imdb_id', movie.imdbID)
+                .eq('status', 'watched');
+
+            if (deleteError) {
+                throw deleteError;
+            }
+
+            // Update saved_movies count in profiles table
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('saved_movies')
+                .eq('id', sessionData.session.user.id)
+                .single();
+
+            if (profile !== null) {
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({
+                        saved_movies: Math.max(0, (profile.saved_movies || 0) - 1)
+                    })
+                    .eq('id', sessionData.session.user.id);
+
+                if (updateError) {
+                    console.error('Error updating saved_movies count:', updateError);
+                }
+            }
+
+            // Update the watchedMovies set
+            setWatchedMovies(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(movie.imdbID);
+                return newSet;
+            });
+
+            // Call the callback to refresh the parent's savedMovies list
+            if (fetchSavedMovies) {
+                await fetchSavedMovies();
+            }
+
+            // Refresh the current search results to ensure UI is in sync
+            await fetchMovies(currentPage);
+
+            alert(`Removed "${movie.Title}" from your watched list!`);
+            
+        } catch (error) {
+            console.error('Error removing movie:', error);
+            alert('Failed to remove movie. Please try again.');
+        }
+    };
+
     //Check back again when you implement per page select
     // const handleMoviesPerPageChange = async (e) => {
     //     const newValue = Number(e.target.value);
@@ -380,6 +449,7 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
                                 onLeave={() => null}
                                 onClickWatched={() => addMovieToList(movie, 'watched')}
                                 onClickWatching={() => addMovieToList(movie, 'watching')}
+                                onRemoveWatched={() => removeWatchedStatus(movie)}
                                 watched={watchedMovies.has(movie.imdbID)}
                             />
                         ))}

@@ -37,7 +37,14 @@ export default function Home() {
                 .eq('user_id', user.id);
                 
             if (error) throw error;
+            
+            // Update the savedMovies state
             setSavedMovies(data || []);
+            
+            // Force a re-render of the MovieSearch component
+            // const event = new Event('savedMoviesUpdated');
+            // window.dispatchEvent(event);
+            
         } catch (error) {
             console.error('Error fetching saved movies:', error);
         } finally {
