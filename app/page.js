@@ -176,7 +176,7 @@ export default function Home() {
                         </div>
                     ) : (
                         <div className="text-center mt-8 p-6 bg-white/[.08] rounded-lg">
-                            <p>You haven't saved any movies yet.</p>
+                            <p>You haven&apos;t saved any movies yet.</p>
                             <p className="mt-2 text-gray-400">Search for movies and add them to your collection!</p>
                         </div>
                     )}

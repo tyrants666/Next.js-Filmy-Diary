@@ -185,7 +185,6 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
     const addMovieToList = async (movie, status) => {
         try {
             const { data: sessionData } = await supabase.auth.getSession();
-            alert('Bugfix watched movie doesnt enters here');
             
             if (!sessionData.session) {
                 alert('You need to be logged in to save movies');
