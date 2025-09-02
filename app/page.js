@@ -181,7 +181,7 @@ export default function Home() {
                 </main>
             </div>
 
-            <div className='text-center w-full flex justify-center mb-[-10px]'>
+            <div className='text-center w-full flex justify-center py-6'>
                 <Image 
                     src="/images/pokemon.gif" 
                     alt="Pokemon" 
@@ -190,26 +190,6 @@ export default function Home() {
                     priority
                 />
             </div>
-
-            <footer className="bg-card p-4 text-center">
-                <ol className='mb-5'>
-                    <li><strong>💌 Change Logs</strong></li>
-                    <li>🔐 Added Google authentication</li>
-                    <li>💾 Save movies to your personal collection</li>
-                    <li>🎬 Organize movies as Watched or Currently Watching</li>
-                </ol>
-                {/* <div className="flex justify-center gap-6 flex-wrap">
-                    <a
-                        className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-                        href="/home"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        <Image aria-hidden src="/file.svg" alt="File icon" width={16} height={16} />
-                        Next.JS Home
-                    </a>
-                </div> */}
-            </footer>
         </div>
     );
 }
