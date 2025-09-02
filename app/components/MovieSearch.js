@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import MovieCard from './MovieCard';
 
-export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetchSavedMovies }) {
+export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
     const [searchTerm, setSearchTerm] = useState('dragon');
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
@@ -91,9 +91,6 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
                     // Limit initial load to moviesPerPage (18 movies)
                     transformedMovies = transformedMovies.slice(0, moviesPerPage);
                     setMovies(transformedMovies);
-                    if (transformedMovies.length > 0 && transformedMovies[0].Poster !== "N/A") {
-                        onBackgroundChange(transformedMovies[0].Poster);
-                    }
                 } else {
                     // Filter out any duplicates before appending
                     const existingIds = new Set(movies.map(m => m.imdbID));
@@ -139,12 +136,7 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
         await fetchMovies(nextPage);
     };
 
-    // Handle hover on movie card
-    const handleMovieHover = (poster) => {
-        if (poster !== "N/A") {
-            onBackgroundChange(poster);
-        }
-    };
+
     
     // Add movie to user's list
     const addMovieToList = async (movie, status) => {
@@ -349,7 +341,7 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
                     placeholder="Search for a movie..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg w-full placeholder-gray-300"
+                    className="bg-gray-100 outline-none p-2 px-4 border border-gray-300 rounded-lg w-full placeholder-gray-500 text-black"
                 />
                 {/* <select
                     value={moviesPerPage}
@@ -362,9 +354,9 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
                     <option value="50">50 per page</option>
                     <option value="100">100 per page</option>
                 </select> */}
-                <button type="submit" className="bg-white/[.08] hover:bg-white/[.18] py-2 px-4 rounded-lg">
+                <button type="submit" className="bg-gray-200 hover:bg-gray-300 text-black py-2 px-4 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                        className="text-gray-300"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path>
+                        className="text-black"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path>
                     </svg>
                 </button>
             </form>
@@ -379,21 +371,21 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
 
                     <div className="flex justify-between items-center">
                         <h3 className="text-lg mb-2">
-                            Search Results <small className='text-gray-400'>{totalResults > 0 ? `(${movies.length} of ${totalResults})` : ''}</small>
+                            Search Results <small className='text-gray-600'>{totalResults > 0 ? `(${movies.length} of ${totalResults})` : ''}</small>
                         </h3>
                         <h3 className="gap-[7px] text-lg mb-2 flex">
                             <div className="flex items-center gap-2  text-sm">
-                                {/* <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse">
                                     <circle cx="12" cy="12" r="10"/>
                                     <circle cx="12" cy="12" r="3" className="fill-gray-400"/>
-                                </svg> */}
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse">
+                                </svg>
+                                {/* <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse">
                                     <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
                                     <polyline points="17 2 12 7 7 2"/>
-                                    {/* <line x1="7" y1="12" x2="17" y2="12"/>
+                                    <line x1="7" y1="12" x2="17" y2="12"/>
                                     <line x1="7" y1="15" x2="17" y2="15"/>
-                                    <line x1="7" y1="18" x2="17" y2="18"/> */}
-                                </svg>
+                                    <line x1="7" y1="18" x2="17" y2="18"/>
+                                </svg> */}
                             </div>
                             <span className='text-sm'>How to Train Your Dragon 2</span>
                             {/* {savedMovies.filter(m => m.status === 'watching').map(movie => (
@@ -412,7 +404,7 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
                             <MovieCard
                                 key={movie.imdbID}
                                 movie={movie}
-                                onHover={() => handleMovieHover(movie.Poster)}
+                                onHover={() => null}
                                 onLeave={() => null}
                                 onClickWatched={() => addMovieToList(movie, 'watched')}
                                 onClickWatching={() => addMovieToList(movie, 'watching')}
@@ -427,7 +419,7 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
                             <button 
                                 onClick={loadMoreMovies} 
                                 disabled={loadingMovie}
-                                className="bg-white/[.08] hover:bg-white/[.18] py-2 px-6 rounded-lg"
+                                className="bg-gray-200 hover:bg-gray-300 text-black py-2 px-6 rounded-lg"
                             >
                                 {loadingMovie ? 'Loading...' : 'Load More Movies'}
                             </button>

@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Image from "next/image";
-import BackBlur from './components/BackBlur';
+
 import MovieSearch from './components/MovieSearch';
 import { useRouter } from 'next/navigation'
 import { useAuth } from './context/AuthContext'
 import { supabase } from './lib/supabaseClient';
 
 export default function Home() {
-    const [backgroundImage, setBackgroundImage] = useState('http://localhost:3000/_next/image?url=https%3A%2F%2Fm.media-amazon.com%2Fimages%2FM%2FMV5BMWM1YmJmYWMtMDM1Ni00ZGM2LTkxODYtOTU1ZjA4MTFkMDM1XkEyXkFqcGc%40._V1_SX300.jpg&w=640&q=75');
+
     const [savedMovies, setSavedMovies] = useState([]);
     const [loadingSavedMovies, setLoadingSavedMovies] = useState(false);
     const { user, loading, signOut } = useAuth()
@@ -84,15 +84,14 @@ export default function Home() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col relative z-3">
-            <BackBlur backgroundImage={backgroundImage}/>
+        <div className="min-h-screen flex flex-col bg-white">
 
-            <div className='container mx-auto'>
+            <div className='container mx-auto text-black'>
                 <header className="py-4 m-4 mb-0 rounded-xl text-center flex justify-between items-center">
                     <h1 className="text-2xl font-bold">Filmy Diary</h1>
                     <div className="flex items-center gap-4">
                         <span>{user.user_metadata?.name?.split(' ')[0] || user.email}</span>
-                        <button onClick={signOut} className="bg-white/[.08] hover:bg-white/[.18] py-2 px-4 rounded-lg">
+                        <button onClick={signOut} className="bg-gray-200 hover:bg-gray-300 text-black py-2 px-4 rounded-lg">
                             Sign Out
                         </button>
                     </div>
@@ -100,7 +99,6 @@ export default function Home() {
                 <main className="flex-grow p-4">
                     {/* Search section */}
                     <MovieSearch 
-                        onBackgroundChange={setBackgroundImage} 
                         savedMovies={savedMovies} 
                         fetchSavedMovies={fetchSavedMovies}
                     />
@@ -125,7 +123,7 @@ export default function Home() {
                                                 <div 
                                                     key={item.id}
                                                     className="relative overflow-hidden rounded-xl"
-                                                    onMouseEnter={() => setBackgroundImage(item.movies.poster)}
+
                                                 >
                                                     <div className="w-32 h-48 rounded-md overflow-hidden">
                                                         <img 
@@ -155,7 +153,7 @@ export default function Home() {
                                                 <div 
                                                     key={item.id}
                                                     className="relative overflow-hidden rounded-xl"
-                                                    onMouseEnter={() => setBackgroundImage(item.movies.poster)}
+
                                                 >
                                                     <div className="w-32 h-48 rounded-md overflow-hidden">
                                                         <img 
@@ -175,9 +173,9 @@ export default function Home() {
                             )}
                         </div>
                     ) : (
-                        <div className="text-center mt-8 p-6 bg-white/[.08] rounded-lg">
+                        <div className="text-center mt-8 p-6 bg-gray-100 rounded-lg border border-gray-300">
                             <p>You haven&apos;t saved any movies yet.</p>
-                            <p className="mt-2 text-gray-400">Search for movies and add them to your collection!</p>
+                            <p className="mt-2 text-gray-600">Search for movies and add them to your collection!</p>
                         </div>
                     )}
                 </main>
