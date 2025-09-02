@@ -52,7 +52,7 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
 
             if (data.results && data.results.length > 0) {
                 // Transform TMDB data to match OMDB structure
-                const transformedMovies = data.results.map(movie => ({
+                let transformedMovies = data.results.map(movie => ({
                     imdbID: movie.id.toString(), // Use TMDB ID as identifier
                     Title: movie.title,
                     Poster: movie.poster_path ? `${baseImageUrl}${movie.poster_path}` : "N/A",
@@ -60,8 +60,36 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
                     Type: "movie" // TMDB search/movie always returns movies
                 }));
 
+                // Fallback to OMDB for movies without posters
+                const moviesWithoutPosters = transformedMovies.filter(movie => movie.Poster === "N/A");
+                
+                if (moviesWithoutPosters.length > 0) {
+                    const omdbApiKey = process.env.NEXT_PUBLIC_OMDB_API_KEY;
+                    
+                    if (omdbApiKey) {
+                        const omdbPromises = moviesWithoutPosters.map(async (movie) => {
+                            try {
+                                const omdbUrl = `https://www.omdbapi.com/?apikey=${omdbApiKey}&t=${encodeURIComponent(movie.Title)}&y=${movie.Year}&type=movie`;
+                                const omdbResponse = await fetch(omdbUrl);
+                                const omdbData = await omdbResponse.json();
+                                
+                                if (omdbData.Response === 'True' && omdbData.Poster !== "N/A") {
+                                    movie.Poster = omdbData.Poster;
+                                }
+                            } catch (error) {
+                                console.log(`Failed to fetch OMDB poster for ${movie.Title}:`, error);
+                            }
+                        });
+                        
+                        // Wait for all OMDB calls to complete
+                        await Promise.all(omdbPromises);
+                    }
+                }
+
                 // If it's the first page, replace movies, otherwise append
                 if (page === 1) {
+                    // Limit initial load to moviesPerPage (18 movies)
+                    transformedMovies = transformedMovies.slice(0, moviesPerPage);
                     setMovies(transformedMovies);
                     if (transformedMovies.length > 0 && transformedMovies[0].Poster !== "N/A") {
                         onBackgroundChange(transformedMovies[0].Poster);
@@ -307,8 +335,11 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
 
     // This effect runs the initial search when component mounts
     useEffect(() => {
-        handleSearch();
-    }, []);
+        // Reset to page 1 when performing initial search
+        setCurrentPage(1);
+        setMovies([]);
+        fetchMovies(1);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <div>
