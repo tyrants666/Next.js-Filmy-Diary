@@ -36,77 +36,11 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
                 return;
             }
 
-            const apiKey = process.env.NEXT_PUBLIC_OMDB_API_KEY;
-            let apiUrl = `https://www.omdbapi.com/?apikey=${apiKey}`;
-
-            // Check if the search term looks like an IMDb ID (starts with "tt" followed by numbers)
-            if (searchTerm.startsWith('tt') && !isNaN(searchTerm.slice(2))) {
-                apiUrl += `&i=${searchTerm}`;
-            } else {
-                // Calculate how many pages we need to fetch to get the desired number of movies
-                const pagesNeeded = Math.ceil(moviesPerPage / 10);
-                let allMovies = [];
-                let totalResultsCount = 0;
-                
-                // Fetch all required pages
-                for (let i = 0; i < pagesNeeded; i++) {
-                    const currentPageUrl = `${apiUrl}&s=${encodeURIComponent(searchTerm)}&page=${page + i}`;
-                    const response = await fetch(currentPageUrl);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    if (data.Response === 'True' && data.Search) {
-                        // Only add movies that aren't already in the list
-                        const newMovies = data.Search.filter(movie => 
-                            !allMovies.some(existingMovie => existingMovie.imdbID === movie.imdbID)
-                        );
-                        allMovies = [...allMovies, ...newMovies];
-                        
-                        // Store total results from first call
-                        if (i === 0) {
-                            totalResultsCount = parseInt(data.totalResults, 10);
-                        }
-                        
-                        // If we've reached the total results or got enough movies, break
-                        if (allMovies.length >= moviesPerPage || allMovies.length >= totalResultsCount) {
-                            break;
-                        }
-                    } else {
-                        throw new Error(data.Error || 'Failed to fetch movies');
-                    }
-                }
-                
-                // Trim the array to the exact number of movies requested
-                allMovies = allMovies.slice(0, moviesPerPage);
-                
-                // If it's the first page, replace movies, otherwise append
-                if (page === 1) {
-                    setMovies(allMovies);
-                    if (allMovies.length > 0 && allMovies[0].Poster !== "N/A") {
-                        onBackgroundChange(allMovies[0].Poster);
-                    }
-                } else {
-                    // Filter out any duplicates before appending
-                    const existingIds = new Set(movies.map(m => m.imdbID));
-                    const newMovies = allMovies.filter(movie => !existingIds.has(movie.imdbID));
-                    setMovies(prevMovies => [...prevMovies, ...newMovies]);
-                }
-                
-                // Update total results count
-                setTotalResults(totalResultsCount);
-                
-                // Check if there are more pages
-                const totalPages = Math.ceil(totalResultsCount / 10);
-                const currentPageWithOffset = page + (pagesNeeded - 1);
-                setHasMorePages(currentPageWithOffset < totalPages);
-                
-                setLoadingMovie(false);
-                return;
-            }
+            const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+            const baseImageUrl = 'https://image.tmdb.org/t/p/w500';
+            
+            // TMDB search endpoint
+            const apiUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(searchTerm)}&page=${page}`;
 
             const response = await fetch(apiUrl);
 
@@ -116,38 +50,41 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
 
             const data = await response.json();
 
-            if (data.Response === 'True') {
-                if (data.Search) {
-                    // If it's the first page, replace movies, otherwise append
-                    if (page === 1) {
-                        setMovies(data.Search);
-                        // Set the first movie's poster as the background if available
-                        if (data.Search.length > 0 && data.Search[0].Poster !== "N/A") {
-                            // onBackgroundChange(data.Search[0].Poster);
-                        }
-                    } else {
-                        setMovies(prevMovies => [...prevMovies, ...data.Search]);
+            if (data.results && data.results.length > 0) {
+                // Transform TMDB data to match OMDB structure
+                const transformedMovies = data.results.map(movie => ({
+                    imdbID: movie.id.toString(), // Use TMDB ID as identifier
+                    Title: movie.title,
+                    Poster: movie.poster_path ? `${baseImageUrl}${movie.poster_path}` : "N/A",
+                    Year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "N/A",
+                    Type: "movie" // TMDB search/movie always returns movies
+                }));
+
+                // If it's the first page, replace movies, otherwise append
+                if (page === 1) {
+                    setMovies(transformedMovies);
+                    if (transformedMovies.length > 0 && transformedMovies[0].Poster !== "N/A") {
+                        onBackgroundChange(transformedMovies[0].Poster);
                     }
-                    
-                    // Update total results count
-                    setTotalResults(parseInt(data.totalResults, 10));
-                    
-                    // Check if there are more pages
-                    const totalPages = Math.ceil(parseInt(data.totalResults, 10) / 10);
-                    setHasMorePages(page < totalPages);
-                    
                 } else {
-                    // If searching by IMDb ID, the result is a single movie object, not an array
-                    setMovies([data]);
-                    if (data.Poster !== "N/A") {
-                        onBackgroundChange(data.Poster);
-                    }
-                    setHasMorePages(false);
+                    // Filter out any duplicates before appending
+                    const existingIds = new Set(movies.map(m => m.imdbID));
+                    const newMovies = transformedMovies.filter(movie => !existingIds.has(movie.imdbID));
+                    setMovies(prevMovies => [...prevMovies, ...newMovies]);
                 }
+                
+                // Update total results count
+                setTotalResults(data.total_results);
+                
+                // Check if there are more pages
+                setHasMorePages(page < data.total_pages);
+                
             } else {
-                setError(data.Error);
+                setError('No movies found');
                 setHasMorePages(false);
             }
+
+
         } catch (err) {
             setError('An error occurred. Please try again.');
             console.error(err); 
@@ -169,7 +106,7 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
     };
 
     const loadMoreMovies = async () => {
-        const nextPage = currentPage + Math.ceil(moviesPerPage / 10);
+        const nextPage = currentPage + 1;
         setCurrentPage(nextPage);
         await fetchMovies(nextPage);
     };
@@ -378,7 +315,7 @@ export default function MovieSearch({ onBackgroundChange, savedMovies = [], fetc
             <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
                 <input
                     type="text"
-                    placeholder="Search for a movie (title or IMDb ID)..."
+                    placeholder="Search for a movie..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg w-full placeholder-gray-300"
