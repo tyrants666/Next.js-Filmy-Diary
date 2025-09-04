@@ -9,6 +9,23 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Debug function to check localStorage state
+  const debugStorageState = () => {
+    if (typeof window === 'undefined') return;
+    
+    const supabaseKeys = Object.keys(localStorage).filter(key => 
+      key.startsWith('sb-') || key.includes('supabase')
+    );
+    
+    console.log('=== Storage Debug ===');
+    console.log('Supabase keys in localStorage:', supabaseKeys);
+    supabaseKeys.forEach(key => {
+      const value = localStorage.getItem(key);
+      console.log(`${key}:`, value ? 'Has data' : 'Empty');
+    });
+    console.log('==================');
+  };
+
   useEffect(() => {
     // Set a timeout fallback to ensure loading never gets stuck
     const loadingTimeout = setTimeout(() => {
@@ -16,13 +33,34 @@ export function AuthProvider({ children }) {
       setLoading(false);
     }, 10000); // 10 second timeout
     
-    // Get initial session
-    const getSession = async () => {
+    // Get initial session with retry mechanism
+    const getSession = async (retryCount = 0) => {
       try {
-        console.log('Getting initial session...');
+        console.log(`Getting initial session... (attempt ${retryCount + 1})`);
         
-        // Small delay to ensure localStorage is ready in some browsers
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Debug storage state
+        debugStorageState();
+        
+        // Longer delay to ensure localStorage is ready in some browsers
+        await new Promise(resolve => setTimeout(resolve, 250));
+        
+        // Check if localStorage has Supabase session data
+        if (typeof window !== 'undefined') {
+          const hasSupabaseData = Object.keys(localStorage).some(key => 
+            key.startsWith('sb-') || key.includes('supabase')
+          );
+          console.log('Has Supabase data in localStorage:', hasSupabaseData);
+          
+          // If we have localStorage data but no session, try again (up to 3 times)
+          if (hasSupabaseData && retryCount < 2) {
+            const { data: { session: testSession } } = await supabase.auth.getSession();
+            if (!testSession) {
+              console.log('Session not loaded yet, retrying...');
+              await new Promise(resolve => setTimeout(resolve, 500));
+              return getSession(retryCount + 1);
+            }
+          }
+        }
         
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
@@ -114,19 +152,31 @@ export function AuthProvider({ children }) {
       async (event, session) => {
         console.log('Auth state change:', event, session ? 'Session exists' : 'No session');
         
-        // Only update login count on SIGNED_IN event that's not from an initial session
+        // Handle different auth events
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out');
+          setUser(null);
+          setLoading(false);
+          clearTimeout(loadingTimeout);
+          return;
+        }
+        
         if (event === 'SIGNED_IN' && session?.user) {
-          const { data: existingSession } = await supabase.auth.getSession();
-          // Check if this is a new sign-in rather than an existing session
-          const isNewSignIn = !existingSession?.data?.session?.user;
-          if (isNewSignIn) {
+          console.log('User signed in:', session.user.email);
+          
+          // Only update login count on actual new sign-ins (not session restoration)
+          if (event === 'SIGNED_IN') {
             updateLoginCount(session.user.id);
           }
         }
         
-        setUser(session?.user || null)
-        setLoading(false)
-        clearTimeout(loadingTimeout)
+        if (event === 'TOKEN_REFRESHED' && session) {
+          console.log('Token refreshed successfully');
+        }
+        
+        setUser(session?.user || null);
+        setLoading(false);
+        clearTimeout(loadingTimeout);
       }
     )
 
@@ -233,48 +283,57 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Enhanced sign out with error handling
+  // Enhanced sign out with comprehensive cleanup
   const signOut = async () => {
     try {
       console.log('Attempting to sign out...');
       
       // Clear user state immediately for better UX
       setUser(null);
+      setLoading(true);
       
-      // Attempt to sign out from Supabase
-      const { error } = await supabase.auth.signOut();
+      // First, try to sign out from Supabase properly
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error) {
-        // Log the error but don't prevent logout
-        console.warn('Sign out error (continuing anyway):', error);
-        
-        // If it's a JWT/session error, it means the session was already invalid
-        if (error.message?.includes('JWT') || error.message?.includes('session')) {
-          console.log('Session was already invalid, logout successful');
-        }
+        console.warn('Supabase sign out error (continuing cleanup):', error);
       } else {
-        console.log('Sign out successful');
+        console.log('Supabase sign out successful');
       }
       
-      // Clear any stored session data manually as backup
+      // Comprehensive cleanup of all auth-related data
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('supabase.auth.token');
+        // Clear ALL localStorage and sessionStorage
+        localStorage.clear();
         sessionStorage.clear();
+        
+        // Also clear any cookies (for Google OAuth)
+        document.cookie.split(";").forEach((c) => {
+          const eqPos = c.indexOf("=");
+          const name = eqPos > -1 ? c.substr(0, eqPos) : c;
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+        });
       }
       
-      // Force redirect to login
-      window.location.href = '/login';
+      // Wait a moment for cleanup to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log('Complete logout cleanup finished');
+      
+      // Force a complete page reload to ensure clean state
+      window.location.replace('/login');
       
     } catch (error) {
       console.error('Unexpected error during sign out:', error);
       
-      // Even if sign out fails, clear local state and redirect
+      // Force cleanup even on error
       setUser(null);
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('supabase.auth.token');
+        localStorage.clear();
         sessionStorage.clear();
       }
-      window.location.href = '/login';
+      window.location.replace('/login');
     }
   };
 
