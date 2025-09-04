@@ -68,7 +68,8 @@ export function AuthProvider({ children }) {
                   last_name: lastName,
                   avatar_url: session.user.user_metadata?.picture || session.user.user_metadata?.avatar_url,
                   phone: null, // Initialize phone as NULL
-                  total_login: 1  // Initialize total_login counter
+                  total_login: 1,  // Initialize total_login counter
+                  last_login: new Date().toISOString() // Set initial last_login timestamp
                 });
 
               if (insertError) {
@@ -78,6 +79,17 @@ export function AuthProvider({ children }) {
               }
             } else {
               console.log("%cProfile already exists in the database", "color: lightgreen;");
+              // Update last_login for existing users when they restore session
+              const { error: updateLastLoginError } = await supabase
+                .from('profiles')
+                .update({
+                  last_login: new Date().toISOString()
+                })
+                .eq('id', session.user.id);
+
+              if (updateLastLoginError) {
+                console.error('Error updating last_login:', updateLastLoginError);
+              }
             }
           } catch (profileErr) {
             console.error('Error handling profile operations:', profileErr);
@@ -134,11 +146,12 @@ export function AuthProvider({ children }) {
         }
 
         if (profile) {
-          // Increment the count
+          // Increment the count and update last login timestamp
           const { error: updateError } = await supabase
             .from('profiles')
             .update({
-              total_login: (profile.total_login || 0) + 1
+              total_login: (profile.total_login || 0) + 1,
+              last_login: new Date().toISOString()
             })
             .eq('id', userId);
 
