@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import MovieCard from './MovieCard';
 
 export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
     const { showSuccess, showError, showInfo } = useToast();
+    const { validateSession } = useAuth();
     const [searchTerm, setSearchTerm] = useState('Roma');
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
@@ -181,10 +183,15 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
     // Add movie to user's list
     const addMovieToList = async (movie, status) => {
         try {
-            const { data: sessionData } = await supabase.auth.getSession();
+            // Validate session first
+            const session = await validateSession();
             
-            if (!sessionData.session) {
-                showError('You need to be logged in to save movies');
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                // Redirect to login after a short delay
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2000);
                 return;
             }
             

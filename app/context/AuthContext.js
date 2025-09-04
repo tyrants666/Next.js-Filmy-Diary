@@ -170,10 +170,120 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  // Wrapper for Supabase operations with automatic session validation
+  const withSessionValidation = async (operation) => {
+    try {
+      const session = await validateSession();
+      if (!session) {
+        throw new Error('Session expired');
+      }
+      return await operation(session);
+    } catch (error) {
+      if (error.message === 'Session expired' || error.message?.includes('JWT')) {
+        setUser(null);
+        throw new Error('Your session has expired. Please log in again.');
+      }
+      throw error;
+    }
+  };
+
+  // Helper function to validate and refresh session
+  const validateSession = async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      
+      if (error) {
+        console.error('Session validation error:', error)
+        setUser(null)
+        return null
+      }
+      
+      if (!session) {
+        console.warn('No active session found')
+        setUser(null)
+        return null
+      }
+      
+      // Check if token is close to expiry (within 10 minutes)
+      const expiresAt = session.expires_at * 1000 // Convert to milliseconds
+      const now = Date.now()
+      const timeUntilExpiry = expiresAt - now
+      
+      if (timeUntilExpiry < 600000) { // Less than 10 minutes
+        console.log('Token expiring soon, attempting refresh...')
+        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession()
+        
+        if (refreshError) {
+          console.error('Failed to refresh session:', refreshError)
+          setUser(null)
+          return null
+        }
+        
+        if (refreshedSession) {
+          setUser(refreshedSession.user)
+          return refreshedSession
+        }
+      }
+      
+      return session
+    } catch (error) {
+      console.error('Error validating session:', error)
+      setUser(null)
+      return null
+    }
+  }
+
+  // Enhanced sign out with error handling
+  const signOut = async () => {
+    try {
+      console.log('Attempting to sign out...');
+      
+      // Clear user state immediately for better UX
+      setUser(null);
+      
+      // Attempt to sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        // Log the error but don't prevent logout
+        console.warn('Sign out error (continuing anyway):', error);
+        
+        // If it's a JWT/session error, it means the session was already invalid
+        if (error.message?.includes('JWT') || error.message?.includes('session')) {
+          console.log('Session was already invalid, logout successful');
+        }
+      } else {
+        console.log('Sign out successful');
+      }
+      
+      // Clear any stored session data manually as backup
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.clear();
+      }
+      
+      // Force redirect to login
+      window.location.href = '/login';
+      
+    } catch (error) {
+      console.error('Unexpected error during sign out:', error);
+      
+      // Even if sign out fails, clear local state and redirect
+      setUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.clear();
+      }
+      window.location.href = '/login';
+    }
+  };
+
   const value = {
     user,
     loading,
-    signOut: () => supabase.auth.signOut(),
+    validateSession,
+    withSessionValidation,
+    signOut,
   }
 
   return (

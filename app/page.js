@@ -14,7 +14,8 @@ export default function Home() {
 
     const [savedMovies, setSavedMovies] = useState([]);
     const [loadingSavedMovies, setLoadingSavedMovies] = useState(false);
-    const { user, loading, signOut } = useAuth()
+    const [isSigningOut, setIsSigningOut] = useState(false);
+    const { user, loading, signOut, validateSession } = useAuth()
     const { showSuccess, showError } = useToast()
     const router = useRouter()
 
@@ -92,8 +93,12 @@ export default function Home() {
     // Remove movie from watched list
     const removeWatchedStatus = async (movieId) => {
         try {
-            if (!user) {
-                showError('You need to be logged in to remove movies');
+            // Validate session first
+            const session = await validateSession();
+            
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                setTimeout(() => router.push('/login'), 2000);
                 return;
             }
 
@@ -143,8 +148,12 @@ export default function Home() {
     // Remove movie from watching list
     const removeWatchingStatus = async (movieId) => {
         try {
-            if (!user) {
-                showError('You need to be logged in to remove movies');
+            // Validate session first
+            const session = await validateSession();
+            
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                setTimeout(() => router.push('/login'), 2000);
                 return;
             }
 
@@ -172,8 +181,12 @@ export default function Home() {
     // Move movie from watching to watched
     const moveWatchingToWatched = async (movieId, movieData) => {
         try {
-            if (!user) {
-                showError('You need to be logged in to update movies');
+            // Validate session first
+            const session = await validateSession();
+            
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                setTimeout(() => router.push('/login'), 2000);
                 return;
             }
 
@@ -259,6 +272,25 @@ export default function Home() {
         }
     }, [user, loading, router]);
 
+    // Periodic session validation (every 5 minutes)
+    useEffect(() => {
+        if (!user) return;
+
+        const sessionCheckInterval = setInterval(async () => {
+            console.log('Performing periodic session check...');
+            const session = await validateSession();
+            
+            if (!session) {
+                console.warn('Session expired during periodic check');
+                showError('Your session has expired. Redirecting to login...');
+                setTimeout(() => router.push('/login'), 2000);
+                clearInterval(sessionCheckInterval);
+            }
+        }, 5 * 60 * 1000); // Check every 5 minutes
+
+        return () => clearInterval(sessionCheckInterval);
+    }, [user, validateSession, router, showError]);
+
     if (loading) {
         return <div className="min-h-screen flex flex-col items-center justify-center">
             <Image 
@@ -290,8 +322,29 @@ export default function Home() {
                     <h1 className="text-2xl font-bold">Filmy Diary</h1>
                     <div className="flex items-center gap-4">
                         <span>{user.user_metadata?.name?.split(' ')[0] || user.email}</span>
-                        <button onClick={signOut} className="bg-gray-200 hover:bg-gray-300 text-black py-2 px-4 rounded-lg">
-                            Sign Out
+                        <button 
+                            onClick={async () => {
+                                if (isSigningOut) return; // Prevent double clicks
+                                
+                                setIsSigningOut(true);
+                                try {
+                                    await signOut();
+                                } catch (error) {
+                                    console.error('Sign out button error:', error);
+                                    // Force redirect even if signOut fails
+                                    window.location.href = '/login';
+                                } finally {
+                                    setIsSigningOut(false);
+                                }
+                            }} 
+                            disabled={isSigningOut}
+                            className={`py-2 px-4 rounded-lg transition-colors ${
+                                isSigningOut 
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                    : 'bg-gray-200 hover:bg-gray-300 text-black'
+                            }`}
+                        >
+                            {isSigningOut ? 'Signing Out...' : 'Sign Out'}
                         </button>
                     </div>
                 </header>
