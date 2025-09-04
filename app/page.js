@@ -35,7 +35,9 @@ export default function Home() {
                         movie_id,
                         title,
                         poster,
-                        year
+                        year,
+                        rating,
+                        rating_source
                     )
                 `)
                 .eq('user_id', user.id);
@@ -52,7 +54,9 @@ export default function Home() {
                         movie_id,
                         title,
                         poster,
-                        year
+                        year,
+                        rating,
+                        rating_source
                     )
                 `)
                 .eq('user_id', user.id)
@@ -166,6 +170,71 @@ export default function Home() {
         }
     };
 
+    // Move movie from watching to watched
+    const moveWatchingToWatched = async (movieId, movieData) => {
+        try {
+            if (!user) {
+                showError('You need to be logged in to update movies');
+                return;
+            }
+
+            // Remove from watching table
+            const { error: removeWatchingError } = await supabase
+                .from('watching')
+                .delete()
+                .eq('user_id', user.id);
+
+            if (removeWatchingError) {
+                throw removeWatchingError;
+            }
+
+            // Add to watched in user_movies table
+            const { error: addWatchedError } = await supabase
+                .from('user_movies')
+                .upsert({
+                    user_id: user.id,
+                    user_email: user.email,
+                    movie_id: movieId,
+                    movie_imdb_id: movieData.imdbID,
+                    movie_name: movieData.Title,
+                    status: 'watched'
+                });
+
+            if (addWatchedError) {
+                throw addWatchedError;
+            }
+
+            // Update saved_movies count in profiles table
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('saved_movies')
+                .eq('id', user.id)
+                .single();
+
+            if (profile !== null) {
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({
+                        saved_movies: (profile.saved_movies || 0) + 1
+                    })
+                    .eq('id', user.id);
+
+                if (updateError) {
+                    console.error('Error updating saved_movies count:', updateError);
+                }
+            }
+
+            // Refresh the saved movies list
+            await fetchSavedMovies();
+
+            showSuccess(`"${movieData.Title}" moved to watched list!`);
+            
+        } catch (error) {
+            console.error('Error moving movie to watched:', error);
+            showError('Failed to move movie to watched. Please try again.');
+        }
+    };
+
     // Transform saved movie data to match MovieCard expected format
     const transformSavedMovieToCardFormat = (savedMovie) => {
         return {
@@ -173,7 +242,9 @@ export default function Home() {
             Title: savedMovie.movies.title,
             Poster: savedMovie.movies.poster,
             Year: savedMovie.movies.year,
-            Type: "movie"
+            Type: "movie",
+            imdbRating: savedMovie.movies.rating || "N/A",
+            ratingSource: savedMovie.movies.rating_source || "N/A"
         };
     };
 
@@ -254,6 +325,7 @@ export default function Home() {
                                                     onClickWatching={() => null}
                                                     onRemoveWatched={() => removeWatchedStatus(item.movies.id)}
                                                     watched={true}
+                                                    cardType="watched"
                                                 />
                                             ))
                                         }
@@ -274,10 +346,11 @@ export default function Home() {
                                                     movie={transformSavedMovieToCardFormat(item)}
                                                     onHover={() => null}
                                                     onLeave={() => null}
-                                                    onClickWatched={() => null}
+                                                    onClickWatched={() => moveWatchingToWatched(item.movies.id, transformSavedMovieToCardFormat(item))}
                                                     onClickWatching={() => removeWatchingStatus(item.movies.id)}
                                                     onRemoveWatched={() => null}
                                                     watched={false}
+                                                    cardType="watching"
                                                 />
                                             ))
                                         }

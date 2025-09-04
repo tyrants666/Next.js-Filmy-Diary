@@ -7,7 +7,7 @@ import MovieCard from './MovieCard';
 
 export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
     const { showSuccess, showError, showInfo } = useToast();
-    const [searchTerm, setSearchTerm] = useState('dragon');
+    const [searchTerm, setSearchTerm] = useState('Roma');
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
     const [loadingMovie, setLoadingMovie] = useState(false);
@@ -59,33 +59,65 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                     Title: movie.title,
                     Poster: movie.poster_path ? `${baseImageUrl}${movie.poster_path}` : "N/A",
                     Year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "N/A",
-                    Type: "movie" // TMDB search/movie always returns movies
+                    Type: "movie", // TMDB search/movie always returns movies
+                    imdbRating: "N/A", // Default rating
+                    tmdbRating: movie.vote_average ? movie.vote_average.toFixed(1) : "N/A", // TMDB rating as fallback
+                    ratingSource: "N/A" // Track which source provided the rating
                 }));
 
-                // Fallback to OMDB for movies without posters
-                const moviesWithoutPosters = transformedMovies.filter(movie => movie.Poster === "N/A");
+                // Fetch OMDB data for posters and ratings
+                const omdbApiKey = process.env.NEXT_PUBLIC_OMDB_API_KEY;
                 
-                if (moviesWithoutPosters.length > 0) {
-                    const omdbApiKey = process.env.NEXT_PUBLIC_OMDB_API_KEY;
-                    
-                    if (omdbApiKey) {
-                        const omdbPromises = moviesWithoutPosters.map(async (movie) => {
-                            try {
-                                const omdbUrl = `https://www.omdbapi.com/?apikey=${omdbApiKey}&t=${encodeURIComponent(movie.Title)}&y=${movie.Year}&type=movie`;
-                                const omdbResponse = await fetch(omdbUrl);
-                                const omdbData = await omdbResponse.json();
-                                
-                                if (omdbData.Response === 'True' && omdbData.Poster !== "N/A") {
+                if (omdbApiKey) {
+                    const omdbPromises = transformedMovies.map(async (movie) => {
+                        try {
+                            const omdbUrl = `https://www.omdbapi.com/?apikey=${omdbApiKey}&t=${encodeURIComponent(movie.Title)}&y=${movie.Year}&type=movie`;
+                            const omdbResponse = await fetch(omdbUrl);
+                            const omdbData = await omdbResponse.json();
+                            
+                            if (omdbData.Response === 'True') {
+                                // Update poster if we don't have one from TMDB
+                                if (movie.Poster === "N/A" && omdbData.Poster !== "N/A") {
                                     movie.Poster = omdbData.Poster;
                                 }
-                            } catch (error) {
-                                console.log(`Failed to fetch OMDB poster for ${movie.Title}:`, error);
+                                
+                                // Priority 1: IMDB rating from OMDB
+                                if (omdbData.imdbRating && omdbData.imdbRating !== "N/A") {
+                                    movie.imdbRating = omdbData.imdbRating;
+                                    movie.ratingSource = "IMDB";
+                                }
+                                // Priority 2: If no IMDB rating, use TMDB rating
+                                else if (movie.tmdbRating !== "N/A") {
+                                    movie.imdbRating = movie.tmdbRating;
+                                    movie.ratingSource = "TMDB";
+                                }
+                            } else {
+                                // If OMDB fails, fall back to TMDB rating
+                                if (movie.tmdbRating !== "N/A") {
+                                    movie.imdbRating = movie.tmdbRating;
+                                    movie.ratingSource = "TMDB";
+                                }
                             }
-                        });
-                        
-                        // Wait for all OMDB calls to complete
-                        await Promise.all(omdbPromises);
-                    }
+                        } catch (error) {
+                            console.log(`Failed to fetch OMDB data for ${movie.Title}:`, error);
+                            // If OMDB call fails, fall back to TMDB rating
+                            if (movie.tmdbRating !== "N/A") {
+                                movie.imdbRating = movie.tmdbRating;
+                                movie.ratingSource = "TMDB";
+                            }
+                        }
+                    });
+                    
+                    // Wait for all OMDB calls to complete
+                    await Promise.all(omdbPromises);
+                } else {
+                    // If no OMDB API key, use TMDB ratings for all movies
+                    transformedMovies.forEach(movie => {
+                        if (movie.tmdbRating !== "N/A") {
+                            movie.imdbRating = movie.tmdbRating;
+                            movie.ratingSource = "TMDB";
+                        }
+                    });
                 }
 
                 // If it's the first page, replace movies, otherwise append
@@ -169,7 +201,9 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                         movie_id: movie.imdbID,
                         title: movie.Title,
                         poster: movie.Poster,
-                        year: movie.Year
+                        year: movie.Year,
+                        rating: movie.imdbRating || "N/A",
+                        rating_source: movie.ratingSource || "N/A"
                     })
                     .select('id')
                     .single();
@@ -446,6 +480,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                                 onClickWatching={() => addMovieToList(movie, 'watching')}
                                 onRemoveWatched={() => removeWatchedStatus(movie)}
                                 watched={watchedMovies.has(movie.imdbID)}
+                                cardType="search"
                             />
                         ))}
                     </div>
