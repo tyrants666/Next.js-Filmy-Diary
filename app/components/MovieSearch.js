@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { useToast } from '../context/ToastContext';
 import MovieCard from './MovieCard';
 
 export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
+    const { showSuccess, showError, showInfo } = useToast();
     const [searchTerm, setSearchTerm] = useState('dragon');
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
@@ -144,7 +146,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
             const { data: sessionData } = await supabase.auth.getSession();
             
             if (!sessionData.session) {
-                alert('You need to be logged in to save movies');
+                showError('You need to be logged in to save movies');
                 return;
             }
             
@@ -179,40 +181,72 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                 movieId = newMovie.id;
             }
             
-            // Add to user's list
-            const { error: listError } = await supabase
-                .from('user_movies')
-                .upsert({
+            if (status === 'watching') {
+                // For watching status, use the new watching table with unique constraint
+                console.log('Attempting to add to watching table:', {
                     user_id: sessionData.session.user.id,
-                    user_email: sessionData.session.user.email,
                     movie_id: movieId,
-                    movie_imdb_id: movie.imdbID,
-                    movie_name: movie.Title,
-                    status
+                    movie_name: movie.Title
                 });
                 
-            if (listError) {
-                throw listError;
-            }
-
-            // Update saved_movies count in profiles table
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('saved_movies')
-                .eq('id', sessionData.session.user.id)
-                .single();
-
-            if (profile !== null) {
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({
-                        saved_movies: (profile.saved_movies || 0) + 1
+                const { data: watchingData, error: watchingError } = await supabase
+                    .from('watching')
+                    .upsert({
+                        user_id: sessionData.session.user.id,
+                        user_email: sessionData.session.user.email,
+                        movie_id: movieId,
+                        movie_imdb_id: movie.imdbID,
+                        movie_name: movie.Title
+                    }, {
+                        onConflict: 'user_id'
                     })
-                    .eq('id', sessionData.session.user.id);
-
-                if (updateError) {
-                    console.error('Error updating saved_movies count:', updateError);
+                    .select();
+                    
+                if (watchingError) {
+                    console.error('Watching table error:', watchingError);
+                    throw watchingError;
                 }
+                
+                console.log('Successfully added to watching table:', watchingData);
+                showSuccess(`Now watching "${movie.Title}"!`);
+            } else {
+                // For other statuses (like watched), use the regular user_movies table
+                const { error: listError } = await supabase
+                    .from('user_movies')
+                    .upsert({
+                        user_id: sessionData.session.user.id,
+                        user_email: sessionData.session.user.email,
+                        movie_id: movieId,
+                        movie_imdb_id: movie.imdbID,
+                        movie_name: movie.Title,
+                        status
+                    });
+                    
+                if (listError) {
+                    throw listError;
+                }
+
+                // Update saved_movies count in profiles table
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('saved_movies')
+                    .eq('id', sessionData.session.user.id)
+                    .single();
+
+                if (profile !== null) {
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({
+                            saved_movies: (profile.saved_movies || 0) + 1
+                        })
+                        .eq('id', sessionData.session.user.id);
+
+                    if (updateError) {
+                        console.error('Error updating saved_movies count:', updateError);
+                    }
+                }
+                
+                showSuccess(`Added "${movie.Title}" to your ${status.replace('_', ' ')} list!`);
             }
 
              // Call the callback to refresh the parent's savedMovies list
@@ -220,11 +254,9 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                 await fetchSavedMovies();
             }
             
-            alert(`Added "${movie.Title}" to your ${status.replace('_', ' ')} list!`);
-            
         } catch (error) {
             console.error('Error saving movie:', error);
-            alert('Failed to save movie. Please try again.');
+            showError('Failed to save movie. Please try again.');
         }
     };
 
@@ -234,7 +266,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
             const { data: sessionData } = await supabase.auth.getSession();
             
             if (!sessionData.session) {
-                alert('You need to be logged in to remove movies');
+                showError('You need to be logged in to remove movies');
                 return;
             }
 
@@ -285,11 +317,11 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
             // Refresh the current search results to ensure UI is in sync
             await fetchMovies(currentPage);
 
-            alert(`Removed "${movie.Title}" from your watched list!`);
+            showSuccess(`Removed "${movie.Title}" from your watched list!`);
             
         } catch (error) {
             console.error('Error removing movie:', error);
-            alert('Failed to remove movie. Please try again.');
+            showError('Failed to remove movie. Please try again.');
         }
     };
 
@@ -387,12 +419,16 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                                     <line x1="7" y1="18" x2="17" y2="18"/>
                                 </svg> */}
                             </div>
-                            <span className='text-sm'>How to Train Your Dragon 2</span>
-                            {/* {savedMovies.filter(m => m.status === 'watching').map(movie => (
-                                <span key={movie.id} className="text-sm">
-                                    {movie.movies.title}
-                                </span>
-                            ))} */}
+                            {savedMovies.filter(m => m.status === 'watching').length > 0 ? (
+                                savedMovies.filter(m => m.status === 'watching').map((movie, index) => (
+                                    <span key={movie.id} className="text-sm">
+                                        {movie.movies.title}
+                                        {index < savedMovies.filter(m => m.status === 'watching').length - 1 && ', '}
+                                    </span>
+                                ))
+                            ) : (
+                                <span className='text-sm text-gray-500'>No movies currently watching</span>
+                            )}
                         </h3>
                     </div>
 

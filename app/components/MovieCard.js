@@ -136,7 +136,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
 
             <div className="px-2 pb-2 flex w-full flex-col gap-1">
                 <div className="flex text-xs text-gray-700 font-medium justify-between">
-                    <span className="uppercase bg-gray-100 px-2 py-0.5 rounded-full">{movie.Type}</span>
+                    <span className="uppercase bg-gray-100 py-0.5 rounded-full">{movie.Type}</span>
                     <span className="bg-gray-100 px-2 py-0.5 rounded-full">{movie.Year.replace(/\D/g, '')}</span>
                 </div>
                 <a href={`https://www.themoviedb.org/movie/${movie.imdbID}`} className="flex w-full text-[.82rem] sm:text-sm font-semibold !line-clamp-2 tracking-wider text-gray-900 hover:text-blue-600 transition-colors" target="_blank" rel="noopener noreferrer">

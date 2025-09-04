@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import Image from "next/image";
 
 import MovieSearch from './components/MovieSearch';
+import MovieCard from './components/MovieCard';
 import { useRouter } from 'next/navigation'
 import { useAuth } from './context/AuthContext'
+import { useToast } from './context/ToastContext'
 import { supabase } from './lib/supabaseClient';
 
 export default function Home() {
@@ -13,6 +15,7 @@ export default function Home() {
     const [savedMovies, setSavedMovies] = useState([]);
     const [loadingSavedMovies, setLoadingSavedMovies] = useState(false);
     const { user, loading, signOut } = useAuth()
+    const { showSuccess, showError } = useToast()
     const router = useRouter()
 
     // Fetch user's saved movies
@@ -21,7 +24,8 @@ export default function Home() {
         
         setLoadingSavedMovies(true);
         try {
-            const { data, error } = await supabase
+            // Fetch regular saved movies (watched, etc.)
+            const { data: userMoviesData, error: userMoviesError } = await supabase
                 .from('user_movies')
                 .select(`
                     id,
@@ -36,20 +40,141 @@ export default function Home() {
                 `)
                 .eq('user_id', user.id);
                 
-            if (error) throw error;
+            if (userMoviesError) throw userMoviesError;
+            
+            // Fetch currently watching movie from the watching table
+            const { data: watchingData, error: watchingError } = await supabase
+                .from('watching')
+                .select(`
+                    id,
+                    movies (
+                        id,
+                        movie_id,
+                        title,
+                        poster,
+                        year
+                    )
+                `)
+                .eq('user_id', user.id)
+                .single();
+            
+            console.log('Watching data fetch result:', { watchingData, watchingError });
+            
+            // Combine the data - add watching movie if it exists
+            let combinedData = userMoviesData || [];
+            
+            if (watchingData && !watchingError) {
+                // Add the watching movie to the combined data
+                combinedData.push({
+                    id: watchingData.id,
+                    status: 'watching',
+                    movies: watchingData.movies
+                });
+                console.log('Added watching movie to combined data:', watchingData);
+            } else if (watchingError && watchingError.code !== 'PGRST116') {
+                // PGRST116 is "no rows returned" which is expected when no movie is being watched
+                console.error('Error fetching watching data:', watchingError);
+            }
             
             // Update the savedMovies state
-            setSavedMovies(data || []);
-            
-            // Force a re-render of the MovieSearch component
-            // const event = new Event('savedMoviesUpdated');
-            // window.dispatchEvent(event);
+            setSavedMovies(combinedData);
             
         } catch (error) {
             console.error('Error fetching saved movies:', error);
         } finally {
             setLoadingSavedMovies(false);
         }
+    };
+
+    // Remove movie from watched list
+    const removeWatchedStatus = async (movieId) => {
+        try {
+            if (!user) {
+                showError('You need to be logged in to remove movies');
+                return;
+            }
+
+            // Delete the movie from user_movies
+            const { error: deleteError } = await supabase
+                .from('user_movies')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('movie_id', movieId)
+                .eq('status', 'watched');
+
+            if (deleteError) {
+                throw deleteError;
+            }
+
+            // Update saved_movies count in profiles table
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('saved_movies')
+                .eq('id', user.id)
+                .single();
+
+            if (profile !== null) {
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({
+                        saved_movies: Math.max(0, (profile.saved_movies || 0) - 1)
+                    })
+                    .eq('id', user.id);
+
+                if (updateError) {
+                    console.error('Error updating saved_movies count:', updateError);
+                }
+            }
+
+            // Refresh the saved movies list
+            await fetchSavedMovies();
+
+            showSuccess('Movie removed from your watched list!');
+            
+        } catch (error) {
+            console.error('Error removing movie:', error);
+            showError('Failed to remove movie. Please try again.');
+        }
+    };
+
+    // Remove movie from watching list
+    const removeWatchingStatus = async (movieId) => {
+        try {
+            if (!user) {
+                showError('You need to be logged in to remove movies');
+                return;
+            }
+
+            // Delete the movie from watching table
+            const { error: deleteError } = await supabase
+                .from('watching')
+                .delete()
+                .eq('user_id', user.id);
+
+            if (deleteError) {
+                throw deleteError;
+            }
+
+            // Refresh the saved movies list
+            await fetchSavedMovies();
+
+            showSuccess('Movie removed from your watching list!');
+            
+        } catch (error) {
+            console.error('Error removing movie:', error);
+            showError('Failed to remove movie. Please try again.');
+        }
+    };
+
+    // Transform saved movie data to match MovieCard expected format
+    const transformSavedMovieToCardFormat = (savedMovie) => {
+        return {
+            imdbID: savedMovie.movies.movie_id,
+            Title: savedMovie.movies.title,
+            Poster: savedMovie.movies.poster,
+            Year: savedMovie.movies.year,
+            Type: "movie"
+        };
     };
 
     useEffect(() => {
@@ -120,22 +245,16 @@ export default function Home() {
                                         {savedMovies
                                             .filter(item => item.status === 'watched')
                                             .map(item => (
-                                                <div 
+                                                <MovieCard
                                                     key={item.id}
-                                                    className="relative overflow-hidden rounded-xl"
-
-                                                >
-                                                    <div className="w-32 h-48 rounded-md overflow-hidden">
-                                                        <img 
-                                                            src={item.movies.poster} 
-                                                            alt={item.movies.title}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    </div>
-                                                    <div className="absolute top-0 right-0 bg-green-600 text-white text-xs px-1 rounded-bl">
-                                                        Watched
-                                                    </div>
-                                                </div>
+                                                    movie={transformSavedMovieToCardFormat(item)}
+                                                    onHover={() => null}
+                                                    onLeave={() => null}
+                                                    onClickWatched={() => null}
+                                                    onClickWatching={() => null}
+                                                    onRemoveWatched={() => removeWatchedStatus(item.movies.id)}
+                                                    watched={true}
+                                                />
                                             ))
                                         }
                                     </div>
@@ -150,22 +269,16 @@ export default function Home() {
                                         {savedMovies
                                             .filter(item => item.status === 'watching')
                                             .map(item => (
-                                                <div 
+                                                <MovieCard
                                                     key={item.id}
-                                                    className="relative overflow-hidden rounded-xl"
-
-                                                >
-                                                    <div className="w-32 h-48 rounded-md overflow-hidden">
-                                                        <img 
-                                                            src={item.movies.poster} 
-                                                            alt={item.movies.title}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    </div>
-                                                    <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs px-1 rounded-bl">
-                                                        Watching
-                                                    </div>
-                                                </div>
+                                                    movie={transformSavedMovieToCardFormat(item)}
+                                                    onHover={() => null}
+                                                    onLeave={() => null}
+                                                    onClickWatched={() => null}
+                                                    onClickWatching={() => removeWatchingStatus(item.movies.id)}
+                                                    onRemoveWatched={() => null}
+                                                    watched={false}
+                                                />
                                             ))
                                         }
                                     </div>
