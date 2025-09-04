@@ -9,6 +9,37 @@ import MovieCard from './MovieCard';
 export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
     const { showSuccess, showError, showInfo } = useToast();
     const { validateSession } = useAuth();
+
+    // Function to validate and fix poster URLs
+    const validatePosterUrl = (url, source = "Unknown") => {
+        if (!url || url === "N/A" || url === "") {
+            return "N/A";
+        }
+        
+        // Check if it's a valid URL
+        try {
+            const validUrl = new URL(url);
+            console.log(`Valid ${source} poster URL:`, validUrl.href);
+            return validUrl.href;
+        } catch (error) {
+            console.warn(`Invalid ${source} poster URL:`, url, error);
+            return "N/A";
+        }
+    };
+
+    // Function to generate alternative IMDB poster URLs
+    const getIMDBPosterAlternatives = (imdbID) => {
+        if (!imdbID || !imdbID.startsWith('tt')) {
+            return [];
+        }
+        
+        return [
+            `https://m.media-amazon.com/images/M/${imdbID}.jpg`,
+            `https://ia.media-imdb.com/images/M/${imdbID}._V1_SX300.jpg`,
+            `https://ia.media-imdb.com/images/M/${imdbID}._V1_SY300.jpg`,
+            `https://ia.media-imdb.com/images/M/${imdbID}._V1_.jpg`
+        ];
+    };
     const [searchTerm, setSearchTerm] = useState('Roma');
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
@@ -56,17 +87,24 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
 
             if (data.results && data.results.length > 0) {
                 // Transform TMDB data to match OMDB structure
-                let transformedMovies = data.results.map(movie => ({
-                    tmdbID: movie.id.toString(), // Store TMDB ID separately
-                    imdbID: "N/A", // Will be populated from OMDB if available
-                    Title: movie.title,
-                    Poster: movie.poster_path ? `${baseImageUrl}${movie.poster_path}` : "N/A",
-                    Year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "N/A",
-                    Type: "movie", // TMDB search/movie always returns movies
-                    imdbRating: "N/A", // Default rating
-                    tmdbRating: movie.vote_average ? movie.vote_average.toFixed(1) : "N/A", // TMDB rating as fallback
-                    ratingSource: "N/A" // Track which source provided the rating
-                }));
+                let transformedMovies = data.results.map(movie => {
+                    const tmdbPosterUrl = movie.poster_path ? `${baseImageUrl}${movie.poster_path}` : "N/A";
+                    
+                    console.log(`TMDB Movie: ${movie.title} - Poster Path: ${movie.poster_path} - Full URL: ${tmdbPosterUrl}`);
+                    
+                    return {
+                        tmdbID: movie.id.toString(), // Store TMDB ID separately
+                        imdbID: "N/A", // Will be populated from OMDB if available
+                        Title: movie.title,
+                        Poster: validatePosterUrl(tmdbPosterUrl, "TMDB"),
+                        Year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "N/A",
+                        Type: "movie", // TMDB search/movie always returns movies
+                        imdbRating: "N/A", // Default rating
+                        tmdbRating: movie.vote_average ? movie.vote_average.toFixed(1) : "N/A", // TMDB rating as fallback
+                        ratingSource: "N/A", // Track which source provided the rating
+                        posterSource: movie.poster_path ? "TMDB" : "None"
+                    };
+                });
 
                 // Fetch OMDB data for posters and ratings
                 const omdbApiKey = process.env.NEXT_PUBLIC_OMDB_API_KEY;
@@ -84,10 +122,45 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                                     movie.imdbID = omdbData.imdbID;
                                 }
                                 
-                                // Update poster if we don't have one from TMDB
-                                if (movie.Poster === "N/A" && omdbData.Poster !== "N/A") {
-                                    movie.Poster = omdbData.Poster;
+                                // Poster priority: TMDB -> OMDB -> IMDB Alternatives -> None
+                                let finalPoster = "N/A";
+                                let posterSource = "None";
+                                
+                                // Try TMDB poster first (most reliable and consistent)
+                                if (movie.Poster !== "N/A") {
+                                    const validatedTMDBPoster = validatePosterUrl(movie.Poster, "TMDB");
+                                    if (validatedTMDBPoster !== "N/A") {
+                                        finalPoster = validatedTMDBPoster;
+                                        posterSource = "TMDB";
+                                    }
                                 }
+                                
+                                // Fallback to OMDB poster if TMDB failed
+                                if (finalPoster === "N/A" && omdbData.Poster && omdbData.Poster !== "N/A") {
+                                    const validatedOMDBPoster = validatePosterUrl(omdbData.Poster, "OMDB");
+                                    if (validatedOMDBPoster !== "N/A") {
+                                        finalPoster = validatedOMDBPoster;
+                                        posterSource = "OMDB";
+                                    }
+                                }
+                                
+                                // Try IMDB direct poster alternatives if both TMDB and OMDB failed
+                                if (finalPoster === "N/A" && omdbData.imdbID) {
+                                    const imdbAlternatives = getIMDBPosterAlternatives(omdbData.imdbID);
+                                    for (const altUrl of imdbAlternatives) {
+                                        const validatedAltPoster = validatePosterUrl(altUrl, "IMDB-Alt");
+                                        if (validatedAltPoster !== "N/A") {
+                                            finalPoster = validatedAltPoster;
+                                            posterSource = "IMDB";
+                                            break; // Use the first working alternative
+                                        }
+                                    }
+                                }
+                                
+                                movie.Poster = finalPoster;
+                                movie.posterSource = posterSource;
+                                
+                                console.log(`Final poster for "${movie.Title}": ${posterSource} - ${finalPoster}`);
                                 
                                 // Priority 1: IMDB rating from OMDB
                                 if (omdbData.imdbRating && omdbData.imdbRating !== "N/A") {

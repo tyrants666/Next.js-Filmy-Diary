@@ -5,6 +5,42 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
     const [isWatched, setIsWatched] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [imageError, setImageError] = useState(false);
+    const [currentPosterIndex, setCurrentPosterIndex] = useState(0);
+    
+    // Generate alternative poster URLs for fallback (TMDB priority)
+    const getPosterAlternatives = () => {
+        const alternatives = [];
+        
+        // Primary poster (should be TMDB if available)
+        if (movie.Poster && movie.Poster !== "N/A") {
+            alternatives.push(movie.Poster);
+        }
+        
+        // If primary poster is TMDB, try different TMDB poster sizes
+        if (movie.Poster && movie.Poster.includes('image.tmdb.org')) {
+            const posterPath = movie.Poster.split('/').pop(); // Extract poster filename
+            const tmdbBaseUrl = 'https://image.tmdb.org/t/p';
+            alternatives.push(
+                `${tmdbBaseUrl}/w500/${posterPath}`,
+                `${tmdbBaseUrl}/w342/${posterPath}`,
+                `${tmdbBaseUrl}/w185/${posterPath}`,
+                `${tmdbBaseUrl}/original/${posterPath}`
+            );
+        }
+        
+        // If we have IMDB ID, try direct IMDB poster URLs as final fallback
+        if (movie.imdbID && movie.imdbID.startsWith('tt')) {
+            alternatives.push(
+                `https://m.media-amazon.com/images/M/${movie.imdbID}.jpg`,
+                `https://ia.media-imdb.com/images/M/${movie.imdbID}._V1_SX300.jpg`,
+                `https://ia.media-imdb.com/images/M/${movie.imdbID}._V1_.jpg`
+            );
+        }
+        
+        return alternatives;
+    };
+    
+    const posterAlternatives = getPosterAlternatives();
 
     useEffect(() => {
         setIsWatched(watched);
@@ -38,8 +74,19 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
         }
     };
 
-    const handleImageError = () => {
-        setImageError(true);
+    const handleImageError = (e) => {
+        const failedUrl = posterAlternatives[currentPosterIndex];
+        console.error(`Failed to load poster for "${movie.Title}":`, failedUrl, e);
+        
+        // Try next alternative poster if available
+        if (currentPosterIndex < posterAlternatives.length - 1) {
+            console.log(`Trying alternative poster ${currentPosterIndex + 1} for "${movie.Title}"`);
+            setCurrentPosterIndex(currentPosterIndex + 1);
+            setImageError(false); // Reset error to try the next poster
+        } else {
+            console.log(`All poster alternatives failed for "${movie.Title}"`);
+            setImageError(true);
+        }
     };
 
     return (
@@ -52,16 +99,18 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                 // href="#"
                 className="relative flex align-center !aspect-[1.37/2]"
             >
-                { movie.Poster !== 'N/A' && !imageError ? (
+                { posterAlternatives.length > 0 && !imageError ? (
                     <span className="relative h-full w-full flex items-center">
                         <Image
-                            src={movie.Poster}
+                            src={posterAlternatives[currentPosterIndex]}
                             alt={movie.Title}
                             fill
                             className="object-cover !select-none rounded-xl"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             priority={true}
                             onError={handleImageError}
+                            placeholder="blur"
+                            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                         />
                     </span>
                 ) : (
