@@ -236,8 +236,12 @@ export default function Home() {
 
     // Transform saved movie data to match MovieCard expected format
     const transformSavedMovieToCardFormat = (savedMovie) => {
+        const movieId = savedMovie.movies.movie_id;
+        
         return {
-            imdbID: savedMovie.movies.movie_id,
+            // Check if movie_id is an IMDb ID (starts with 'tt') or TMDb ID (numeric)
+            imdbID: movieId && movieId.startsWith('tt') ? movieId : "N/A",
+            tmdbID: movieId && !movieId.startsWith('tt') ? movieId : "N/A",
             Title: savedMovie.movies.title,
             Poster: savedMovie.movies.poster,
             Year: savedMovie.movies.year,

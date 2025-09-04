@@ -245,7 +245,9 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                     href={
                         movie.imdbID && movie.imdbID !== "N/A" && movie.imdbID.startsWith('tt') 
                             ? `https://www.imdb.com/title/${movie.imdbID}` 
-                            : `https://www.themoviedb.org/movie/${movie.imdbID}`
+                            : movie.tmdbID && movie.tmdbID !== "N/A"
+                                ? `https://www.themoviedb.org/movie/${movie.tmdbID}`
+                                : `https://www.google.com/search?q=${encodeURIComponent(movie.Title + " movie")}`
                     } 
                     className="flex w-full text-[.82rem] sm:text-sm font-semibold !line-clamp-2 tracking-wider text-gray-900 hover:text-blue-600 transition-colors" 
                     target="_blank" 
