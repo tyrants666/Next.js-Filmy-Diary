@@ -4,10 +4,15 @@ import Image from "next/image";
 const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, onRemoveWatched, watched, cardType = 'search' }) => {
     const [isWatched, setIsWatched] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
         setIsWatched(watched);
     }, [watched]);
+
+    useEffect(() => {
+        setImageError(false); // Reset image error when movie changes
+    }, [movie.Poster]);
 
     const handleWatchedClick = async () => {
         setIsLoading(true);
@@ -33,6 +38,10 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
         }
     };
 
+    const handleImageError = () => {
+        setImageError(true);
+    };
+
     return (
         <div className="gap-2 bg-gray-50 border border-gray-200 shadow-lg hover:shadow-xl flex flex-col rounded-xl relative group min-w-0 shrink-0 grow-0
         basis-[31.7%] sm:basis-[18.4%] lg:basis-[13.24%] xl:basis-[11.65%] 2xl:basis-[10.4%] max-w-[180px] !select-none transition-all duration-200"
@@ -43,20 +52,28 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                 // href="#"
                 className="relative flex align-center !aspect-[1.37/2]"
             >
-                { movie.Poster !== 'N/A' ? (
+                { movie.Poster !== 'N/A' && !imageError ? (
                     <span className="relative h-full w-full flex items-center">
                         <Image
-                            src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder.png"}
+                            src={movie.Poster}
                             alt={movie.Title}
                             fill
                             className="object-cover !select-none rounded-xl"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             priority={true}
+                            onError={handleImageError}
                         />
                     </span>
                 ) : (
-                    <span className=" bg-white/10 rounded-xl relative h-full w-full flex items-center">
-                        <p className="px-2 text-sm text-center w-full">Poster Not<br/> Available</p>
+                    <span className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl relative h-full w-full flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="w-12 h-12 mx-auto mb-2 bg-gray-300 rounded-lg flex items-center justify-center">
+                                <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h4a1 1 0 011 1v1a1 1 0 01-1 1v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7a1 1 0 01-1-1V5a1 1 0 011-1h4zM9 3v1h6V3H9zM5 7v11h14V7H5zm3 3a1 1 0 112 0v5a1 1 0 11-2 0V10zm4 0a1 1 0 112 0v5a1 1 0 11-2 0V10z"/>
+                                </svg>
+                            </div>
+                            <p className="px-2 text-xs text-gray-600 font-medium">No Poster<br/>Available</p>
+                        </div>
                     </span>
                 )}
 
@@ -224,7 +241,16 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                     <span className="uppercase bg-gray-100 py-0.5 rounded-full">{movie.Type}</span>
                     <span className="bg-gray-100 px-2 py-0.5 rounded-full">{movie.Year.replace(/\D/g, '')}</span>
                 </div>
-                <a href={`https://www.themoviedb.org/movie/${movie.imdbID}`} className="flex w-full text-[.82rem] sm:text-sm font-semibold !line-clamp-2 tracking-wider text-gray-900 hover:text-blue-600 transition-colors" target="_blank" rel="noopener noreferrer">
+                <a 
+                    href={
+                        movie.imdbID && movie.imdbID !== "N/A" && movie.imdbID.startsWith('tt') 
+                            ? `https://www.imdb.com/title/${movie.imdbID}` 
+                            : `https://www.themoviedb.org/movie/${movie.imdbID}`
+                    } 
+                    className="flex w-full text-[.82rem] sm:text-sm font-semibold !line-clamp-2 tracking-wider text-gray-900 hover:text-blue-600 transition-colors" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                >
                     {movie.Title}
                 </a>
             </div>

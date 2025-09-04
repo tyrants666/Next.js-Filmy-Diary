@@ -10,36 +10,48 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Set a timeout fallback to ensure loading never gets stuck
+    const loadingTimeout = setTimeout(() => {
+      console.warn('Auth loading timeout - forcing loading to false');
+      setLoading(false);
+    }, 10000); // 10 second timeout
     
     // Get initial session
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
 
         //Add Authenticated user info to Profiles column
         if (session?.user) {
           console.log("%cSession User Details Below 👇",'color: lightgreen;');
-            console.log(session.user);
+          console.log(session.user);
+          
+          try {
             // Check if profile exists
-            const { data: profile } = await supabase
+            const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('id')
                 .eq('id', session.user.id)
-                .single();
-            // const { data: profile } = await supabase
-            //     .from('profiles')
-            //     .select('user_email')
-            //     .eq('user_email', session.user.email)
-            //     .single();
+                .maybeSingle(); // Use maybeSingle() instead of single()
 
-            // First time Login - Create profile if it doesn't exist
-            if (!profile) {
-              // Extract name from metadata - Google provides different keys than expected
+            if (profileError) {
+              console.error('Error checking profile:', profileError);
+            } else if (!profile) {
+              // First time Login - Create profile if it doesn't exist
+              console.log('Creating new profile for user');
               const firstName = session.user.user_metadata?.name?.split(' ')[0] || '';
               const lastName = (session.user.user_metadata?.name?.split(' ').length > 1
                   ? session.user.user_metadata?.name?.split(' ').slice(1).join(' ')
                   : '');
                   
-              const { error } = await supabase
+              const { error: insertError } = await supabase
                 .from('profiles')
                 .insert({
                   id: session.user.id,
@@ -51,14 +63,28 @@ export function AuthProvider({ children }) {
                   total_login: 1  // Initialize total_login counter
                 });
 
-              if (error) console.error('Filmy Diary - Error creating profile:', error);
-            }else{
+              if (insertError) {
+                console.error('Filmy Diary - Error creating profile:', insertError);
+              } else {
+                console.log('Profile created successfully');
+              }
+            } else {
               console.log("%cProfile already exists in the database", "color: lightgreen;");
             }
+          } catch (profileErr) {
+            console.error('Error handling profile operations:', profileErr);
+          }
         }
 
-      setUser(session?.user || null)
-      setLoading(false)
+        setUser(session?.user || null);
+        setLoading(false);
+        clearTimeout(loadingTimeout); // Clear timeout on successful completion
+      } catch (error) {
+        console.error('Error in getSession:', error);
+        setUser(null);
+        setLoading(false);
+        clearTimeout(loadingTimeout); // Clear timeout on error
+      }
     }
     
     getSession()
@@ -83,26 +109,40 @@ export function AuthProvider({ children }) {
 
     // Function to update login count on sign-in events
     const updateLoginCount = async (userId) => {
-      // Get current count
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('total_login')
-        .eq('id', userId)
-        .single();
-
-      if (profile) {
-        // Increment the count
-        await supabase
+      try {
+        // Get current count
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .update({
-            total_login: profile.total_login + 1
-          })
-          .eq('id', userId);
+          .select('total_login')
+          .eq('id', userId)
+          .maybeSingle(); // Use maybeSingle() instead of single()
+
+        if (profileError) {
+          console.error('Error fetching profile for login count:', profileError);
+          return;
+        }
+
+        if (profile) {
+          // Increment the count
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              total_login: (profile.total_login || 0) + 1
+            })
+            .eq('id', userId);
+
+          if (updateError) {
+            console.error('Error updating login count:', updateError);
+          }
+        }
+      } catch (error) {
+        console.error('Error in updateLoginCount:', error);
       }
     };
 
     return () => {
       subscription.unsubscribe()
+      clearTimeout(loadingTimeout) // Clear timeout on cleanup
     }
   }, [])
 

@@ -55,7 +55,8 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
             if (data.results && data.results.length > 0) {
                 // Transform TMDB data to match OMDB structure
                 let transformedMovies = data.results.map(movie => ({
-                    imdbID: movie.id.toString(), // Use TMDB ID as identifier
+                    tmdbID: movie.id.toString(), // Store TMDB ID separately
+                    imdbID: "N/A", // Will be populated from OMDB if available
                     Title: movie.title,
                     Poster: movie.poster_path ? `${baseImageUrl}${movie.poster_path}` : "N/A",
                     Year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "N/A",
@@ -76,6 +77,11 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                             const omdbData = await omdbResponse.json();
                             
                             if (omdbData.Response === 'True') {
+                                // Get actual IMDB ID
+                                if (omdbData.imdbID && omdbData.imdbID !== "N/A") {
+                                    movie.imdbID = omdbData.imdbID;
+                                }
+                                
                                 // Update poster if we don't have one from TMDB
                                 if (movie.Poster === "N/A" && omdbData.Poster !== "N/A") {
                                     movie.Poster = omdbData.Poster;
@@ -182,11 +188,11 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                 return;
             }
             
-            // First check if movie exists in DB
+            // First check if movie exists in DB (try IMDB ID first, then TMDB ID as fallback)
             let { data: existingMovie } = await supabase
                 .from('movies')
                 .select('id')
-                .eq('movie_id', movie.imdbID)
+                .eq('movie_id', movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)
                 .maybeSingle(); // Use maybeSingle() to handle cases where movie doesn't exist yet
                 
             let movieId;
@@ -198,7 +204,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                 const { data: newMovie, error: movieError } = await supabase
                     .from('movies')
                     .insert({
-                        movie_id: movie.imdbID,
+                        movie_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
                         title: movie.Title,
                         poster: movie.Poster,
                         year: movie.Year,
@@ -229,7 +235,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                         user_id: sessionData.session.user.id,
                         user_email: sessionData.session.user.email,
                         movie_id: movieId,
-                        movie_imdb_id: movie.imdbID,
+                        movie_imdb_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
                         movie_name: movie.Title
                     }, {
                         onConflict: 'user_id'
@@ -251,7 +257,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                         user_id: sessionData.session.user.id,
                         user_email: sessionData.session.user.email,
                         movie_id: movieId,
-                        movie_imdb_id: movie.imdbID,
+                        movie_imdb_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
                         movie_name: movie.Title,
                         status
                     });
@@ -309,7 +315,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                 .from('user_movies')
                 .delete()
                 .eq('user_id', sessionData.session.user.id)
-                .eq('movie_imdb_id', movie.imdbID)
+                .eq('movie_imdb_id', movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)
                 .eq('status', 'watched');
 
             if (deleteError) {
@@ -470,16 +476,16 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                     {/* ======================================== Movie cards section ======================================== */}
 
                     <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
-                        {movies.map((movie) => (
+                        {movies.map((movie, index) => (
                             <MovieCard
-                                key={movie.imdbID}
+                                key={`${movie.imdbID}-${movie.tmdbID}-${index}`}
                                 movie={movie}
                                 onHover={() => null}
                                 onLeave={() => null}
                                 onClickWatched={() => addMovieToList(movie, 'watched')}
                                 onClickWatching={() => addMovieToList(movie, 'watching')}
                                 onRemoveWatched={() => removeWatchedStatus(movie)}
-                                watched={watchedMovies.has(movie.imdbID)}
+                                watched={watchedMovies.has(movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)}
                                 cardType="search"
                             />
                         ))}
