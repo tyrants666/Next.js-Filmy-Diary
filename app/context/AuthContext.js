@@ -19,14 +19,22 @@ export function AuthProvider({ children }) {
     // Get initial session
     const getSession = async () => {
       try {
+        console.log('Getting initial session...');
+        
+        // Small delay to ensure localStorage is ready in some browsers
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
         if (sessionError) {
           console.error('Error getting session:', sessionError);
           setUser(null);
           setLoading(false);
+          clearTimeout(loadingTimeout);
           return;
         }
+
+        console.log('Initial session result:', session ? 'Session found' : 'No session');
 
         //Add Authenticated user info to Profiles column
         if (session?.user) {
@@ -92,6 +100,8 @@ export function AuthProvider({ children }) {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session ? 'Session exists' : 'No session');
+        
         // Only update login count on SIGNED_IN event that's not from an initial session
         if (event === 'SIGNED_IN' && session?.user) {
           const { data: existingSession } = await supabase.auth.getSession();
@@ -104,6 +114,7 @@ export function AuthProvider({ children }) {
         
         setUser(session?.user || null)
         setLoading(false)
+        clearTimeout(loadingTimeout)
       }
     )
 
