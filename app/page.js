@@ -60,7 +60,7 @@ export default function Home() {
                     )
                 `)
                 .eq('user_id', user.id)
-                .single();
+                .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 or 1 rows
             
             console.log('Watching data fetch result:', { watchingData, watchingError });
             
@@ -75,8 +75,7 @@ export default function Home() {
                     movies: watchingData.movies
                 });
                 console.log('Added watching movie to combined data:', watchingData);
-            } else if (watchingError && watchingError.code !== 'PGRST116') {
-                // PGRST116 is "no rows returned" which is expected when no movie is being watched
+            } else if (watchingError) {
                 console.error('Error fetching watching data:', watchingError);
             }
             

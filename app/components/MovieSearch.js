@@ -187,7 +187,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                 .from('movies')
                 .select('id')
                 .eq('movie_id', movie.imdbID)
-                .single();
+                .maybeSingle(); // Use maybeSingle() to handle cases where movie doesn't exist yet
                 
             let movieId;
             
@@ -206,7 +206,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                         rating_source: movie.ratingSource || "N/A"
                     })
                     .select('id')
-                    .single();
+                    .single(); // Keep .single() here as INSERT should always return exactly 1 row
                     
                 if (movieError) {
                     throw movieError;
