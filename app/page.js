@@ -864,7 +864,7 @@ export default function Home() {
                 </main>
             </div>
 
-            <div className='text-center w-full flex justify-center py-6'>
+            <div className='text-center w-full flex justify-center pt-6' style={{ marginBottom: '-8px' }}>
                 <Image 
                     src="/images/pokemon.gif" 
                     alt="Pokemon" 
