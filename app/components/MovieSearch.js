@@ -600,7 +600,21 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 </button>
             </form>
 
-            {loadingMovie && currentPage === 1 && <p className="text-center">Loading...</p>}
+            {loadingMovie && currentPage === 1 && (
+                <div className="flex flex-col items-center justify-center py-12">
+                    {/* Attractive loading animation */}
+                    <div className="relative mb-4">
+                        {/* Outer spinning ring */}
+                        <div className="w-16 h-16 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
+                        {/* Inner pulsing dot */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                        </div>
+                    </div>
+                    <p className="text-gray-600 font-medium">Searching for movies...</p>
+                    <p className="text-gray-400 text-sm mt-1">Finding the perfect matches</p>
+                </div>
+            )}
             {error && <p className="text-center">{error}</p>}
 
             {/* Cute figure when no search has been made or no results */}
