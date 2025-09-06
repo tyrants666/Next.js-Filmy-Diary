@@ -17,7 +17,7 @@ export default function Home() {
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [lastFetchTime, setLastFetchTime] = useState(null);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
-    const [showSearch, setShowSearch] = useState(true);
+    const [showSearch, setShowSearch] = useState(false);
     const { user, loading, signOut, validateSession } = useAuth()
     const { showSuccess, showError } = useToast()
     const router = useRouter()
@@ -584,7 +584,14 @@ export default function Home() {
 
             <div className='container mx-auto text-black'>
                 <header className="py-4 m-4 mb-0 rounded-xl text-center flex justify-between items-center">
-                    <h1 className="text-2xl font-bold">Filmy Diary</h1>
+                    {/* <h1 className="text-2xl font-bold">Filmy Diary</h1> */}
+                    <Image
+                        src="/images/logo.png"
+                        alt="Pokemon"
+                        width={100}
+                        height={100}
+                        priority
+                    />
                     <div className="flex items-center gap-2 sm:gap-4">
                         <span className="hidden sm:block">{user.user_metadata?.name?.split(' ')[0] || user.email}</span>
                         <button 
