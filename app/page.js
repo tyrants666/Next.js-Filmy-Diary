@@ -291,6 +291,8 @@ export default function Home() {
                     movie_name: movieData.Title,
                     status: 'watched',
                     watched_date: watchedDateToUse
+                }, {
+                    onConflict: 'user_id,movie_id'
                 });
 
             if (addWatchedError) {

@@ -87,6 +87,8 @@ export async function POST(request) {
                 user_id: userId,
                 movie_id: movieId,
                 status
+            }, {
+                onConflict: 'user_id,movie_id'
             })
 
         if (userMovieError) {

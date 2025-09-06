@@ -418,7 +418,9 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
 
                 const { error: listError } = await supabase
                     .from('user_movies')
-                    .upsert(upsertData);
+                    .upsert(upsertData, {
+                        onConflict: 'user_id,movie_id'
+                    });
                     
                 if (listError) {
                     // Revert optimistic update on error
@@ -528,6 +530,9 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
 
     // Toggle wishlist status
     const toggleWishlistStatus = async (movie) => {
+        const movieId = movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID;
+        const isInWishlist = wishlistMovies.has(movieId);
+        
         try {
             const { data: sessionData } = await supabase.auth.getSession();
             
@@ -536,11 +541,24 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 return;
             }
 
-            const movieId = movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID;
-            const isInWishlist = wishlistMovies.has(movieId);
-
             if (isInWishlist) {
-                // Remove from wishlist
+                // Update local state optimistically
+                setWishlistMovies(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(movieId);
+                    return newSet;
+                });
+
+                // Update parent state optimistically
+                if (setSavedMovies) {
+                    setSavedMovies(prevMovies => 
+                        prevMovies.filter(movie => 
+                            !(movie.status === 'wishlist' && movie.movies.movie_id === movieId)
+                        )
+                    );
+                }
+
+                // Remove from database
                 const { error: deleteError } = await supabase
                     .from('user_movies')
                     .delete()
@@ -552,24 +570,35 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                     throw deleteError;
                 }
 
-                // Update the wishlistMovies set
-                setWishlistMovies(prev => {
-                    const newSet = new Set(prev);
-                    newSet.delete(movieId);
-                    return newSet;
-                });
-
                 showSuccess(`"${movie.Title}" removed from your watchlist!`);
             } else {
-                // Add to wishlist
-                await addMovieToList(movie, 'wishlist');
-                
-                // Update the wishlistMovies set
+                // Update local state optimistically first
                 setWishlistMovies(prev => {
                     const newSet = new Set(prev);
                     newSet.add(movieId);
                     return newSet;
                 });
+
+                // Update parent state optimistically
+                if (setSavedMovies) {
+                    const newWatchlistMovie = {
+                        id: Date.now(), // Temporary ID
+                        status: 'wishlist',
+                        movies: {
+                            id: Date.now(), // Temporary ID
+                            movie_id: movieId,
+                            title: movie.Title,
+                            poster: movie.Poster,
+                            year: movie.Year,
+                            rating: movie.imdbRating,
+                            rating_source: movie.ratingSource
+                        }
+                    };
+                    setSavedMovies(prevMovies => [...prevMovies, newWatchlistMovie]);
+                }
+
+                // Add to database
+                await addMovieToList(movie, 'wishlist');
             }
             
             // Call the callback to refresh the parent's savedMovies list
@@ -580,6 +609,23 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
         } catch (error) {
             console.error('Error toggling wishlist status:', error);
             showError('Failed to update watchlist. Please try again.');
+            
+            // Revert optimistic updates on error
+            setWishlistMovies(prev => {
+                const newSet = new Set(prev);
+                if (isInWishlist) {
+                    newSet.add(movieId); // Re-add if we tried to remove
+                } else {
+                    newSet.delete(movieId); // Remove if we tried to add
+                }
+                return newSet;
+            });
+
+            // Revert parent state by refreshing from server
+            if (fetchSavedMovies) {
+                await fetchSavedMovies();
+            }
+            
             // Re-throw the error so MovieCard can handle the state properly
             throw error;
         }
