@@ -328,7 +328,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                             type="date"
                                             value={selectedDate}
                                             onChange={(e) => setSelectedDate(e.target.value)}
-                                            className="w-full p-1 border border-white/20 rounded text-white bg-slate-700/90 backdrop-blur-sm focus:outline-none focus:border-white/20"
+                                            className="w-full p-1 px-2 border border-white/30 rounded-lg text-white bg-transparent backdrop-blur-sm focus:outline-none focus:border-white/50 focus:bg-white/5 hover:border-white/40 transition-all duration-200"
                                             style={{ fontSize: '12px' }}
                                             max={new Date().toISOString().split('T')[0]}
                                             autoFocus
@@ -340,7 +340,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                                 className="bg-transparent hover:bg-white/10 text-green-400 hover:text-green-300 p-1 rounded disabled:opacity-50 transition-colors"
                                                 title="Accept"
                                             >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                                     <polyline points="20,6 9,17 4,12"></polyline>
                                                 </svg>
                                             </button>
@@ -350,7 +350,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                                 className="bg-transparent hover:bg-white/10 text-red-400 hover:text-red-300 p-1 rounded disabled:opacity-50 transition-colors"
                                                 title="Cancel"
                                             >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                                     <line x1="18" y1="6" x2="6" y2="18"></line>
                                                     <line x1="6" y1="6" x2="18" y2="18"></line>
                                                 </svg>
@@ -465,7 +465,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                             type="date"
                                             value={selectedDate}
                                             onChange={(e) => setSelectedDate(e.target.value)}
-                                            className="w-full p-1 border border-white/20 rounded text-white bg-green-700/90 backdrop-blur-sm focus:outline-none focus:border-white/20"
+                                            className="w-full p-1 border border-white/30 rounded-lg text-white bg-transparent backdrop-blur-sm focus:outline-none focus:border-white/50 focus:bg-white/5 hover:border-white/40 transition-all duration-200"
                                             style={{ fontSize: '12px' }}
                                             max={new Date().toISOString().split('T')[0]}
                                             autoFocus
