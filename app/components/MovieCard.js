@@ -2,6 +2,25 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 
 const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, onRemoveWatched, watched, cardType = 'search' }) => {
+    // Add custom styles for date input icon
+    useEffect(() => {
+        const style = document.createElement('style');
+        style.textContent = `
+            .date-input-custom::-webkit-calendar-picker-indicator {
+                filter: invert(1) brightness(1.2);
+                cursor: pointer;
+                opacity: 0.8;
+            }
+            .date-input-custom::-webkit-calendar-picker-indicator:hover {
+                opacity: 1;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        return () => {
+            document.head.removeChild(style);
+        };
+    }, []);
     const [isWatched, setIsWatched] = useState(false);
     const [isWatchedLoading, setIsWatchedLoading] = useState(false);
     const [isWatchingLoading, setIsWatchingLoading] = useState(false);
@@ -286,7 +305,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                                 <line x1="8" y1="2" x2="8" y2="6"></line>
                                                 <line x1="3" y1="10" x2="21" y2="10"></line>
                                             </svg>
-                                            Watched Date
+                                            Watch Date
                                         </button>
                                         <button
                                             onClick={handleWatchingClick}
@@ -328,8 +347,11 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                             type="date"
                                             value={selectedDate}
                                             onChange={(e) => setSelectedDate(e.target.value)}
-                                            className="w-full p-1 px-2 border border-white/30 rounded-lg text-white bg-transparent backdrop-blur-sm focus:outline-none focus:border-white/50 focus:bg-white/5 hover:border-white/40 transition-all duration-200"
-                                            style={{ fontSize: '12px' }}
+                                            className="w-full p-1 px-2 border border-white/30 rounded-lg text-white bg-transparent backdrop-blur-sm focus:outline-none focus:border-white/50 focus:bg-white/5 hover:border-white/40 transition-all duration-200 date-input-custom"
+                                            style={{ 
+                                                fontSize: '12px',
+                                                colorScheme: 'dark'
+                                            }}
                                             max={new Date().toISOString().split('T')[0]}
                                             autoFocus
                                         />
@@ -465,8 +487,11 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                             type="date"
                                             value={selectedDate}
                                             onChange={(e) => setSelectedDate(e.target.value)}
-                                            className="w-full p-1 border border-white/30 rounded-lg text-white bg-transparent backdrop-blur-sm focus:outline-none focus:border-white/50 focus:bg-white/5 hover:border-white/40 transition-all duration-200"
-                                            style={{ fontSize: '12px' }}
+                                            className="w-full p-1 px-2 border border-white/30 rounded-lg text-white bg-transparent backdrop-blur-sm focus:outline-none focus:border-white/50 focus:bg-white/5 hover:border-white/40 transition-all duration-200 date-input-custom"
+                                            style={{ 
+                                                fontSize: '12px',
+                                                colorScheme: 'dark'
+                                            }}
                                             max={new Date().toISOString().split('T')[0]}
                                             autoFocus
                                         />
