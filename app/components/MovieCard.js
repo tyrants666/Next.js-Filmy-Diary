@@ -3,9 +3,13 @@ import Image from "next/image";
 
 const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, onRemoveWatched, watched, cardType = 'search' }) => {
     const [isWatched, setIsWatched] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isWatchedLoading, setIsWatchedLoading] = useState(false);
+    const [isWatchingLoading, setIsWatchingLoading] = useState(false);
     const [imageError, setImageError] = useState(false);
     const [currentPosterIndex, setCurrentPosterIndex] = useState(0);
+    const [operationError, setOperationError] = useState(false);
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [selectedDate, setSelectedDate] = useState('');
     
     // Generate alternative poster URLs for fallback (TMDB priority)
     const getPosterAlternatives = () => {
@@ -51,26 +55,110 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
     }, [movie.Poster]);
 
     const handleWatchedClick = async () => {
-        setIsLoading(true);
+        setIsWatchedLoading(true);
+        setOperationError(false);
+        const originalWatchedState = isWatched;
+        
         try {
-            await onClickWatched();
+            // Use current date for quick watched action
+            await onClickWatched(null); // null will default to current date in backend
             setIsWatched(true);
         } catch (error) {
             console.error('Failed to mark as watched:', error);
+            setIsWatched(originalWatchedState);
+            setOperationError(true);
+            setTimeout(() => setOperationError(false), 3000);
         } finally {
-            setIsLoading(false);
+            setIsWatchedLoading(false);
         }
     };
 
+    const handleCalendarClick = () => {
+        setShowDatePicker(true);
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        setSelectedDate(today);
+    };
+
+    const handleDateSubmit = async () => {
+        setIsWatchedLoading(true);
+        setOperationError(false);
+        const originalWatchedState = isWatched;
+        
+        try {
+            // Convert selected date to ISO string if provided, otherwise use current date
+            const watchedDate = selectedDate ? new Date(selectedDate).toISOString() : null;
+            await onClickWatched(watchedDate);
+            // Only set as watched if the operation succeeds
+            setIsWatched(true);
+            setShowDatePicker(false);
+        } catch (error) {
+            console.error('Failed to mark as watched:', error);
+            // Restore the original state if operation fails
+            setIsWatched(originalWatchedState);
+            setOperationError(true);
+            // Clear error after 3 seconds
+            setTimeout(() => setOperationError(false), 3000);
+        } finally {
+            setIsWatchedLoading(false);
+        }
+    };
+
+    const handleDateCancel = () => {
+        setShowDatePicker(false);
+        setSelectedDate('');
+    };
+
     const handleRemoveWatched = async () => {
-        setIsLoading(true);
+        setIsWatchedLoading(true);
+        setOperationError(false);
+        const originalWatchedState = isWatched;
+        
         try {
             await onRemoveWatched();
+            // Only set as unwatched if the operation succeeds
             setIsWatched(false);
         } catch (error) {
             console.error('Failed to remove watched status:', error);
+            // Restore the original state if operation fails
+            setIsWatched(originalWatchedState);
+            setOperationError(true);
+            // Clear error after 3 seconds
+            setTimeout(() => setOperationError(false), 3000);
         } finally {
-            setIsLoading(false);
+            setIsWatchedLoading(false);
+        }
+    };
+
+    const handleWatchingClick = async () => {
+        setIsWatchingLoading(true);
+        setOperationError(false);
+        
+        try {
+            await onClickWatching();
+        } catch (error) {
+            console.error('Failed to add to watching:', error);
+            setOperationError(true);
+            // Clear error after 3 seconds
+            setTimeout(() => setOperationError(false), 3000);
+        } finally {
+            setIsWatchingLoading(false);
+        }
+    };
+
+    const handleRemoveWatching = async () => {
+        setIsWatchingLoading(true);
+        setOperationError(false);
+        
+        try {
+            await onClickWatching(); // This should be the remove function
+        } catch (error) {
+            console.error('Failed to remove from watching:', error);
+            setOperationError(true);
+            // Clear error after 3 seconds
+            setTimeout(() => setOperationError(false), 3000);
+        } finally {
+            setIsWatchingLoading(false);
         }
     };
 
@@ -90,8 +178,10 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
     };
 
     return (
-        <div className="gap-2 bg-gray-50 border border-gray-200 shadow-lg hover:shadow-xl flex flex-col rounded-xl relative group min-w-0 shrink-0 grow-0
-        basis-[31.7%] sm:basis-[18.4%] lg:basis-[13.24%] xl:basis-[11.65%] 2xl:basis-[10.4%] max-w-[180px] !select-none transition-all duration-200"
+        <div className={`gap-2 bg-gray-50 shadow-lg hover:shadow-xl flex flex-col rounded-xl relative group min-w-0 shrink-0 grow-0
+        basis-[31.7%] sm:basis-[18.4%] lg:basis-[13.24%] xl:basis-[11.65%] 2xl:basis-[10.4%] max-w-[180px] !select-none transition-all duration-200 ${
+            operationError ? 'border-2 border-red-500' : 'border border-gray-200'
+        }`}
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
         >
@@ -162,46 +252,122 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                     <div className="flex flex-col gap-2 px-3">
                         {cardType === 'search' && !isWatched && (
                             <>
-                                <button
-                                    onClick={handleWatchedClick}
-                                    disabled={isLoading}
-                                    className="bg-slate-700/90 hover:bg-slate-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    {isLoading ? (
-                                        <>
-                                            <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                {!showDatePicker && (
+                                    <>
+                                        <button
+                                            onClick={handleWatchedClick}
+                                            disabled={isWatchedLoading}
+                                            className="bg-slate-700/90 hover:bg-slate-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                        >
+                                            {isWatchedLoading ? (
+                                                <>
+                                                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                                    </svg>
+                                                    Loading
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                        <polyline points="20,6 9,17 4,12"></polyline>
+                                                    </svg>
+                                                    Watched
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={handleCalendarClick}
+                                            disabled={isWatchedLoading}
+                                            className="bg-slate-700/90 hover:bg-slate-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                <line x1="3" y1="10" x2="21" y2="10"></line>
                                             </svg>
-                                            Loading
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                <polyline points="20,6 9,17 4,12"></polyline>
+                                            Watched Date
+                                        </button>
+                                        <button
+                                            onClick={handleWatchingClick}
+                                            disabled={isWatchingLoading}
+                                            className="bg-indigo-700/90 hover:bg-indigo-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                        >
+                                            {isWatchingLoading ? (
+                                                <>
+                                                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                                    </svg>
+                                                    Adding...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <polygon points="5,3 19,12 5,21"></polygon>
+                                                    </svg>
+                                                    Watching
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={() => {/* TODO: Add wishlist functionality */}}
+                                            className="bg-purple-700/90 hover:bg-purple-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
                                             </svg>
-                                            Watched
-                                        </>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={onClickWatching}
-                                    className="bg-indigo-700/90 hover:bg-indigo-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polygon points="5,3 19,12 5,21"></polygon>
-                                    </svg>
-                                    Watching
-                                </button>
+                                            Wishlist
+                                        </button>
+                                    </>
+                                )}
+                                
+                                {/* Inline date picker */}
+                                {showDatePicker && (
+                                    <div className="flex flex-col gap-1">
+                                        <input
+                                            type="date"
+                                            value={selectedDate}
+                                            onChange={(e) => setSelectedDate(e.target.value)}
+                                            className="w-full p-1 border border-white/20 rounded text-white bg-slate-700/90 backdrop-blur-sm focus:outline-none focus:border-white/20"
+                                            style={{ fontSize: '12px' }}
+                                            max={new Date().toISOString().split('T')[0]}
+                                            autoFocus
+                                        />
+                                        <div className="flex gap-1 justify-center">
+                                            <button
+                                                onClick={handleDateSubmit}
+                                                disabled={isWatchedLoading}
+                                                className="bg-transparent hover:bg-white/10 text-green-400 hover:text-green-300 p-1 rounded disabled:opacity-50 transition-colors"
+                                                title="Accept"
+                                            >
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                    <polyline points="20,6 9,17 4,12"></polyline>
+                                                </svg>
+                                            </button>
+                                            <button
+                                                onClick={handleDateCancel}
+                                                disabled={isWatchedLoading}
+                                                className="bg-transparent hover:bg-white/10 text-red-400 hover:text-red-300 p-1 rounded disabled:opacity-50 transition-colors"
+                                                title="Cancel"
+                                            >
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </>
                         )}
                         
-                        {cardType === 'search' && isWatched && (
+                        {cardType === 'search' && isWatched && !showDatePicker && (
                             <button
                                 onClick={handleRemoveWatched}
-                                disabled={isLoading}
+                                disabled={isWatchedLoading}
                                 className="bg-red-700/90 hover:bg-red-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
                             >
-                                {isLoading ? (
+                                {isWatchedLoading ? (
                                     <>
                                         <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M21 12a9 9 0 11-6.219-8.56"/>
@@ -222,48 +388,123 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
 
                         {cardType === 'watching' && (
                             <>
-                                <button
-                                    onClick={handleWatchedClick}
-                                    disabled={isLoading}
-                                    className="bg-green-700/90 hover:bg-green-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    {isLoading ? (
-                                        <>
-                                            <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                {!showDatePicker && (
+                                    <>
+                                        <button
+                                            onClick={handleWatchedClick}
+                                            disabled={isWatchedLoading}
+                                            className="bg-green-700/90 hover:bg-green-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                        >
+                                            {isWatchedLoading ? (
+                                                <>
+                                                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                                    </svg>
+                                                    Moving...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                        <polyline points="20,6 9,17 4,12"></polyline>
+                                                    </svg>
+                                                    Watched
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={handleCalendarClick}
+                                            disabled={isWatchedLoading}
+                                            className="bg-green-700/90 hover:bg-green-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                <line x1="3" y1="10" x2="21" y2="10"></line>
                                             </svg>
-                                            Moving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                <polyline points="20,6 9,17 4,12"></polyline>
+                                            Watched with Date
+                                        </button>
+                                        <button
+                                            onClick={handleRemoveWatching}
+                                            disabled={isWatchingLoading}
+                                            className="bg-red-700/90 hover:bg-red-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                        >
+                                            {isWatchingLoading ? (
+                                                <>
+                                                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                                    </svg>
+                                                    Removing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                    </svg>
+                                                    Remove from Watching
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={() => {/* TODO: Add wishlist functionality */}}
+                                            className="bg-purple-700/90 hover:bg-purple-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
                                             </svg>
-                                            Watched
-                                        </>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={onClickWatching}
-                                    disabled={isLoading}
-                                    className="bg-red-700/90 hover:bg-red-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                                    </svg>
-                                    Remove
-                                </button>
+                                            Wishlist
+                                        </button>
+                                    </>
+                                )}
+                                
+                                {/* Inline date picker */}
+                                {showDatePicker && (
+                                    <div className="flex flex-col gap-1">
+                                        <input
+                                            type="date"
+                                            value={selectedDate}
+                                            onChange={(e) => setSelectedDate(e.target.value)}
+                                            className="w-full p-1 border border-white/20 rounded text-white bg-green-700/90 backdrop-blur-sm focus:outline-none focus:border-white/20"
+                                            style={{ fontSize: '12px' }}
+                                            max={new Date().toISOString().split('T')[0]}
+                                            autoFocus
+                                        />
+                                        <div className="flex gap-1 justify-center">
+                                            <button
+                                                onClick={handleDateSubmit}
+                                                disabled={isWatchedLoading}
+                                                className="bg-transparent hover:bg-white/10 text-green-400 hover:text-green-300 p-1 rounded disabled:opacity-50 transition-colors"
+                                                title="Accept"
+                                            >
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                    <polyline points="20,6 9,17 4,12"></polyline>
+                                                </svg>
+                                            </button>
+                                            <button
+                                                onClick={handleDateCancel}
+                                                disabled={isWatchedLoading}
+                                                className="bg-transparent hover:bg-white/10 text-red-400 hover:text-red-300 p-1 rounded disabled:opacity-50 transition-colors"
+                                                title="Cancel"
+                                            >
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </>
                         )}
 
-                        {cardType === 'watched' && (
+                        {cardType === 'watched' && !showDatePicker && (
                             <button
                                 onClick={handleRemoveWatched}
-                                disabled={isLoading}
+                                disabled={isWatchedLoading}
                                 className="bg-red-700/90 hover:bg-red-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
                             >
-                                {isLoading ? (
+                                {isWatchedLoading ? (
                                     <>
                                         <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M21 12a9 9 0 11-6.219-8.56"/>

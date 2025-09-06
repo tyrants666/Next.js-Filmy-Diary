@@ -31,6 +31,7 @@ export default function Home() {
                 .select(`
                     id,
                     status,
+                    watched_date,
                     movies (
                         id,
                         movie_id,

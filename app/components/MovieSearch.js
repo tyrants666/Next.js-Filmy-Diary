@@ -254,7 +254,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
 
     
     // Add movie to user's list
-    const addMovieToList = async (movie, status) => {
+    const addMovieToList = async (movie, status, watchedDate = null) => {
         try {
             // Validate session first
             const session = await validateSession();
@@ -304,7 +304,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
             if (status === 'watching') {
                 // For watching status, use the new watching table with unique constraint
                 console.log('Attempting to add to watching table:', {
-                    user_id: sessionData.session.user.id,
+                    user_id: session.user.id,
                     movie_id: movieId,
                     movie_name: movie.Title
                 });
@@ -312,8 +312,8 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                 const { data: watchingData, error: watchingError } = await supabase
                     .from('watching')
                     .upsert({
-                        user_id: sessionData.session.user.id,
-                        user_email: sessionData.session.user.email,
+                        user_id: session.user.id,
+                        user_email: session.user.email,
                         movie_id: movieId,
                         movie_imdb_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
                         movie_name: movie.Title
@@ -331,16 +331,23 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                 showSuccess(`Now watching "${movie.Title}"!`);
             } else {
                 // For other statuses (like watched), use the regular user_movies table
+                const upsertData = {
+                    user_id: session.user.id,
+                    user_email: session.user.email,
+                    movie_id: movieId,
+                    movie_imdb_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
+                    movie_name: movie.Title,
+                    status
+                };
+
+                // Add watched_date if status is 'watched'
+                if (status === 'watched') {
+                    upsertData.watched_date = watchedDate || new Date().toISOString();
+                }
+
                 const { error: listError } = await supabase
                     .from('user_movies')
-                    .upsert({
-                        user_id: sessionData.session.user.id,
-                        user_email: sessionData.session.user.email,
-                        movie_id: movieId,
-                        movie_imdb_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
-                        movie_name: movie.Title,
-                        status
-                    });
+                    .upsert(upsertData);
                     
                 if (listError) {
                     throw listError;
@@ -350,7 +357,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('saved_movies')
-                    .eq('id', sessionData.session.user.id)
+                    .eq('id', session.user.id)
                     .single();
 
                 if (profile !== null) {
@@ -359,7 +366,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                         .update({
                             saved_movies: (profile.saved_movies || 0) + 1
                         })
-                        .eq('id', sessionData.session.user.id);
+                        .eq('id', session.user.id);
 
                     if (updateError) {
                         console.error('Error updating saved_movies count:', updateError);
@@ -374,10 +381,12 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                 await fetchSavedMovies();
             }
             
-        } catch (error) {
-            console.error('Error saving movie:', error);
-            showError('Failed to save movie. Please try again.');
-        }
+                 } catch (error) {
+             console.error('Error saving movie:', error);
+             showError('Failed to save movie. Please try again.');
+             // Re-throw the error so MovieCard can handle the state properly
+             throw error;
+         }
     };
 
     // Remove movie from watched list
@@ -439,10 +448,12 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
 
             showSuccess(`Removed "${movie.Title}" from your watched list!`);
             
-        } catch (error) {
-            console.error('Error removing movie:', error);
-            showError('Failed to remove movie. Please try again.');
-        }
+                 } catch (error) {
+             console.error('Error removing movie:', error);
+             showError('Failed to remove movie. Please try again.');
+             // Re-throw the error so MovieCard can handle the state properly
+             throw error;
+         }
     };
 
     //Check back again when you implement per page select
@@ -562,7 +573,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                                 movie={movie}
                                 onHover={() => null}
                                 onLeave={() => null}
-                                onClickWatched={() => addMovieToList(movie, 'watched')}
+                                onClickWatched={(watchedDate) => addMovieToList(movie, 'watched', watchedDate)}
                                 onClickWatching={() => addMovieToList(movie, 'watching')}
                                 onRemoveWatched={() => removeWatchedStatus(movie)}
                                 watched={watchedMovies.has(movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)}
