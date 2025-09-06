@@ -532,7 +532,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             const { data: sessionData } = await supabase.auth.getSession();
             
             if (!sessionData.session) {
-                showError('You need to be logged in to manage your wishlist');
+                showError('You need to be logged in to manage your watchlist');
                 return;
             }
 
@@ -559,7 +559,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                     return newSet;
                 });
 
-                showSuccess(`"${movie.Title}" removed from your wishlist!`);
+                showSuccess(`"${movie.Title}" removed from your watchlist!`);
             } else {
                 // Add to wishlist
                 await addMovieToList(movie, 'wishlist');
@@ -579,7 +579,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             
         } catch (error) {
             console.error('Error toggling wishlist status:', error);
-            showError('Failed to update wishlist. Please try again.');
+            showError('Failed to update watchlist. Please try again.');
             // Re-throw the error so MovieCard can handle the state properly
             throw error;
         }
