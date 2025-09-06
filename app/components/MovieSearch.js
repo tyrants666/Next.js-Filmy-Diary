@@ -51,6 +51,8 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
     const [watchedMovies, setWatchedMovies] = useState(new Set());
 
     // Create a Set of watched movie IDs for O(1) lookup
+    const [wishlistMovies, setWishlistMovies] = useState(new Set());
+    
     useEffect(() => {
         const watchedSet = new Set(
             savedMovies
@@ -58,6 +60,13 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 .map(item => item.movies.movie_id)
         );
         setWatchedMovies(watchedSet);
+
+        const wishlistSet = new Set(
+            savedMovies
+                .filter(item => item.status === 'wishlist')
+                .map(item => item.movies.movie_id)
+        );
+        setWishlistMovies(wishlistSet);
     }, [savedMovies]);
 
     const fetchMovies = async (page = 1) => {
@@ -517,6 +526,65 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
          }
     };
 
+    // Toggle wishlist status
+    const toggleWishlistStatus = async (movie) => {
+        try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            
+            if (!sessionData.session) {
+                showError('You need to be logged in to manage your wishlist');
+                return;
+            }
+
+            const movieId = movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID;
+            const isInWishlist = wishlistMovies.has(movieId);
+
+            if (isInWishlist) {
+                // Remove from wishlist
+                const { error: deleteError } = await supabase
+                    .from('user_movies')
+                    .delete()
+                    .eq('user_id', sessionData.session.user.id)
+                    .eq('movie_imdb_id', movieId)
+                    .eq('status', 'wishlist');
+
+                if (deleteError) {
+                    throw deleteError;
+                }
+
+                // Update the wishlistMovies set
+                setWishlistMovies(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(movieId);
+                    return newSet;
+                });
+
+                showSuccess(`"${movie.Title}" removed from your wishlist!`);
+            } else {
+                // Add to wishlist
+                await addMovieToList(movie, 'wishlist');
+                
+                // Update the wishlistMovies set
+                setWishlistMovies(prev => {
+                    const newSet = new Set(prev);
+                    newSet.add(movieId);
+                    return newSet;
+                });
+            }
+            
+            // Call the callback to refresh the parent's savedMovies list
+            if (fetchSavedMovies) {
+                await fetchSavedMovies();
+            }
+            
+        } catch (error) {
+            console.error('Error toggling wishlist status:', error);
+            showError('Failed to update wishlist. Please try again.');
+            // Re-throw the error so MovieCard can handle the state properly
+            throw error;
+        }
+    };
+
     //Check back again when you implement per page select
     // const handleMoviesPerPageChange = async (e) => {
     //     const newValue = Number(e.target.value);
@@ -711,8 +779,10 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                                 onLeave={() => null}
                                 onClickWatched={(watchedDate) => addMovieToList(movie, 'watched', watchedDate)}
                                 onClickWatching={() => addMovieToList(movie, 'watching')}
+                                onClickWishlist={() => toggleWishlistStatus(movie)}
                                 onRemoveWatched={() => removeWatchedStatus(movie)}
                                 watched={watchedMovies.has(movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)}
+                                wishlist={wishlistMovies.has(movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)}
                                 cardType="search"
                             />
                         ))}

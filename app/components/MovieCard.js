@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 
-const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, onRemoveWatched, watched, cardType = 'search' }) => {
+const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, onRemoveWatched, onClickWishlist, watched, wishlist, cardType = 'search' }) => {
     // Add custom styles for date input icon
     useEffect(() => {
         const style = document.createElement('style');
@@ -24,6 +24,8 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
     const [isWatched, setIsWatched] = useState(false);
     const [isWatchedLoading, setIsWatchedLoading] = useState(false);
     const [isWatchingLoading, setIsWatchingLoading] = useState(false);
+    const [isWishlistLoading, setIsWishlistLoading] = useState(false);
+    const [isWishlist, setIsWishlist] = useState(false);
     const [imageError, setImageError] = useState(false);
     const [currentPosterIndex, setCurrentPosterIndex] = useState(0);
     const [operationError, setOperationError] = useState(false);
@@ -68,6 +70,10 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
     useEffect(() => {
         setIsWatched(watched);
     }, [watched]);
+
+    useEffect(() => {
+        setIsWishlist(wishlist);
+    }, [wishlist]);
 
     useEffect(() => {
         setImageError(false); // Reset image error when movie changes
@@ -181,6 +187,27 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
         }
     };
 
+    const handleWishlistClick = async () => {
+        setIsWishlistLoading(true);
+        setOperationError(false);
+        const originalWishlistState = isWishlist;
+        
+        try {
+            await onClickWishlist();
+            // Toggle wishlist state optimistically
+            setIsWishlist(!originalWishlistState);
+        } catch (error) {
+            console.error('Failed to toggle wishlist:', error);
+            // Restore the original state if operation fails
+            setIsWishlist(originalWishlistState);
+            setOperationError(true);
+            // Clear error after 3 seconds
+            setTimeout(() => setOperationError(false), 3000);
+        } finally {
+            setIsWishlistLoading(false);
+        }
+    };
+
     const handleImageError = (e) => {
         const failedUrl = posterAlternatives[currentPosterIndex];
         console.error(`Failed to load poster for "${movie.Title}":`, failedUrl, e);
@@ -266,6 +293,16 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                     </div>
                 )}
 
+                {/* Wishlist indicator - always visible when in wishlist */}
+                {isWishlist && !isWatched && (
+                    <div className="absolute top-2 right-2 bg-purple-600 text-white w-5 h-5 rounded-full shadow-2xl flex items-center justify-center">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
+                        </svg>
+                        <div className="absolute inset-0 bg-white/20 rounded-full animate-ping"></div>
+                    </div>
+                )}
+
                 {/* Hover overlay with action buttons */}
                 <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                     <div className="flex flex-col gap-2 px-3">
@@ -329,13 +366,25 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                             )}
                                         </button>
                                         <button
-                                            onClick={() => {/* TODO: Add wishlist functionality */}}
-                                            className="bg-purple-700/90 hover:bg-purple-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                            onClick={handleWishlistClick}
+                                            disabled={isWishlistLoading}
+                                            className={`${isWishlist ? 'bg-purple-600/90 hover:bg-purple-500/90' : 'bg-purple-700/90 hover:bg-purple-600/90'} text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20`}
                                         >
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
-                                            </svg>
-                                            Wishlist
+                                            {isWishlistLoading ? (
+                                                <>
+                                                    <svg className="animate-spin hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                                    </svg>
+                                                    {isWishlist ? 'Removing...' : 'Adding...'}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill={isWishlist ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                                                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
+                                                    </svg>
+                                                    {isWishlist ? 'In Wishlist' : 'Wishlist'}
+                                                </>
+                                            )}
                                         </button>
                                     </>
                                 )}
@@ -479,6 +528,54 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                     </>
                                 )}
                             </button>
+                        )}
+
+                        {cardType === 'wishlist' && (
+                            <>
+                                <button
+                                    onClick={handleWatchedClick}
+                                    disabled={isWatchedLoading}
+                                    className="bg-slate-700/90 hover:bg-slate-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                >
+                                    {isWatchedLoading ? (
+                                        <>
+                                            <svg className="animate-spin hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                            </svg>
+                                            Moving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                <polyline points="20,6 9,17 4,12"></polyline>
+                                            </svg>
+                                            Watched
+                                        </>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={handleWishlistClick}
+                                    disabled={isWishlistLoading}
+                                    className="bg-red-700/90 hover:bg-red-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                >
+                                    {isWishlistLoading ? (
+                                        <>
+                                            <svg className="animate-spin hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                            </svg>
+                                            Removing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                                            </svg>
+                                            Remove
+                                        </>
+                                    )}
+                                </button>
+                            </>
                         )}
                     </div>
                 </div>

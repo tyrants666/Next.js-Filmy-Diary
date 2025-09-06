@@ -80,7 +80,7 @@ export async function POST(request) {
             movieId = newMovie.id
         }
 
-        // Add to user's list
+        // Add to user's list or update status
         const { data: userMovie, error: userMovieError } = await supabase
             .from('user_movies')
             .upsert({
@@ -94,6 +94,33 @@ export async function POST(request) {
         }
 
         return NextResponse.json({ success: true, data: userMovie })
+    } catch (error) {
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+}
+
+export async function DELETE(request) {
+    try {
+        const { searchParams } = new URL(request.url)
+        const userId = searchParams.get('userId')
+        const movieId = searchParams.get('movieId')
+
+        if (!userId || !movieId) {
+            return NextResponse.json({ error: 'User ID and Movie ID are required' }, { status: 400 })
+        }
+
+        // Remove from user's list
+        const { error: deleteError } = await supabase
+            .from('user_movies')
+            .delete()
+            .eq('user_id', userId)
+            .eq('movie_id', movieId)
+
+        if (deleteError) {
+            return NextResponse.json({ error: deleteError.message }, { status: 500 })
+        }
+
+        return NextResponse.json({ success: true })
     } catch (error) {
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }

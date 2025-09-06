@@ -327,6 +327,157 @@ export default function Home() {
         }
     };
 
+    // Add or remove movie from wishlist
+    const toggleWishlistStatus = async (movieData) => {
+        try {
+            // Validate session first
+            const session = await validateSession();
+            
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                setTimeout(() => router.push('/login'), 2000);
+                return;
+            }
+
+            // Check if movie is already in wishlist
+            const existingWishlistMovie = savedMovies.find(movie => 
+                movie.status === 'wishlist' && movie.movies.movie_id === movieData.imdbID
+            );
+
+            if (existingWishlistMovie) {
+                // Remove from wishlist
+                setSavedMovies(prevMovies => 
+                    prevMovies.filter(movie => 
+                        !(movie.status === 'wishlist' && movie.movies.movie_id === movieData.imdbID)
+                    )
+                );
+
+                // Delete from database
+                const response = await fetch(`/api/movies?userId=${user.id}&movieId=${existingWishlistMovie.movies.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    // Revert optimistic update on error
+                    await fetchSavedMovies(true, false);
+                    throw new Error('Failed to remove from wishlist');
+                }
+
+                showSuccess(`"${movieData.Title}" removed from your wishlist!`);
+            } else {
+                // Add to wishlist
+                const wishlistMovie = {
+                    id: Date.now(), // Temporary ID
+                    status: 'wishlist',
+                    movies: {
+                        id: Date.now(), // Temporary ID
+                        movie_id: movieData.imdbID,
+                        title: movieData.Title,
+                        poster: movieData.Poster,
+                        year: movieData.Year,
+                        rating: movieData.imdbRating,
+                        rating_source: movieData.ratingSource
+                    }
+                };
+
+                // Optimistically update local state
+                setSavedMovies(prevMovies => [...prevMovies, wishlistMovie]);
+
+                // Add to database
+                const response = await fetch('/api/movies', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: user.id,
+                        movieData: movieData,
+                        status: 'wishlist'
+                    })
+                });
+
+                if (!response.ok) {
+                    // Revert optimistic update on error
+                    await fetchSavedMovies(true, false);
+                    throw new Error('Failed to add to wishlist');
+                }
+
+                showSuccess(`"${movieData.Title}" added to your wishlist!`);
+            }
+            
+        } catch (error) {
+            console.error('Error toggling wishlist status:', error);
+            showError('Failed to update wishlist. Please try again.');
+        }
+    };
+
+    // Move movie from wishlist to watched
+    const moveWishlistToWatched = async (movieId, movieData, watchedDate = null) => {
+        try {
+            // Validate session first
+            const session = await validateSession();
+            
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                setTimeout(() => router.push('/login'), 2000);
+                return;
+            }
+
+            const watchedDateToUse = watchedDate || new Date().toISOString();
+
+            // Optimistically update local state first
+            setSavedMovies(prevMovies => {
+                // Remove from wishlist and add to watched
+                const filteredMovies = prevMovies.filter(movie => 
+                    !(movie.status === 'wishlist' && movie.movies.id === movieId)
+                );
+                
+                // Add to watched list
+                const watchedMovie = {
+                    id: Date.now(), // Temporary ID
+                    status: 'watched',
+                    watched_date: watchedDateToUse,
+                    movies: {
+                        id: movieId,
+                        movie_id: movieData.imdbID,
+                        title: movieData.Title,
+                        poster: movieData.Poster,
+                        year: movieData.Year,
+                        rating: movieData.imdbRating,
+                        rating_source: movieData.ratingSource
+                    }
+                };
+                
+                return [...filteredMovies, watchedMovie];
+            });
+
+            // Update status in database
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: user.id,
+                    movieData: movieData,
+                    status: 'watched'
+                })
+            });
+
+            if (!response.ok) {
+                // Revert optimistic update on error
+                await fetchSavedMovies(true, false);
+                throw new Error('Failed to move to watched');
+            }
+
+            showSuccess(`"${movieData.Title}" moved to watched list!`);
+            
+        } catch (error) {
+            console.error('Error moving movie from wishlist to watched:', error);
+            showError('Failed to move movie to watched. Please try again.');
+        }
+    };
+
     // Transform saved movie data to match MovieCard expected format
     const transformSavedMovieToCardFormat = (savedMovie) => {
         const movieId = savedMovie.movies.movie_id;
@@ -543,6 +694,38 @@ export default function Home() {
                                                     onRemoveWatched={() => null}
                                                     watched={false}
                                                     cardType="watching"
+                                                />
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Wishlist movies */}
+                            {savedMovies.some(item => item.status === 'wishlist') && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-purple-600">
+                                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
+                                        </svg>
+                                        Wishlist
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                                        {savedMovies
+                                            .filter(item => item.status === 'wishlist')
+                                            .map(item => (
+                                                <MovieCard
+                                                    key={item.id}
+                                                    movie={transformSavedMovieToCardFormat(item)}
+                                                    onHover={() => null}
+                                                    onLeave={() => null}
+                                                    onClickWatched={(watchedDate) => moveWishlistToWatched(item.movies.id, transformSavedMovieToCardFormat(item), watchedDate)}
+                                                    onClickWatching={() => null}
+                                                    onClickWishlist={() => toggleWishlistStatus(transformSavedMovieToCardFormat(item))}
+                                                    onRemoveWatched={() => null}
+                                                    watched={false}
+                                                    wishlist={true}
+                                                    cardType="wishlist"
                                                 />
                                             ))
                                         }
