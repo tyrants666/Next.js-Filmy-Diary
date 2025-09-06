@@ -273,42 +273,17 @@ export default function Home() {
             }
 
             const watchedDateToUse = watchedDate || new Date().toISOString();
+            
+            console.log('Moving watching to watched in database first, movieId:', movieId);
 
-            // Optimistically update local state first
-            setSavedMovies(prevMovies => {
-                // Remove from watching and add to watched
-                const filteredMovies = prevMovies.filter(movie => 
-                    !(movie.status === 'watching' && movie.movies.id === movieId)
-                );
-                
-                // Add to watched list
-                const watchedMovie = {
-                    id: Date.now(), // Temporary ID
-                    status: 'watched',
-                    watched_date: watchedDateToUse,
-                    movies: {
-                        id: movieId,
-                        movie_id: movieData.imdbID,
-                        title: movieData.Title,
-                        poster: movieData.Poster,
-                        year: movieData.Year,
-                        rating: movieData.imdbRating,
-                        rating_source: movieData.ratingSource
-                    }
-                };
-                
-                return [...filteredMovies, watchedMovie];
-            });
-
-            // Remove from watching table
+            // Remove from watching table first - NO optimistic update
             const { error: removeWatchingError } = await supabase
                 .from('watching')
                 .delete()
                 .eq('user_id', user.id);
 
             if (removeWatchingError) {
-                // Revert optimistic update on error
-                await fetchSavedMovies(true, false);
+                console.error('Remove watching error:', removeWatchingError);
                 throw removeWatchingError;
             }
 
@@ -328,8 +303,7 @@ export default function Home() {
                 });
 
             if (addWatchedError) {
-                // Revert optimistic update on error
-                await fetchSavedMovies(true, false);
+                console.error('Add watched error:', addWatchedError);
                 throw addWatchedError;
             }
 
@@ -353,7 +327,12 @@ export default function Home() {
                 }
             }
 
+            // Only update UI after all database operations succeed
+            // Refresh data from database to get correct structure
+            await fetchSavedMovies(true, false);
+
             showSuccess(`"${movieData.Title}" moved to watched list!`);
+            console.log('Successfully moved watching to watched');
             
         } catch (error) {
             console.error('Error moving movie to watched:', error);
@@ -556,34 +535,10 @@ export default function Home() {
             }
 
             const watchedDateToUse = watchedDate || new Date().toISOString();
+            
+            console.log('Moving wishlist to watched in database first, movieId:', movieId);
 
-            // Optimistically update local state first
-            setSavedMovies(prevMovies => {
-                // Remove from wishlist and add to watched
-                const filteredMovies = prevMovies.filter(movie => 
-                    !(movie.status === 'wishlist' && movie.movies.id === movieId)
-                );
-                
-                // Add to watched list
-                const watchedMovie = {
-                    id: Date.now(), // Temporary ID
-                    status: 'watched',
-                    watched_date: watchedDateToUse,
-                    movies: {
-                        id: movieId,
-                        movie_id: movieData.imdbID,
-                        title: movieData.Title,
-                        poster: movieData.Poster,
-                        year: movieData.Year,
-                        rating: movieData.imdbRating,
-                        rating_source: movieData.ratingSource
-                    }
-                };
-                
-                return [...filteredMovies, watchedMovie];
-            });
-
-            // Update status in database
+            // Update status in database first - NO optimistic update
             const response = await fetch('/api/movies', {
                 method: 'POST',
                 headers: {
@@ -592,17 +547,23 @@ export default function Home() {
                 body: JSON.stringify({
                     userId: user.id,
                     movieData: movieData,
-                    status: 'watched'
+                    status: 'watched',
+                    watchedDate: watchedDateToUse
                 })
             });
 
             if (!response.ok) {
-                // Revert optimistic update on error
-                await fetchSavedMovies(true, false);
-                throw new Error('Failed to move to watched');
+                const errorText = await response.text();
+                console.error('Move to watched failed:', response.status, errorText);
+                throw new Error(`Failed to move to watched: ${response.status}`);
             }
 
+            // Only update UI after successful database operation
+            // Refresh data from database to get correct structure
+            await fetchSavedMovies(true, false);
+
             showSuccess(`"${movieData.Title}" moved to watched list!`);
+            console.log('Successfully moved wishlist to watched');
             
         } catch (error) {
             console.error('Error moving movie from wishlist to watched:', error);
