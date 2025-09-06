@@ -414,6 +414,51 @@ export default function Home() {
         }
     };
 
+    // Update watch date for existing watched movie
+    const updateWatchDate = async (movieId, newWatchedDate) => {
+        try {
+            // Validate session first
+            const session = await validateSession();
+            
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                setTimeout(() => router.push('/login'), 2000);
+                return;
+            }
+
+            const watchedDateToUse = newWatchedDate || new Date().toISOString();
+
+            // Optimistically update local state first
+            setSavedMovies(prevMovies => 
+                prevMovies.map(movie => 
+                    movie.status === 'watched' && movie.movies.id === movieId
+                        ? { ...movie, watched_date: watchedDateToUse }
+                        : movie
+                )
+            );
+
+            // Update the watched date in the database
+            const { error: updateError } = await supabase
+                .from('user_movies')
+                .update({ watched_date: watchedDateToUse })
+                .eq('user_id', user.id)
+                .eq('movie_id', movieId)
+                .eq('status', 'watched');
+
+            if (updateError) {
+                // Revert optimistic update on error
+                await fetchSavedMovies(true, false);
+                throw updateError;
+            }
+
+            showSuccess('Watch date updated successfully!');
+            
+        } catch (error) {
+            console.error('Error updating watch date:', error);
+            showError('Failed to update watch date. Please try again.');
+        }
+    };
+
     // Move movie from wishlist to watched
     const moveWishlistToWatched = async (movieId, movieData, watchedDate = null) => {
         try {
@@ -698,6 +743,7 @@ export default function Home() {
                                                     onClickWatched={() => null}
                                                     onClickWatching={() => null}
                                                     onRemoveWatched={() => removeWatchedStatus(item.movies.id)}
+                                                    onUpdateWatchDate={(newWatchedDate) => updateWatchDate(item.movies.id, newWatchedDate)}
                                                     watched={true}
                                                     cardType="watched"
                                                 />
