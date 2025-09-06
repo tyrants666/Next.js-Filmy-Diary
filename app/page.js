@@ -15,15 +15,44 @@ export default function Home() {
     const [savedMovies, setSavedMovies] = useState([]);
     const [loadingSavedMovies, setLoadingSavedMovies] = useState(false);
     const [isSigningOut, setIsSigningOut] = useState(false);
+    const [lastFetchTime, setLastFetchTime] = useState(null);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const { user, loading, signOut, validateSession } = useAuth()
     const { showSuccess, showError } = useToast()
     const router = useRouter()
 
-    // Fetch user's saved movies
-    const fetchSavedMovies = async () => {
+    // Cache configuration - like big companies do
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+    const STALE_WHILE_REVALIDATE_DURATION = 10 * 60 * 1000; // 10 minutes stale-while-revalidate
+
+    // Check if data is fresh (within cache duration)
+    const isDataFresh = () => {
+        if (!lastFetchTime) return false;
+        return Date.now() - lastFetchTime < CACHE_DURATION;
+    };
+
+    // Check if data is stale but acceptable (stale-while-revalidate)
+    const isDataStale = () => {
+        if (!lastFetchTime) return true;
+        return Date.now() - lastFetchTime > STALE_WHILE_REVALIDATE_DURATION;
+    };
+
+    // Smart fetch with caching - like Netflix, YouTube, etc.
+    const fetchSavedMovies = async (forceRefresh = false, showLoading = true) => {
         if (!user) return;
         
-        setLoadingSavedMovies(true);
+        // If data is fresh and not forcing refresh, skip API call
+        if (!forceRefresh && isDataFresh()) {
+            console.log('📦 Using cached data - no API call needed');
+            return;
+        }
+
+        // If data is stale but acceptable, fetch in background without loading state
+        const shouldShowLoading = showLoading && (isInitialLoad || isDataStale());
+        
+        if (shouldShowLoading) {
+            setLoadingSavedMovies(true);
+        }
         try {
             // Fetch regular saved movies (watched, etc.)
             const { data: userMoviesData, error: userMoviesError } = await supabase
@@ -83,9 +112,16 @@ export default function Home() {
             
             // Update the savedMovies state
             setSavedMovies(combinedData);
+            setLastFetchTime(Date.now());
+            setIsInitialLoad(false);
+            
+            if (!shouldShowLoading) {
+                console.log('🔄 Background refresh completed');
+            }
             
         } catch (error) {
             console.error('Error fetching saved movies:', error);
+            showError('Failed to load your saved movies. Please try again.');
         } finally {
             setLoadingSavedMovies(false);
         }
@@ -103,6 +139,13 @@ export default function Home() {
                 return;
             }
 
+            // Optimistically update local state first
+            setSavedMovies(prevMovies => 
+                prevMovies.filter(movie => 
+                    !(movie.status === 'watched' && movie.movies.id === movieId)
+                )
+            );
+
             // Delete the movie from user_movies
             const { error: deleteError } = await supabase
                 .from('user_movies')
@@ -112,6 +155,8 @@ export default function Home() {
                 .eq('status', 'watched');
 
             if (deleteError) {
+                // Revert optimistic update on error
+                await fetchSavedMovies(true, false);
                 throw deleteError;
             }
 
@@ -135,9 +180,6 @@ export default function Home() {
                 }
             }
 
-            // Refresh the saved movies list
-            await fetchSavedMovies();
-
             showSuccess('Movie removed from your watched list!');
             
         } catch (error) {
@@ -158,6 +200,13 @@ export default function Home() {
                 return;
             }
 
+            // Optimistically update local state first
+            setSavedMovies(prevMovies => 
+                prevMovies.filter(movie => 
+                    !(movie.status === 'watching' && movie.movies.id === movieId)
+                )
+            );
+
             // Delete the movie from watching table
             const { error: deleteError } = await supabase
                 .from('watching')
@@ -165,11 +214,10 @@ export default function Home() {
                 .eq('user_id', user.id);
 
             if (deleteError) {
+                // Revert optimistic update on error
+                await fetchSavedMovies(true, false);
                 throw deleteError;
             }
-
-            // Refresh the saved movies list
-            await fetchSavedMovies();
 
             showSuccess('Movie removed from your watching list!');
             
@@ -191,6 +239,34 @@ export default function Home() {
                 return;
             }
 
+            const watchedDateToUse = watchedDate || new Date().toISOString();
+
+            // Optimistically update local state first
+            setSavedMovies(prevMovies => {
+                // Remove from watching and add to watched
+                const filteredMovies = prevMovies.filter(movie => 
+                    !(movie.status === 'watching' && movie.movies.id === movieId)
+                );
+                
+                // Add to watched list
+                const watchedMovie = {
+                    id: Date.now(), // Temporary ID
+                    status: 'watched',
+                    watched_date: watchedDateToUse,
+                    movies: {
+                        id: movieId,
+                        movie_id: movieData.imdbID,
+                        title: movieData.Title,
+                        poster: movieData.Poster,
+                        year: movieData.Year,
+                        rating: movieData.imdbRating,
+                        rating_source: movieData.ratingSource
+                    }
+                };
+                
+                return [...filteredMovies, watchedMovie];
+            });
+
             // Remove from watching table
             const { error: removeWatchingError } = await supabase
                 .from('watching')
@@ -198,11 +274,12 @@ export default function Home() {
                 .eq('user_id', user.id);
 
             if (removeWatchingError) {
+                // Revert optimistic update on error
+                await fetchSavedMovies(true, false);
                 throw removeWatchingError;
             }
 
             // Add to watched in user_movies table with watched date
-            const watchedDateToUse = watchedDate || new Date().toISOString();
             const { error: addWatchedError } = await supabase
                 .from('user_movies')
                 .upsert({
@@ -216,6 +293,8 @@ export default function Home() {
                 });
 
             if (addWatchedError) {
+                // Revert optimistic update on error
+                await fetchSavedMovies(true, false);
                 throw addWatchedError;
             }
 
@@ -238,9 +317,6 @@ export default function Home() {
                     console.error('Error updating saved_movies count:', updateError);
                 }
             }
-
-            // Refresh the saved movies list
-            await fetchSavedMovies();
 
             showSuccess(`"${movieData.Title}" moved to watched list!`);
             
@@ -267,13 +343,47 @@ export default function Home() {
         };
     };
 
+
+    // Smart initial load and user change handling
     useEffect(() => {
         if (!loading && !user) {
             router.push('/login')
-        } else if (user) {
-            fetchSavedMovies();
+        } else if (user && isInitialLoad) {
+            // Only fetch on initial load or user change, not on every re-render
+            fetchSavedMovies(false, true);
         }
     }, [user, loading, router]);
+
+    // Professional window focus management - like Gmail, Slack, etc.
+    useEffect(() => {
+        if (!user) return;
+
+        const handleVisibilityChange = () => {
+            // Only refresh if page becomes visible and data is stale
+            if (!document.hidden && isDataStale()) {
+                console.log('🔄 Page became visible with stale data - refreshing in background');
+                fetchSavedMovies(false, false); // Background refresh without loading state
+            }
+        };
+
+        const handleFocus = () => {
+            // Only refresh if data is very stale (more than 10 minutes)
+            if (isDataStale()) {
+                console.log('🔄 Window focused with stale data - refreshing in background');
+                fetchSavedMovies(false, false); // Background refresh without loading state
+            }
+        };
+
+        // Add event listeners
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleFocus);
+
+        // Cleanup
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [user]);
 
     // Periodic session validation (every 5 minutes)
     useEffect(() => {
@@ -355,11 +465,13 @@ export default function Home() {
                     {/* Search section */}
                     <MovieSearch 
                         savedMovies={savedMovies} 
-                        fetchSavedMovies={fetchSavedMovies}
+                        fetchSavedMovies={() => fetchSavedMovies(false, false)}
+                        setSavedMovies={setSavedMovies}
                     />
                     
                     {/* ======================================== Saved movies section ======================================== */}
                     {/* ======================================== Saved movies section ======================================== */}
+                    
                     
                     {loadingSavedMovies ? (
                         <p className="text-center mt-8">Loading your saved movies...</p>

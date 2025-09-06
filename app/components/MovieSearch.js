@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import MovieCard from './MovieCard';
 
-export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
+export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSavedMovies }) {
     const { showSuccess, showError, showInfo } = useToast();
     const { validateSession } = useAuth();
 
@@ -302,6 +302,31 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
             }
             
             if (status === 'watching') {
+                // Optimistically update local state first
+                if (setSavedMovies) {
+                    setSavedMovies(prevMovies => {
+                        // Remove any existing watching movie (since only one can be watched at a time)
+                        const filteredMovies = prevMovies.filter(movie => movie.status !== 'watching');
+                        
+                        // Add new watching movie
+                        const watchingMovie = {
+                            id: Date.now(), // Temporary ID
+                            status: 'watching',
+                            movies: {
+                                id: movieId,
+                                movie_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
+                                title: movie.Title,
+                                poster: movie.Poster,
+                                year: movie.Year,
+                                rating: movie.imdbRating,
+                                rating_source: movie.ratingSource
+                            }
+                        };
+                        
+                        return [...filteredMovies, watchingMovie];
+                    });
+                }
+
                 // For watching status, use the new watching table with unique constraint
                 console.log('Attempting to add to watching table:', {
                     user_id: session.user.id,
@@ -324,12 +349,49 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                     
                 if (watchingError) {
                     console.error('Watching table error:', watchingError);
+                    // Revert optimistic update on error
+                    if (fetchSavedMovies) {
+                        await fetchSavedMovies();
+                    }
                     throw watchingError;
                 }
                 
                 console.log('Successfully added to watching table:', watchingData);
                 showSuccess(`Now watching "${movie.Title}"!`);
             } else {
+                // Optimistically update local state for watched status
+                if (status === 'watched' && setSavedMovies) {
+                    setSavedMovies(prevMovies => {
+                        // Check if movie already exists in watched list
+                        const existingIndex = prevMovies.findIndex(m => 
+                            m.status === 'watched' && 
+                            m.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)
+                        );
+                        
+                        if (existingIndex === -1) {
+                            // Add new watched movie
+                            const watchedMovie = {
+                                id: Date.now(), // Temporary ID
+                                status: 'watched',
+                                watched_date: watchedDate || new Date().toISOString(),
+                                movies: {
+                                    id: movieId,
+                                    movie_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
+                                    title: movie.Title,
+                                    poster: movie.Poster,
+                                    year: movie.Year,
+                                    rating: movie.imdbRating,
+                                    rating_source: movie.ratingSource
+                                }
+                            };
+                            
+                            return [...prevMovies, watchedMovie];
+                        }
+                        
+                        return prevMovies; // Movie already watched
+                    });
+                }
+
                 // For other statuses (like watched), use the regular user_movies table
                 const upsertData = {
                     user_id: session.user.id,
@@ -350,6 +412,10 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                     .upsert(upsertData);
                     
                 if (listError) {
+                    // Revert optimistic update on error
+                    if (fetchSavedMovies) {
+                        await fetchSavedMovies();
+                    }
                     throw listError;
                 }
 
@@ -374,11 +440,6 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies }) {
                 }
                 
                 showSuccess(`Added "${movie.Title}" to your ${status.replace('_', ' ')} list!`);
-            }
-
-             // Call the callback to refresh the parent's savedMovies list
-            if (fetchSavedMovies) {
-                await fetchSavedMovies();
             }
             
                  } catch (error) {
