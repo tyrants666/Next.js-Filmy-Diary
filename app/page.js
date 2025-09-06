@@ -112,6 +112,33 @@ export default function Home() {
                 console.error('Error fetching watching data:', watchingError);
             }
             
+            // Debug: Check for duplicates in fetched data and remove them
+            const wishlistMovies = combinedData.filter(item => item.status === 'wishlist');
+            const wishlistTitles = wishlistMovies.map(item => item.movies.title);
+            const duplicateTitles = wishlistTitles.filter((title, index) => wishlistTitles.indexOf(title) !== index);
+            
+            if (duplicateTitles.length > 0) {
+                console.warn('Duplicate movies found in wishlist:', duplicateTitles);
+                console.log('Full wishlist data:', wishlistMovies);
+                
+                // Remove duplicates by keeping only the first occurrence of each movie_id
+                const seenMovieIds = new Set();
+                combinedData = combinedData.filter(item => {
+                    if (item.status === 'wishlist') {
+                        const movieId = item.movies.movie_id;
+                        if (seenMovieIds.has(movieId)) {
+                            console.log('Removing duplicate:', item.movies.title, movieId);
+                            return false; // Remove duplicate
+                        }
+                        seenMovieIds.add(movieId);
+                    }
+                    return true; // Keep non-wishlist items and first occurrence of wishlist items
+                });
+                
+                console.log('Cleaned duplicates. New wishlist count:', 
+                    combinedData.filter(item => item.status === 'wishlist').length);
+            }
+
             // Update the savedMovies state
             setSavedMovies(combinedData);
             setLastFetchTime(Date.now());
@@ -141,14 +168,9 @@ export default function Home() {
                 return;
             }
 
-            // Optimistically update local state first
-            setSavedMovies(prevMovies => 
-                prevMovies.filter(movie => 
-                    !(movie.status === 'watched' && movie.movies.id === movieId)
-                )
-            );
+            console.log('Removing watched movie from database first, movieId:', movieId);
 
-            // Delete the movie from user_movies
+            // Delete the movie from user_movies first - NO optimistic update
             const { error: deleteError } = await supabase
                 .from('user_movies')
                 .delete()
@@ -157,8 +179,7 @@ export default function Home() {
                 .eq('status', 'watched');
 
             if (deleteError) {
-                // Revert optimistic update on error
-                await fetchSavedMovies(true, false);
+                console.error('Delete error:', deleteError);
                 throw deleteError;
             }
 
@@ -182,7 +203,15 @@ export default function Home() {
                 }
             }
 
+            // Only update UI after successful database operation
+            setSavedMovies(prevMovies => 
+                prevMovies.filter(movie => 
+                    !(movie.status === 'watched' && movie.movies.id === movieId)
+                )
+            );
+
             showSuccess('Movie removed from your watched list!');
+            console.log('Successfully removed watched movie');
             
         } catch (error) {
             console.error('Error removing movie:', error);
@@ -202,26 +231,28 @@ export default function Home() {
                 return;
             }
 
-            // Optimistically update local state first
-            setSavedMovies(prevMovies => 
-                prevMovies.filter(movie => 
-                    !(movie.status === 'watching' && movie.movies.id === movieId)
-                )
-            );
+            console.log('Removing watching movie from database first, movieId:', movieId);
 
-            // Delete the movie from watching table
+            // Delete the movie from watching table first - NO optimistic update
             const { error: deleteError } = await supabase
                 .from('watching')
                 .delete()
                 .eq('user_id', user.id);
 
             if (deleteError) {
-                // Revert optimistic update on error
-                await fetchSavedMovies(true, false);
+                console.error('Delete error:', deleteError);
                 throw deleteError;
             }
 
+            // Only update UI after successful database operation
+            setSavedMovies(prevMovies => 
+                prevMovies.filter(movie => 
+                    !(movie.status === 'watching' && movie.movies.id === movieId)
+                )
+            );
+
             showSuccess('Movie removed from your watching list!');
+            console.log('Successfully removed watching movie');
             
         } catch (error) {
             console.error('Error removing movie:', error);
@@ -343,50 +374,55 @@ export default function Home() {
             }
 
             // Check if movie is already in wishlist
+            // Compare with both imdbID and tmdbID to handle both cases
+            const movieIdToCompare = movieData.imdbID !== "N/A" ? movieData.imdbID : movieData.tmdbID;
             const existingWishlistMovie = savedMovies.find(movie => 
-                movie.status === 'wishlist' && movie.movies.movie_id === movieData.imdbID
+                movie.status === 'wishlist' && movie.movies.movie_id === movieIdToCompare
+            );
+            
+            // Additional check by title to catch edge cases
+            const existingByTitle = savedMovies.find(movie => 
+                movie.status === 'wishlist' && movie.movies.title.toLowerCase() === movieData.Title.toLowerCase()
             );
 
-            if (existingWishlistMovie) {
-                // Remove from wishlist
-                setSavedMovies(prevMovies => 
-                    prevMovies.filter(movie => 
-                        !(movie.status === 'wishlist' && movie.movies.movie_id === movieData.imdbID)
-                    )
-                );
+            console.log('Toggling wishlist for:', {
+                movieData,
+                movieIdToCompare,
+                existingWishlistMovie: existingWishlistMovie ? 'found' : 'not found',
+                existingByTitle: existingByTitle ? 'found' : 'not found',
+                savedMoviesCount: savedMovies.filter(m => m.status === 'wishlist').length
+            });
 
-                // Delete from database
-                const response = await fetch(`/api/movies?userId=${user.id}&movieId=${existingWishlistMovie.movies.id}`, {
+            const movieToRemove = existingWishlistMovie || existingByTitle;
+            if (movieToRemove) {
+                // Remove from wishlist - NO optimistic update, wait for database success
+                console.log('Removing from database first, movieId:', movieToRemove.movies.id);
+                
+                // Delete from database first
+                const response = await fetch(`/api/movies?userId=${user.id}&movieId=${movieToRemove.movies.id}`, {
                     method: 'DELETE'
                 });
 
                 if (!response.ok) {
-                    // Revert optimistic update on error
-                    await fetchSavedMovies(true, false);
-                    throw new Error('Failed to remove from watchlist');
+                    const errorText = await response.text();
+                    console.error('Delete failed:', response.status, errorText);
+                    throw new Error(`Failed to remove from watchlist: ${response.status}`);
                 }
 
+                // Only update UI after successful database operation
+                setSavedMovies(prevMovies => 
+                    prevMovies.filter(movie => 
+                        !(movie.status === 'wishlist' && movie.movies.movie_id === movieIdToCompare)
+                    )
+                );
+
                 showSuccess(`"${movieData.Title}" removed from your watchlist!`);
+                console.log('Successfully removed from wishlist');
             } else {
-                // Add to wishlist
-                const wishlistMovie = {
-                    id: Date.now(), // Temporary ID
-                    status: 'wishlist',
-                    movies: {
-                        id: Date.now(), // Temporary ID
-                        movie_id: movieData.imdbID,
-                        title: movieData.Title,
-                        poster: movieData.Poster,
-                        year: movieData.Year,
-                        rating: movieData.imdbRating,
-                        rating_source: movieData.ratingSource
-                    }
-                };
-
-                // Optimistically update local state
-                setSavedMovies(prevMovies => [...prevMovies, wishlistMovie]);
-
-                // Add to database
+                // Add to wishlist - NO optimistic update, wait for database success
+                console.log('Adding to database first');
+                
+                // Add to database first
                 const response = await fetch('/api/movies', {
                     method: 'POST',
                     headers: {
@@ -400,12 +436,17 @@ export default function Home() {
                 });
 
                 if (!response.ok) {
-                    // Revert optimistic update on error
-                    await fetchSavedMovies(true, false);
-                    throw new Error('Failed to add to watchlist');
+                    const errorText = await response.text();
+                    console.error('Add failed:', response.status, errorText);
+                    throw new Error(`Failed to add to watchlist: ${response.status}`);
                 }
 
+                // Only update UI after successful database operation
+                // Refresh data from database to get the correct IDs
+                await fetchSavedMovies(true, false);
+
                 showSuccess(`"${movieData.Title}" added to your watchlist!`);
+                console.log('Successfully added to wishlist');
             }
             
         } catch (error) {
@@ -426,7 +467,11 @@ export default function Home() {
                 return;
             }
 
+            // Ensure proper date format - if newWatchedDate is provided, it should be an ISO string
             const watchedDateToUse = newWatchedDate || new Date().toISOString();
+            
+            console.log('Original date:', newWatchedDate);
+            console.log('Date to use:', watchedDateToUse);
 
             // Optimistically update local state first
             setSavedMovies(prevMovies => 
@@ -438,20 +483,59 @@ export default function Home() {
             );
 
             // Update the watched date in the database
-            const { error: updateError } = await supabase
+            // Note: movieId here is the primary key from movies table (movies.id)
+            // But user_movies.movie_id is a foreign key that references movies.id
+            console.log('Updating watch date:', {
+                user_id: user.id,
+                movie_id: movieId, // This should be movies.id (primary key)
+                watched_date: watchedDateToUse,
+                status: 'watched'
+            });
+
+            const { data: updateData, error: updateError } = await supabase
                 .from('user_movies')
                 .update({ watched_date: watchedDateToUse })
                 .eq('user_id', user.id)
-                .eq('movie_id', movieId)
-                .eq('status', 'watched');
+                .eq('movie_id', movieId) // movieId is movies.id (primary key)
+                .eq('status', 'watched')
+                .select();
+
+            console.log('Update result:', { updateData, updateError });
 
             if (updateError) {
+                console.error('Database update error:', updateError);
                 // Revert optimistic update on error
                 await fetchSavedMovies(true, false);
                 throw updateError;
             }
 
+            if (!updateData || updateData.length === 0) {
+                console.warn('No rows were updated. Checking if record exists...');
+                
+                // Let's check if the record exists at all
+                const { data: existingRecord, error: checkError } = await supabase
+                    .from('user_movies')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('movie_id', movieId)
+                    .eq('status', 'watched');
+                
+                console.log('Existing record check:', { existingRecord, checkError });
+                
+                if (!existingRecord || existingRecord.length === 0) {
+                    showError('Movie not found in watched list. Please refresh and try again.');
+                } else {
+                    showError('Failed to update watch date. Please try again.');
+                }
+                
+                await fetchSavedMovies(true, false);
+                return;
+            }
+
             showSuccess('Watch date updated successfully!');
+            
+            // Refresh the saved movies to ensure UI is in sync with database
+            await fetchSavedMovies(true, false);
             
         } catch (error) {
             console.error('Error updating watch date:', error);
