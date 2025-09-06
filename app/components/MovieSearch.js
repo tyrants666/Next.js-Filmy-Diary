@@ -40,7 +40,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             `https://ia.media-imdb.com/images/M/${imdbID}._V1_.jpg`
         ];
     };
-    const [searchTerm, setSearchTerm] = useState('Roma');
+    const [searchTerm, setSearchTerm] = useState('');
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
     const [loadingMovie, setLoadingMovie] = useState(false);
@@ -66,7 +66,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
 
         try {
             if (!searchTerm.trim()) {
-                setError('Please enter a search term.');
+                // Don't show error, just return to show the cute figure
                 setLoadingMovie(false);
                 return;
             }
@@ -549,24 +549,39 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
         }
     };
 
-    // This effect runs the initial search when component mounts
-    useEffect(() => {
-        // Reset to page 1 when performing initial search
-        setCurrentPage(1);
-        setMovies([]);
-        fetchMovies(1);
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // Remove initial search - let users search manually
 
     return (
         <div>
             <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
-                <input
-                    type="text"
-                    placeholder="Search for a movie..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-gray-100 outline-none p-2 px-4 border border-gray-300 rounded-lg w-full placeholder-gray-500 text-black"
-                />
+                <div className="relative w-full">
+                    <input
+                        type="text"
+                        placeholder="Search for a movie..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="bg-gray-100 outline-none p-2 px-4 pr-10 border border-gray-300 rounded-lg w-full placeholder-gray-500 text-black"
+                    />
+                    {searchTerm && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSearchTerm('');
+                                setMovies([]);
+                                setError(null);
+                                setCurrentPage(1);
+                                setTotalResults(0);
+                                setHasMorePages(false);
+                            }}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Clear search"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    )}
+                </div>
                 {/* <select
                     value={moviesPerPage}
                     onChange={handleMoviesPerPageChange}
@@ -587,6 +602,52 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
 
             {loadingMovie && currentPage === 1 && <p className="text-center">Loading...</p>}
             {error && <p className="text-center">{error}</p>}
+
+            {/* Cute figure when no search has been made or no results */}
+            {!loadingMovie && movies.length === 0 && !error && (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                    {/* Cute movie character SVG */}
+                    <div className="mb-6">
+                        <svg width="120" height="120" viewBox="0 0 200 200" className="text-gray-400">
+                            {/* Movie reel body */}
+                            <circle cx="100" cy="100" r="80" fill="currentColor" opacity="0.1" stroke="currentColor" strokeWidth="2"/>
+                            <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" strokeWidth="2"/>
+                            <circle cx="100" cy="100" r="40" fill="none" stroke="currentColor" strokeWidth="2"/>
+                            <circle cx="100" cy="100" r="20" fill="none" stroke="currentColor" strokeWidth="2"/>
+                            
+                            {/* Film holes */}
+                            <circle cx="70" cy="70" r="4" fill="currentColor"/>
+                            <circle cx="130" cy="70" r="4" fill="currentColor"/>
+                            <circle cx="70" cy="130" r="4" fill="currentColor"/>
+                            <circle cx="130" cy="130" r="4" fill="currentColor"/>
+                            <circle cx="100" cy="60" r="4" fill="currentColor"/>
+                            <circle cx="100" cy="140" r="4" fill="currentColor"/>
+                            <circle cx="60" cy="100" r="4" fill="currentColor"/>
+                            <circle cx="140" cy="100" r="4" fill="currentColor"/>
+                            
+                            {/* Cute face */}
+                            <circle cx="85" cy="85" r="3" fill="currentColor"/> {/* Left eye */}
+                            <circle cx="115" cy="85" r="3" fill="currentColor"/> {/* Right eye */}
+                            <path d="M 90 110 Q 100 120 110 110" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/> {/* Smile */}
+                            
+                            {/* Film strip coming out */}
+                            <rect x="180" y="95" width="15" height="10" fill="currentColor" opacity="0.3"/>
+                            <rect x="185" y="90" width="5" height="20" fill="currentColor" opacity="0.5"/>
+                            <rect x="190" y="85" width="8" height="30" fill="currentColor" opacity="0.3"/>
+                        </svg>
+                    </div>
+                    
+                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                        {searchTerm ? 'No movies found' : 'Ready to discover movies?'}
+                    </h3>
+                    <p className="text-gray-500 max-w-md">
+                        {searchTerm 
+                            ? `No results found for "${searchTerm}". Try a different search term!`
+                            : 'Search for your favorite movies and start building your personal film diary!'
+                        }
+                    </p>
+                </div>
+            )}
 
             {movies.length > 0 && ( 
                 <div className="mt-4">

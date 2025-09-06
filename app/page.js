@@ -17,6 +17,7 @@ export default function Home() {
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [lastFetchTime, setLastFetchTime] = useState(null);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [showSearch, setShowSearch] = useState(true);
     const { user, loading, signOut, validateSession } = useAuth()
     const { showSuccess, showError } = useToast()
     const router = useRouter()
@@ -433,8 +434,17 @@ export default function Home() {
             <div className='container mx-auto text-black'>
                 <header className="py-4 m-4 mb-0 rounded-xl text-center flex justify-between items-center">
                     <h1 className="text-2xl font-bold">Filmy Diary</h1>
-                    <div className="flex items-center gap-4">
-                        <span>{user.user_metadata?.name?.split(' ')[0] || user.email}</span>
+                    <div className="flex items-center gap-2 sm:gap-4">
+                        <span className="hidden sm:block">{user.user_metadata?.name?.split(' ')[0] || user.email}</span>
+                        <button 
+                            onClick={() => setShowSearch(!showSearch)}
+                            className="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-black transition-colors"
+                            title={showSearch ? 'Hide Search' : 'Show Search'}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </button>
                         <button 
                             onClick={async () => {
                                 if (isSigningOut) return; // Prevent double clicks
@@ -451,23 +461,34 @@ export default function Home() {
                                 }
                             }} 
                             disabled={isSigningOut}
-                            className={`py-2 px-4 rounded-lg transition-colors ${
+                            className={`p-2 rounded-lg transition-colors ${
                                 isSigningOut 
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                                     : 'bg-gray-200 hover:bg-gray-300 text-black'
                             }`}
+                            title={isSigningOut ? 'Signing Out...' : 'Sign Out'}
                         >
-                            {isSigningOut ? 'Signing Out...' : 'Sign Out'}
+                            {isSigningOut ? (
+                                <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                            ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                </svg>
+                            )}
                         </button>
                     </div>
                 </header>
                 <main className="flex-grow p-4">
                     {/* Search section */}
-                    <MovieSearch 
-                        savedMovies={savedMovies} 
-                        fetchSavedMovies={() => fetchSavedMovies(false, false)}
-                        setSavedMovies={setSavedMovies}
-                    />
+                    {showSearch && (
+                        <MovieSearch 
+                            savedMovies={savedMovies} 
+                            fetchSavedMovies={() => fetchSavedMovies(false, false)}
+                            setSavedMovies={setSavedMovies}
+                        />
+                    )}
                     
                     {/* ======================================== Saved movies section ======================================== */}
                     {/* ======================================== Saved movies section ======================================== */}
