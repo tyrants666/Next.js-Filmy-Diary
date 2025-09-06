@@ -180,7 +180,7 @@ export default function Home() {
     };
 
     // Move movie from watching to watched
-    const moveWatchingToWatched = async (movieId, movieData) => {
+    const moveWatchingToWatched = async (movieId, movieData, watchedDate = null) => {
         try {
             // Validate session first
             const session = await validateSession();
@@ -201,7 +201,8 @@ export default function Home() {
                 throw removeWatchingError;
             }
 
-            // Add to watched in user_movies table
+            // Add to watched in user_movies table with watched date
+            const watchedDateToUse = watchedDate || new Date().toISOString();
             const { error: addWatchedError } = await supabase
                 .from('user_movies')
                 .upsert({
@@ -210,7 +211,8 @@ export default function Home() {
                     movie_id: movieId,
                     movie_imdb_id: movieData.imdbID,
                     movie_name: movieData.Title,
-                    status: 'watched'
+                    status: 'watched',
+                    watched_date: watchedDateToUse
                 });
 
             if (addWatchedError) {
@@ -403,7 +405,7 @@ export default function Home() {
                                                     movie={transformSavedMovieToCardFormat(item)}
                                                     onHover={() => null}
                                                     onLeave={() => null}
-                                                    onClickWatched={() => moveWatchingToWatched(item.movies.id, transformSavedMovieToCardFormat(item))}
+                                                    onClickWatched={(watchedDate) => moveWatchingToWatched(item.movies.id, transformSavedMovieToCardFormat(item), watchedDate)}
                                                     onClickWatching={() => removeWatchingStatus(item.movies.id)}
                                                     onRemoveWatched={() => null}
                                                     watched={false}
