@@ -18,6 +18,7 @@ export default function Home() {
     const [lastFetchTime, setLastFetchTime] = useState(null);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [showSearch, setShowSearch] = useState(false);
+    const [userManuallyClosedSearch, setUserManuallyClosedSearch] = useState(false);
     const { user, loading, signOut, validateSession } = useAuth()
     const { showSuccess, showError } = useToast()
     const router = useRouter()
@@ -508,6 +509,20 @@ export default function Home() {
         }
     }, [user, loading, router]);
 
+    // Auto-toggle search when user has no movies
+    useEffect(() => {
+        if (!loadingSavedMovies && !isInitialLoad) {
+            // If user has no saved movies and hasn't manually closed search, automatically show it
+            if (savedMovies.length === 0 && !userManuallyClosedSearch) {
+                setShowSearch(true);
+            }
+            // If user adds their first movie, reset the manual close flag
+            if (savedMovies.length > 0 && userManuallyClosedSearch) {
+                setUserManuallyClosedSearch(false);
+            }
+        }
+    }, [savedMovies.length, loadingSavedMovies, isInitialLoad, userManuallyClosedSearch]);
+
     // Professional window focus management - like Gmail, Slack, etc.
     useEffect(() => {
         if (!user) return;
@@ -597,7 +612,14 @@ export default function Home() {
                     <div className="flex items-center gap-2 sm:gap-4">
                         <span className="hidden sm:block">{user.user_metadata?.name?.split(' ')[0] || user.email}</span>
                         <button 
-                            onClick={() => setShowSearch(!showSearch)}
+                            onClick={() => {
+                                const newShowSearch = !showSearch;
+                                setShowSearch(newShowSearch);
+                                // If user is closing search and has no movies, mark as manually closed
+                                if (!newShowSearch && savedMovies.length === 0) {
+                                    setUserManuallyClosedSearch(true);
+                                }
+                            }}
                             className="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-black transition-colors"
                             title={showSearch ? 'Hide Search' : 'Show Search'}
                         >
