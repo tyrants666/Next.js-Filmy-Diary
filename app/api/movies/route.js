@@ -49,6 +49,14 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
         }
 
+        // Debug: Log the incoming movieData to check Type field
+        console.log('API received movieData:', {
+            Title: movieData.Title,
+            Type: movieData.Type,
+            imdbID: movieData.imdbID,
+            tmdbID: movieData.tmdbID
+        });
+
         // Determine the correct movie ID to use (prefer imdbID, fallback to tmdbID)
         const movieIdToUse = movieData.imdbID !== "N/A" ? movieData.imdbID : movieData.tmdbID;
         
@@ -67,19 +75,38 @@ export async function POST(request) {
 
         if (existingMovie) {
             movieId = existingMovie.id
-        } else {
-            // Add new movie to movies table
-            const { data: newMovie, error: movieError } = await supabase
+            console.log('Movie already exists, using existing ID:', movieId)
+            
+            // Update the existing movie's type if it's different (in case it was saved incorrectly before)
+            const { error: updateError } = await supabase
                 .from('movies')
-                .insert({
-                    movie_id: movieIdToUse,
-                    title: movieData.Title,
-                    poster: movieData.Poster,
-                    year: movieData.Year,
-                    rating: movieData.imdbRating || movieData.rating,
-                    rating_source: movieData.ratingSource || 'IMDB',
+                .update({
                     type: movieData.Type || 'movie'
                 })
+                .eq('id', movieId);
+                
+            if (updateError) {
+                console.error('Error updating movie type:', updateError);
+            } else {
+                console.log('Updated existing movie type to:', movieData.Type || 'movie');
+            }
+        } else {
+            // Add new movie to movies table
+            const insertData = {
+                movie_id: movieIdToUse,
+                title: movieData.Title,
+                poster: movieData.Poster,
+                year: movieData.Year,
+                rating: movieData.imdbRating || movieData.rating,
+                rating_source: movieData.ratingSource || 'IMDB',
+                type: movieData.Type || 'movie'
+            };
+            
+            console.log('Inserting movie with data:', insertData);
+            
+            const { data: newMovie, error: movieError } = await supabase
+                .from('movies')
+                .insert(insertData)
                 .select('id')
                 .single()
 

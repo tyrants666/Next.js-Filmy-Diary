@@ -82,7 +82,7 @@ export default function Home() {
                 
             if (userMoviesError) throw userMoviesError;
             
-            // Watching movies are now included in userMoviesData with status='watching'
+            // Currently watching movies are now included in userMoviesData with status='currently_watching'
             // No need for separate watching table fetch
             let combinedData = userMoviesData || [];
             
@@ -213,7 +213,7 @@ export default function Home() {
                 .delete()
                 .eq('user_id', user.id)
                 .eq('movie_id', movieId)
-                .eq('status', 'watching');
+                .eq('status', 'currently_watching');
 
             if (deleteError) {
                 console.error('Delete error:', deleteError);
@@ -223,7 +223,7 @@ export default function Home() {
             // Only update UI after successful database operation
             setSavedMovies(prevMovies => 
                 prevMovies.filter(movie => 
-                    !(movie.status === 'watching' && movie.movies.id === movieId)
+                    !(movie.status === 'currently_watching' && movie.movies.id === movieId)
                 )
             );
 
@@ -721,12 +721,12 @@ export default function Home() {
                             <h2 className="text-xl font-bold mb-4">Your Collections</h2>
                             
                             {/* Currently watching movies - First */}
-                            {savedMovies.some(item => item.status === 'watching') && (
+                            {savedMovies.some(item => item.status === 'currently_watching') && (
                                 <div className="mb-6">
                                     <h3 className="text-lg font-medium mb-2">Currently Watching</h3>
                                     <div className="flex flex-wrap gap-2 sm:gap-3">
                                         {savedMovies
-                                            .filter(item => item.status === 'watching')
+                                            .filter(item => item.status === 'currently_watching')
                                             .map(item => (
                                                 <MovieCard
                                                     key={item.id}
