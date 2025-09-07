@@ -17,9 +17,15 @@ export default function Home() {
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [lastFetchTime, setLastFetchTime] = useState(null);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [isSearchActive, setIsSearchActive] = useState(false);
     const { user, loading, signOut, validateSession } = useAuth()
     const { showSuccess, showError } = useToast()
     const router = useRouter()
+
+    // Handle search state changes from MovieSearch component
+    const handleSearchStateChange = (isActive) => {
+        setIsSearchActive(isActive);
+    };
 
     // Cache configuration - like big companies do
     const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
@@ -701,6 +707,7 @@ export default function Home() {
                         savedMovies={savedMovies} 
                         fetchSavedMovies={() => fetchSavedMovies(true, false)}
                         setSavedMovies={setSavedMovies}
+                        onSearchStateChange={handleSearchStateChange}
                     />
                     
                     {/* ======================================== Saved movies section ======================================== */}
@@ -805,7 +812,7 @@ export default function Home() {
                                 </div>
                             )}
                         </div>
-                    ) : (
+                    ) : !isSearchActive ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                             {/* Cute movie character SVG */}
                             <div className="mb-6">
@@ -845,7 +852,7 @@ export default function Home() {
                                 Search for your favorite movies and TV series and start building your personal entertainment diary!
                             </p>
                         </div>
-                    )}
+                    ) : null}
                 </main>
             </div>
 

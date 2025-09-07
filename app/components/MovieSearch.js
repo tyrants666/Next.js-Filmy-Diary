@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import MovieCard from './MovieCard';
 
-export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSavedMovies }) {
+export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSavedMovies, onSearchStateChange }) {
     const { showSuccess, showError, showInfo } = useToast();
     const { validateSession } = useAuth();
 
@@ -52,6 +52,14 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
 
     // Create a Set of watched movie IDs for O(1) lookup
     const [wishlistMovies, setWishlistMovies] = useState(new Set());
+
+    // Notify parent about search state changes
+    useEffect(() => {
+        if (onSearchStateChange) {
+            const isSearchActive = searchTerm.length > 0 || movies.length > 0 || loadingMovie;
+            onSearchStateChange(isSearchActive);
+        }
+    }, [searchTerm, movies.length, loadingMovie, onSearchStateChange]);
     
     useEffect(() => {
         const watchedSet = new Set(
