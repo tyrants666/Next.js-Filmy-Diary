@@ -721,7 +721,7 @@ export default function Home() {
                     
                     {loadingSavedMovies ? (
                         <p className="text-center mt-8">Loading your saved movies...</p>
-                    ) : savedMovies.length > 0 ? (
+                    ) : (savedMovies && savedMovies.length > 0) ? (
                         <div className="mt-8">
                             <h2 className="text-xl font-bold mb-4">Your Collections</h2>
                             
@@ -817,7 +817,51 @@ export default function Home() {
                                 </div>
                             )}
                         </div>
-                    ) : null}
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                            {/* Cute movie character SVG */}
+                            <div className="mb-6">
+                                <svg width="120" height="120" viewBox="0 0 200 200" className="text-gray-400">
+                                    {/* Movie reel body */}
+                                    <circle cx="100" cy="100" r="80" fill="currentColor" opacity="0.1" stroke="currentColor" strokeWidth="2"/>
+                                    <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                    <circle cx="100" cy="100" r="40" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                    <circle cx="100" cy="100" r="20" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                    
+                                    {/* Film holes */}
+                                    <circle cx="70" cy="70" r="4" fill="currentColor"/>
+                                    <circle cx="130" cy="70" r="4" fill="currentColor"/>
+                                    <circle cx="70" cy="130" r="4" fill="currentColor"/>
+                                    <circle cx="130" cy="130" r="4" fill="currentColor"/>
+                                    <circle cx="100" cy="60" r="4" fill="currentColor"/>
+                                    <circle cx="100" cy="140" r="4" fill="currentColor"/>
+                                    <circle cx="60" cy="100" r="4" fill="currentColor"/>
+                                    <circle cx="140" cy="100" r="4" fill="currentColor"/>
+                                    
+                                    {/* Cute face */}
+                                    <circle cx="85" cy="85" r="3" fill="currentColor"/> {/* Left eye */}
+                                    <circle cx="115" cy="85" r="3" fill="currentColor"/> {/* Right eye */}
+                                    <path d="M 90 110 Q 100 120 110 110" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/> {/* Smile */}
+                                    
+                                    {/* Film strip coming out */}
+                                    <rect x="180" y="95" width="15" height="10" fill="currentColor" opacity="0.3"/>
+                                    <rect x="185" y="90" width="5" height="20" fill="currentColor" opacity="0.5"/>
+                                    <rect x="190" y="85" width="8" height="30" fill="currentColor" opacity="0.3"/>
+                                </svg>
+                            </div>
+                            
+                            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                                Ready to discover movies?
+                            </h3>
+                            <p className="text-gray-500 max-w-md mb-2">
+                                Search for your favorite movies and TV series and start building your personal entertainment diary!
+                            </p>
+                            {/* Temporary debug info */}
+                            <p className="text-xs text-gray-400">
+                                Debug: savedMovies length = {savedMovies?.length || 0}, loading = {loadingSavedMovies.toString()}
+                            </p>
+                        </div>
+                    )}
                 </main>
             </div>
 
