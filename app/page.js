@@ -75,40 +75,9 @@ export default function Home() {
                 
             if (userMoviesError) throw userMoviesError;
             
-            // Fetch currently watching movie from the watching table
-            const { data: watchingData, error: watchingError } = await supabase
-                .from('watching')
-                .select(`
-                    id,
-                    movies (
-                        id,
-                        movie_id,
-                        title,
-                        poster,
-                        year,
-                        rating,
-                        rating_source
-                    )
-                `)
-                .eq('user_id', user.id)
-                .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 or 1 rows
-            
-            console.log('Watching data fetch result:', { watchingData, watchingError });
-            
-            // Combine the data - add watching movie if it exists
+            // Watching movies are now included in userMoviesData with status='watching'
+            // No need for separate watching table fetch
             let combinedData = userMoviesData || [];
-            
-            if (watchingData && !watchingError) {
-                // Add the watching movie to the combined data
-                combinedData.push({
-                    id: watchingData.id,
-                    status: 'watching',
-                    movies: watchingData.movies
-                });
-                console.log('Added watching movie to combined data:', watchingData);
-            } else if (watchingError) {
-                console.error('Error fetching watching data:', watchingError);
-            }
             
             // Debug: Check for duplicates in fetched data and remove them
             const wishlistMovies = combinedData.filter(item => item.status === 'wishlist');
@@ -231,11 +200,13 @@ export default function Home() {
 
             console.log('Removing watching movie from database first, movieId:', movieId);
 
-            // Delete the movie from watching table first - NO optimistic update
+            // Delete the specific movie from user_movies table (watching status) - NO optimistic update
             const { error: deleteError } = await supabase
-                .from('watching')
+                .from('user_movies')
                 .delete()
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .eq('movie_id', movieId)
+                .eq('status', 'watching');
 
             if (deleteError) {
                 console.error('Delete error:', deleteError);
@@ -249,7 +220,7 @@ export default function Home() {
                 )
             );
 
-            showSuccess('Movie removed from your watching list!');
+            showSuccess('Removed from your currently watching list!');
             console.log('Successfully removed watching movie');
             
         } catch (error) {
@@ -274,11 +245,13 @@ export default function Home() {
             
             console.log('Moving watching to watched in database first, movieId:', movieId);
 
-            // Remove from watching table first - NO optimistic update
+            // Remove specific movie from user_movies table (watching status) first - NO optimistic update
             const { error: removeWatchingError } = await supabase
-                .from('watching')
+                .from('user_movies')
                 .delete()
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .eq('movie_id', movieId)
+                .eq('status', 'watching');
 
             if (removeWatchingError) {
                 console.error('Remove watching error:', removeWatchingError);

@@ -90,19 +90,9 @@ export async function POST(request) {
         }
 
         // Handle different status transitions properly
-        if (status === 'watching') {
-            // Watching status is now handled directly in the frontend to avoid RLS policy issues
-            // This endpoint only handles 'watched' and 'wishlist' statuses
-            return NextResponse.json({ error: 'Watching status should be handled in frontend' }, { status: 400 })
-        }
+        // All statuses (watched, wishlist, watching) now use user_movies table
         
-        // For watched and wishlist status, use user_movies table
-        // First, remove from watching table if it exists there
-        await supabase
-            .from('watching')
-            .delete()
-            .eq('user_id', userId)
-            .eq('movie_id', movieId)
+        // For all statuses (watched, wishlist, watching), use user_movies table
 
         // Prepare the upsert data
         const upsertData = {

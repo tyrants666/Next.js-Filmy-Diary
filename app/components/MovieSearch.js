@@ -309,67 +309,8 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 return;
             }
 
-            if (status === 'watching') {
-                // Handle watching status directly with Supabase to avoid RLS issues
-                // First check if movie exists in DB (try IMDB ID first, then TMDB ID as fallback)
-                let { data: existingMovie } = await supabase
-                    .from('movies')
-                    .select('id')
-                    .eq('movie_id', movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)
-                    .maybeSingle();
-                    
-                let movieId;
-                
-                if (existingMovie) {
-                    movieId = existingMovie.id;
-                } else {
-                    // Add the movie to the movies table
-                    const { data: newMovie, error: movieError } = await supabase
-                        .from('movies')
-                        .insert({
-                            movie_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
-                            title: movie.Title,
-                            poster: movie.Poster,
-                            year: movie.Year,
-                            rating: movie.imdbRating || "N/A",
-                            rating_source: movie.ratingSource || "N/A"
-                        })
-                        .select('id')
-                        .single();
-                        
-                    if (movieError) {
-                        throw movieError;
-                    }
-                    
-                    movieId = newMovie.id;
-                }
-
-                // Remove any existing watching movie (only one can be watched at a time)
-                await supabase
-                    .from('watching')
-                    .delete()
-                    .eq('user_id', session.user.id);
-
-                // Insert new watching movie with the exact structure that works
-                const { error: watchingError } = await supabase
-                    .from('watching')
-                    .upsert({
-                        user_id: session.user.id,
-                        user_email: session.user.email,
-                        movie_id: movieId,
-                        movie_imdb_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
-                        movie_name: movie.Title
-                    }, {
-                        onConflict: 'user_id'
-                    });
-                    
-                if (watchingError) {
-                    console.error('Watching table error:', watchingError);
-                    throw watchingError;
-                }
-            } else {
-                // Use the API endpoint for other statuses (watched, wishlist)
-                const response = await fetch('/api/movies', {
+            // Use the API endpoint for all statuses including watching (now that we use user_movies table)
+            const response = await fetch('/api/movies', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -387,7 +328,6 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                     const errorText = await response.text();
                     throw new Error(`Failed to add movie: ${response.status} - ${errorText}`);
                 }
-            }
 
             // Success! Refresh the saved movies list to get the updated state
             if (fetchSavedMovies) {
