@@ -295,23 +295,84 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 return;
             }
 
-            // Use the API endpoint which handles all the complex logic
-            const response = await fetch('/api/movies', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: session.user.id,
-                    movieData: movie,
-                    status: status,
-                    watchedDate: watchedDate
-                })
-            });
+            if (status === 'watching') {
+                // Handle watching status directly with Supabase to avoid RLS issues
+                // First check if movie exists in DB (try IMDB ID first, then TMDB ID as fallback)
+                let { data: existingMovie } = await supabase
+                    .from('movies')
+                    .select('id')
+                    .eq('movie_id', movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)
+                    .maybeSingle();
+                    
+                let movieId;
+                
+                if (existingMovie) {
+                    movieId = existingMovie.id;
+                } else {
+                    // Add the movie to the movies table
+                    const { data: newMovie, error: movieError } = await supabase
+                        .from('movies')
+                        .insert({
+                            movie_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
+                            title: movie.Title,
+                            poster: movie.Poster,
+                            year: movie.Year,
+                            rating: movie.imdbRating || "N/A",
+                            rating_source: movie.ratingSource || "N/A"
+                        })
+                        .select('id')
+                        .single();
+                        
+                    if (movieError) {
+                        throw movieError;
+                    }
+                    
+                    movieId = newMovie.id;
+                }
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to add movie: ${response.status} - ${errorText}`);
+                // Remove any existing watching movie (only one can be watched at a time)
+                await supabase
+                    .from('watching')
+                    .delete()
+                    .eq('user_id', session.user.id);
+
+                // Insert new watching movie with the exact structure that works
+                const { error: watchingError } = await supabase
+                    .from('watching')
+                    .upsert({
+                        user_id: session.user.id,
+                        user_email: session.user.email,
+                        movie_id: movieId,
+                        movie_imdb_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
+                        movie_name: movie.Title
+                    }, {
+                        onConflict: 'user_id'
+                    });
+                    
+                if (watchingError) {
+                    console.error('Watching table error:', watchingError);
+                    throw watchingError;
+                }
+            } else {
+                // Use the API endpoint for other statuses (watched, wishlist)
+                const response = await fetch('/api/movies', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: session.user.id,
+                        userEmail: session.user.email,
+                        movieData: movie,
+                        status: status,
+                        watchedDate: watchedDate
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to add movie: ${response.status} - ${errorText}`);
+                }
             }
 
             // Success! Refresh the saved movies list to get the updated state
@@ -343,12 +404,24 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 return;
             }
 
-            // Delete the movie from user_movies
+            // First, find the movie in the movies table to get the correct movie_id
+            const movieIdToFind = movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID;
+            const { data: movieData, error: findError } = await supabase
+                .from('movies')
+                .select('id')
+                .eq('movie_id', movieIdToFind)
+                .single();
+
+            if (findError || !movieData) {
+                throw new Error('Movie not found in database');
+            }
+
+            // Delete the movie from user_movies using the correct movie_id (primary key)
             const { error: deleteError } = await supabase
                 .from('user_movies')
                 .delete()
                 .eq('user_id', sessionData.session.user.id)
-                .eq('movie_imdb_id', movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)
+                .eq('movie_id', movieData.id)
                 .eq('status', 'watched');
 
             if (deleteError) {
@@ -378,26 +451,28 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             // Update the watchedMovies set
             setWatchedMovies(prev => {
                 const newSet = new Set(prev);
-                newSet.delete(movie.imdbID);
+                newSet.delete(movieIdToFind);
                 return newSet;
             });
 
             // Call the callback to refresh the parent's savedMovies list
             if (fetchSavedMovies) {
+                console.log('Refreshing saved movies list after removal...');
                 await fetchSavedMovies();
             }
 
             // Refresh the current search results to ensure UI is in sync
+            console.log('Refreshing search results after removal...');
             await fetchMovies(currentPage);
 
             showSuccess(`Removed "${movie.Title}" from your watched list!`);
             
-                 } catch (error) {
-             console.error('Error removing movie:', error);
-             showError('Failed to remove movie. Please try again.');
-             // Re-throw the error so MovieCard can handle the state properly
-             throw error;
-         }
+        } catch (error) {
+            console.error('Error removing movie:', error);
+            showError('Failed to remove movie. Please try again.');
+            // Re-throw the error so MovieCard can handle the state properly
+            throw error;
+        }
     };
 
     // Toggle wishlist status

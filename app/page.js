@@ -407,6 +407,7 @@ export default function Home() {
                     },
                     body: JSON.stringify({
                         userId: user.id,
+                        userEmail: user.email,
                         movieData: movieData,
                         status: 'wishlist'
                     })
@@ -544,6 +545,7 @@ export default function Home() {
                 },
                 body: JSON.stringify({
                     userId: user.id,
+                    userEmail: user.email,
                     movieData: movieData,
                     status: 'watched',
                     watchedDate: watchedDateToUse
@@ -735,7 +737,7 @@ export default function Home() {
                     {/* Search section - Always visible */}
                     <MovieSearch 
                         savedMovies={savedMovies} 
-                        fetchSavedMovies={() => fetchSavedMovies(false, false)}
+                        fetchSavedMovies={() => fetchSavedMovies(true, false)}
                         setSavedMovies={setSavedMovies}
                     />
                     
