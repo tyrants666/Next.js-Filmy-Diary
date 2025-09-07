@@ -77,7 +77,8 @@ export async function POST(request) {
                     poster: movieData.Poster,
                     year: movieData.Year,
                     rating: movieData.imdbRating || movieData.rating,
-                    rating_source: movieData.ratingSource || 'IMDB'
+                    rating_source: movieData.ratingSource || 'IMDB',
+                    type: movieData.Type || 'movie'
                 })
                 .select('id')
                 .single()

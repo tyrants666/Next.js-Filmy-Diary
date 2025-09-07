@@ -68,7 +68,8 @@ export default function Home() {
                         poster,
                         year,
                         rating,
-                        rating_source
+                        rating_source,
+                        type
                     )
                 `)
                 .eq('user_id', user.id);
@@ -555,7 +556,7 @@ export default function Home() {
             Title: savedMovie.movies.title,
             Poster: savedMovie.movies.poster,
             Year: savedMovie.movies.year,
-            Type: "movie",
+            Type: savedMovie.movies.type || "movie", // Use the type from database, fallback to "movie"
             imdbRating: savedMovie.movies.rating || "N/A",
             ratingSource: savedMovie.movies.rating_source || "N/A",
             watchedDate: savedMovie.watched_date || null
@@ -725,7 +726,64 @@ export default function Home() {
                         <div className="mt-8">
                             <h2 className="text-xl font-bold mb-4">Your Collections</h2>
                             
-                            {/* Watched movies */}
+                            {/* Currently watching movies - First */}
+                            {savedMovies.some(item => item.status === 'watching') && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-medium mb-2">Currently Watching</h3>
+                                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                                        {savedMovies
+                                            .filter(item => item.status === 'watching')
+                                            .map(item => (
+                                                <MovieCard
+                                                    key={item.id}
+                                                    movie={transformSavedMovieToCardFormat(item)}
+                                                    onHover={() => null}
+                                                    onLeave={() => null}
+                                                    onClickWatched={(watchedDate) => moveWatchingToWatched(item.movies.id, transformSavedMovieToCardFormat(item), watchedDate)}
+                                                    onClickWatching={() => removeWatchingStatus(item.movies.id)}
+                                                    onRemoveWatched={() => null}
+                                                    watched={false}
+                                                    cardType="watching"
+                                                />
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Watchlist movies - Second */}
+                            {savedMovies.some(item => item.status === 'wishlist') && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-purple-600">
+                                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+                                        </svg>
+                                        Watchlist
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                                        {savedMovies
+                                            .filter(item => item.status === 'wishlist')
+                                            .map(item => (
+                                                <MovieCard
+                                                    key={item.id}
+                                                    movie={transformSavedMovieToCardFormat(item)}
+                                                    onHover={() => null}
+                                                    onLeave={() => null}
+                                                    onClickWatched={(watchedDate) => moveWishlistToWatched(item.movies.id, transformSavedMovieToCardFormat(item), watchedDate)}
+                                                    onClickWatching={() => null}
+                                                    onClickWishlist={() => toggleWishlistStatus(transformSavedMovieToCardFormat(item))}
+                                                    onRemoveWatched={() => null}
+                                                    watched={false}
+                                                    wishlist={true}
+                                                    cardType="wishlist"
+                                                />
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Watched movies - Third */}
                             {savedMovies.some(item => item.status === 'watched') && (
                                 <div className="mb-6">
                                     <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
@@ -753,63 +811,6 @@ export default function Home() {
                                                     onUpdateWatchDate={(newWatchedDate) => updateWatchDate(item.movies.id, newWatchedDate)}
                                                     watched={true}
                                                     cardType="watched"
-                                                />
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {/* Currently watching movies */}
-                            {savedMovies.some(item => item.status === 'watching') && (
-                                <div className="mb-6">
-                                    <h3 className="text-lg font-medium mb-2">Currently Watching</h3>
-                                    <div className="flex flex-wrap gap-2 sm:gap-3">
-                                        {savedMovies
-                                            .filter(item => item.status === 'watching')
-                                            .map(item => (
-                                                <MovieCard
-                                                    key={item.id}
-                                                    movie={transformSavedMovieToCardFormat(item)}
-                                                    onHover={() => null}
-                                                    onLeave={() => null}
-                                                    onClickWatched={(watchedDate) => moveWatchingToWatched(item.movies.id, transformSavedMovieToCardFormat(item), watchedDate)}
-                                                    onClickWatching={() => removeWatchingStatus(item.movies.id)}
-                                                    onRemoveWatched={() => null}
-                                                    watched={false}
-                                                    cardType="watching"
-                                                />
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-                            )}
-
-            {/* Watchlist movies */}
-            {savedMovies.some(item => item.status === 'wishlist') && (
-                                <div className="mb-6">
-                                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-purple-600">
-                                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
-                                        </svg>
-                                        Watchlist
-                                    </h3>
-                                    <div className="flex flex-wrap gap-2 sm:gap-3">
-                                        {savedMovies
-                                            .filter(item => item.status === 'wishlist')
-                                            .map(item => (
-                                                <MovieCard
-                                                    key={item.id}
-                                                    movie={transformSavedMovieToCardFormat(item)}
-                                                    onHover={() => null}
-                                                    onLeave={() => null}
-                                                    onClickWatched={(watchedDate) => moveWishlistToWatched(item.movies.id, transformSavedMovieToCardFormat(item), watchedDate)}
-                                                    onClickWatching={() => null}
-                                                    onClickWishlist={() => toggleWishlistStatus(transformSavedMovieToCardFormat(item))}
-                                                    onRemoveWatched={() => null}
-                                                    watched={false}
-                                                    wishlist={true}
-                                                    cardType="wishlist"
                                                 />
                                             ))
                                         }
@@ -853,12 +854,8 @@ export default function Home() {
                             <h3 className="text-xl font-semibold text-gray-600 mb-2">
                                 Ready to discover movies?
                             </h3>
-                            <p className="text-gray-500 max-w-md mb-2">
+                            <p className="text-gray-500 max-w-md">
                                 Search for your favorite movies and TV series and start building your personal entertainment diary!
-                            </p>
-                            {/* Temporary debug info */}
-                            <p className="text-xs text-gray-400">
-                                Debug: savedMovies length = {savedMovies?.length || 0}, loading = {loadingSavedMovies.toString()}
                             </p>
                         </div>
                     )}
