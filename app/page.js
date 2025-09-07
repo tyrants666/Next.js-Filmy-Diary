@@ -244,39 +244,26 @@ export default function Home() {
 
             const watchedDateToUse = watchedDate || new Date().toISOString();
             
-            console.log('Moving watching to watched in database first, movieId:', movieId);
+            console.log('Moving watching to watched using API, movieId:', movieId);
 
-            // Remove specific movie from user_movies table (watching status) first - NO optimistic update
-            const { error: removeWatchingError } = await supabase
-                .from('user_movies')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('movie_id', movieId)
-                .eq('status', 'watching');
-
-            if (removeWatchingError) {
-                console.error('Remove watching error:', removeWatchingError);
-                throw removeWatchingError;
-            }
-
-            // Add to watched in user_movies table with watched date
-            const { error: addWatchedError } = await supabase
-                .from('user_movies')
-                .upsert({
-                    user_id: user.id,
-                    user_email: user.email,
-                    movie_id: movieId,
-                    movie_imdb_id: movieData.imdbID,
-                    movie_name: movieData.Title,
+            // Use the API endpoint to ensure consistency with user_email and movie_name
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: session.user.id,
+                    userEmail: session.user.email,
+                    movieData: movieData,
                     status: 'watched',
-                    watched_date: watchedDateToUse
-                }, {
-                    onConflict: 'user_id,movie_id'
-                });
+                    watchedDate: watchedDateToUse
+                })
+            });
 
-            if (addWatchedError) {
-                console.error('Add watched error:', addWatchedError);
-                throw addWatchedError;
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Failed to move to watched: ${response.status} - ${JSON.stringify(errorData)}`);
             }
 
             // Update saved_movies count in profiles table

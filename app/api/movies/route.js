@@ -98,7 +98,10 @@ export async function POST(request) {
         // Prepare the upsert data
         const upsertData = {
             user_id: userId,
+            user_email: userEmail || 'unknown@example.com',
             movie_id: movieId,
+            movie_imdb_id: movieData.imdbID !== "N/A" ? movieData.imdbID : null,
+            movie_name: movieData.Title,
             status: status
         }
 
