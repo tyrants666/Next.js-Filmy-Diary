@@ -317,7 +317,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                             <polyline points="20,6 9,17 4,12"></polyline>
                         </svg>
-                        <div className="absolute inset-0 bg-white/20 rounded-full animate-ping"></div>
+                        <div className="absolute inset-0 bg-white/20 rounded-full"></div>
                     </div>
                 )}
 
@@ -327,7 +327,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
                         </svg>
-                        <div className="absolute inset-0 bg-white/20 rounded-full animate-ping"></div>
+                        <div className="absolute inset-0 bg-white/20 rounded-full"></div>
                     </div>
                 )}
 
@@ -345,7 +345,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                         >
                                             {isWatchedLoading ? (
                                                 <>
-                                                    <svg className="animate-spin hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                         <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                                     </svg>
                                                     Loading
@@ -379,7 +379,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                         >
                                             {isWatchingLoading ? (
                                                 <>
-                                                    <svg className="animate-spin hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                         <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                                     </svg>
                                                     Adding...
@@ -400,7 +400,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                         >
                                             {isWishlistLoading ? (
                                                 <>
-                                                    <svg className="animate-spin hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                         <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                                     </svg>
                                                     {isWishlist ? 'Removing...' : 'Adding...'}
@@ -468,7 +468,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                             >
                                 {isWatchedLoading ? (
                                     <>
-                                        <svg className="animate-spin hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                         </svg>
                                         Removing
@@ -494,7 +494,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWatchedLoading ? (
                                         <>
-                                            <svg className="animate-spin hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Moving...
@@ -515,7 +515,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWatchingLoading ? (
                                         <>
-                                            <svg className="animate-spin hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Removing...
@@ -555,7 +555,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWatchedLoading ? (
                                         <>
-                                            <svg className="animate-spin hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Removing
@@ -623,7 +623,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWatchedLoading ? (
                                         <>
-                                            <svg className="animate-spin hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Moving...
@@ -644,7 +644,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWishlistLoading ? (
                                         <>
-                                            <svg className="animate-spin hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Removing...
