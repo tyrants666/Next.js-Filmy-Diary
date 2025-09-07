@@ -557,7 +557,8 @@ export default function Home() {
             Year: savedMovie.movies.year,
             Type: "movie",
             imdbRating: savedMovie.movies.rating || "N/A",
-            ratingSource: savedMovie.movies.rating_source || "N/A"
+            ratingSource: savedMovie.movies.rating_source || "N/A",
+            watchedDate: savedMovie.watched_date || null
         };
     };
 
@@ -727,10 +728,19 @@ export default function Home() {
                             {/* Watched movies */}
                             {savedMovies.some(item => item.status === 'watched') && (
                                 <div className="mb-6">
-                                    <h3 className="text-lg font-medium mb-2">Watched</h3>
+                                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                                        Watched
+                                        <span className="text-xs text-gray-500 font-normal">(latest first)</span>
+                                    </h3>
                                     <div className="flex flex-wrap gap-2 sm:gap-3">
                                         {savedMovies
                                             .filter(item => item.status === 'watched')
+                                            .sort((a, b) => {
+                                                // Sort by watched_date (latest first)
+                                                const dateA = new Date(a.watched_date || 0);
+                                                const dateB = new Date(b.watched_date || 0);
+                                                return dateB - dateA;
+                                            })
                                             .map(item => (
                                                 <MovieCard
                                                     key={item.id}
