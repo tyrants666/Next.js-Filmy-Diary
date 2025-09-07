@@ -270,188 +270,60 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             
             if (!session) {
                 showError('Your session has expired. Please log in again.');
-                // Redirect to login after a short delay
                 setTimeout(() => {
                     window.location.href = '/login';
                 }, 2000);
                 return;
             }
-            
-            // First check if movie exists in DB (try IMDB ID first, then TMDB ID as fallback)
-            let { data: existingMovie } = await supabase
-                .from('movies')
-                .select('id')
-                .eq('movie_id', movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)
-                .maybeSingle(); // Use maybeSingle() to handle cases where movie doesn't exist yet
-                
-            let movieId;
-            
-            if (existingMovie) {
-                movieId = existingMovie.id;
-            } else {
-                // Add the movie to the movies table
-                const { data: newMovie, error: movieError } = await supabase
-                    .from('movies')
-                    .insert({
-                        movie_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
-                        title: movie.Title,
-                        poster: movie.Poster,
-                        year: movie.Year,
-                        rating: movie.imdbRating || "N/A",
-                        rating_source: movie.ratingSource || "N/A"
-                    })
-                    .select('id')
-                    .single(); // Keep .single() here as INSERT should always return exactly 1 row
-                    
-                if (movieError) {
-                    throw movieError;
+
+            // Check if movie already exists in any status for this user
+            const movieIdToCheck = movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID;
+            const existingMovie = savedMovies.find(savedMovie => 
+                savedMovie.movies.movie_id === movieIdToCheck
+            );
+
+            if (existingMovie && existingMovie.status !== status) {
+                // Movie exists in a different status, ask user if they want to move it
+                const confirmMove = window.confirm(
+                    `"${movie.Title}" is already in your ${existingMovie.status} list. Do you want to move it to ${status}?`
+                );
+                if (!confirmMove) {
+                    return;
                 }
-                
-                movieId = newMovie.id;
+            } else if (existingMovie && existingMovie.status === status) {
+                showError(`"${movie.Title}" is already in your ${status} list!`);
+                return;
             }
-            
-            if (status === 'watching') {
-                // Optimistically update local state first
-                if (setSavedMovies) {
-                    setSavedMovies(prevMovies => {
-                        // Remove any existing watching movie (since only one can be watched at a time)
-                        const filteredMovies = prevMovies.filter(movie => movie.status !== 'watching');
-                        
-                        // Add new watching movie
-                        const watchingMovie = {
-                            id: Date.now(), // Temporary ID
-                            status: 'watching',
-                            movies: {
-                                id: movieId,
-                                movie_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
-                                title: movie.Title,
-                                poster: movie.Poster,
-                                year: movie.Year,
-                                rating: movie.imdbRating,
-                                rating_source: movie.ratingSource
-                            }
-                        };
-                        
-                        return [...filteredMovies, watchingMovie];
-                    });
-                }
 
-                // For watching status, use the new watching table with unique constraint
-                console.log('Attempting to add to watching table:', {
-                    user_id: session.user.id,
-                    movie_id: movieId,
-                    movie_name: movie.Title
-                });
-                
-                const { data: watchingData, error: watchingError } = await supabase
-                    .from('watching')
-                    .upsert({
-                        user_id: session.user.id,
-                        user_email: session.user.email,
-                        movie_id: movieId,
-                        movie_imdb_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
-                        movie_name: movie.Title
-                    }, {
-                        onConflict: 'user_id'
-                    })
-                    .select();
-                    
-                if (watchingError) {
-                    console.error('Watching table error:', watchingError);
-                    // Revert optimistic update on error
-                    if (fetchSavedMovies) {
-                        await fetchSavedMovies();
-                    }
-                    throw watchingError;
-                }
-                
-                console.log('Successfully added to watching table:', watchingData);
-                showSuccess(`Now watching "${movie.Title}"!`);
-            } else {
-                // Optimistically update local state for watched status
-                if (status === 'watched' && setSavedMovies) {
-                    setSavedMovies(prevMovies => {
-                        // Check if movie already exists in watched list
-                        const existingIndex = prevMovies.findIndex(m => 
-                            m.status === 'watched' && 
-                            m.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)
-                        );
-                        
-                        if (existingIndex === -1) {
-                            // Add new watched movie
-                            const watchedMovie = {
-                                id: Date.now(), // Temporary ID
-                                status: 'watched',
-                                watched_date: watchedDate || new Date().toISOString(),
-                                movies: {
-                                    id: movieId,
-                                    movie_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
-                                    title: movie.Title,
-                                    poster: movie.Poster,
-                                    year: movie.Year,
-                                    rating: movie.imdbRating,
-                                    rating_source: movie.ratingSource
-                                }
-                            };
-                            
-                            return [...prevMovies, watchedMovie];
-                        }
-                        
-                        return prevMovies; // Movie already watched
-                    });
-                }
+            // Use the API endpoint which handles all the complex logic
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: session.user.id,
+                    movieData: movie,
+                    status: status,
+                    watchedDate: watchedDate
+                })
+            });
 
-                // For other statuses (like watched), use the regular user_movies table
-                const upsertData = {
-                    user_id: session.user.id,
-                    user_email: session.user.email,
-                    movie_id: movieId,
-                    movie_imdb_id: movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID,
-                    movie_name: movie.Title,
-                    status
-                };
-
-                // Add watched_date if status is 'watched'
-                if (status === 'watched') {
-                    upsertData.watched_date = watchedDate || new Date().toISOString();
-                }
-
-                const { error: listError } = await supabase
-                    .from('user_movies')
-                    .upsert(upsertData, {
-                        onConflict: 'user_id,movie_id'
-                    });
-                    
-                if (listError) {
-                    // Revert optimistic update on error
-                    if (fetchSavedMovies) {
-                        await fetchSavedMovies();
-                    }
-                    throw listError;
-                }
-
-                // Update saved_movies count in profiles table
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('saved_movies')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (profile !== null) {
-                    const { error: updateError } = await supabase
-                        .from('profiles')
-                        .update({
-                            saved_movies: (profile.saved_movies || 0) + 1
-                        })
-                        .eq('id', session.user.id);
-
-                    if (updateError) {
-                        console.error('Error updating saved_movies count:', updateError);
-                    }
-                }
-                
-                showSuccess(`Added "${movie.Title}" to your ${status.replace('_', ' ')} list!`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to add movie: ${response.status} - ${errorText}`);
             }
+
+            // Success! Refresh the saved movies list to get the updated state
+            if (fetchSavedMovies) {
+                await fetchSavedMovies();
+            }
+
+            // Show appropriate success message
+            let actionText = status === 'watching' ? 'Now watching' : 
+                           status === 'watched' ? 'Added to watched list' : 
+                           'Added to watchlist';
+            showSuccess(`${actionText}: "${movie.Title}"!`);
             
                  } catch (error) {
              console.error('Error saving movie:', error);
@@ -731,51 +603,6 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             )}
             {error && <p className="text-center">{error}</p>}
 
-            {/* Cute figure when no search has been made or no results */}
-            {!loadingMovie && movies.length === 0 && !error && (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                    {/* Cute movie character SVG */}
-                    <div className="mb-6">
-                        <svg width="120" height="120" viewBox="0 0 200 200" className="text-gray-400">
-                            {/* Movie reel body */}
-                            <circle cx="100" cy="100" r="80" fill="currentColor" opacity="0.1" stroke="currentColor" strokeWidth="2"/>
-                            <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" strokeWidth="2"/>
-                            <circle cx="100" cy="100" r="40" fill="none" stroke="currentColor" strokeWidth="2"/>
-                            <circle cx="100" cy="100" r="20" fill="none" stroke="currentColor" strokeWidth="2"/>
-                            
-                            {/* Film holes */}
-                            <circle cx="70" cy="70" r="4" fill="currentColor"/>
-                            <circle cx="130" cy="70" r="4" fill="currentColor"/>
-                            <circle cx="70" cy="130" r="4" fill="currentColor"/>
-                            <circle cx="130" cy="130" r="4" fill="currentColor"/>
-                            <circle cx="100" cy="60" r="4" fill="currentColor"/>
-                            <circle cx="100" cy="140" r="4" fill="currentColor"/>
-                            <circle cx="60" cy="100" r="4" fill="currentColor"/>
-                            <circle cx="140" cy="100" r="4" fill="currentColor"/>
-                            
-                            {/* Cute face */}
-                            <circle cx="85" cy="85" r="3" fill="currentColor"/> {/* Left eye */}
-                            <circle cx="115" cy="85" r="3" fill="currentColor"/> {/* Right eye */}
-                            <path d="M 90 110 Q 100 120 110 110" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/> {/* Smile */}
-                            
-                            {/* Film strip coming out */}
-                            <rect x="180" y="95" width="15" height="10" fill="currentColor" opacity="0.3"/>
-                            <rect x="185" y="90" width="5" height="20" fill="currentColor" opacity="0.5"/>
-                            <rect x="190" y="85" width="8" height="30" fill="currentColor" opacity="0.3"/>
-                        </svg>
-                    </div>
-                    
-                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                        {searchTerm ? 'No movies found' : 'Ready to discover movies?'}
-                    </h3>
-                    <p className="text-gray-500 max-w-md">
-                        {searchTerm 
-                            ? `No results found for "${searchTerm}". Try a different search term!`
-                            : 'Search for your favorite movies and start building your personal film diary!'
-                        }
-                    </p>
-                </div>
-            )}
 
             {movies.length > 0 && ( 
                 <div className="mt-4">

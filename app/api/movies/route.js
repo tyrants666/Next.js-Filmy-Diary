@@ -43,17 +43,24 @@ export async function GET(request) {
 export async function POST(request) {
     try {
         const body = await request.json()
-        const { userId, movieData, status } = body
+        const { userId, movieData, status, watchedDate } = body
 
         if (!userId || !movieData || !status) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
         }
 
-        // Check if movie exists
+        // Determine the correct movie ID to use (prefer imdbID, fallback to tmdbID)
+        const movieIdToUse = movieData.imdbID !== "N/A" ? movieData.imdbID : movieData.tmdbID;
+        
+        if (!movieIdToUse) {
+            return NextResponse.json({ error: 'No valid movie ID found' }, { status: 400 })
+        }
+
+        // Check if movie exists in movies table
         const { data: existingMovie } = await supabase
             .from('movies')
             .select('id')
-            .eq('movie_id', movieData.imdbID)
+            .eq('movie_id', movieIdToUse)
             .single()
 
         let movieId
@@ -61,14 +68,16 @@ export async function POST(request) {
         if (existingMovie) {
             movieId = existingMovie.id
         } else {
-            // Add new movie
+            // Add new movie to movies table
             const { data: newMovie, error: movieError } = await supabase
                 .from('movies')
                 .insert({
-                    movie_id: movieData.imdbID,
+                    movie_id: movieIdToUse,
                     title: movieData.Title,
                     poster: movieData.Poster,
-                    year: movieData.Year
+                    year: movieData.Year,
+                    rating: movieData.imdbRating || movieData.rating,
+                    rating_source: movieData.ratingSource || 'IMDB'
                 })
                 .select('id')
                 .single()
@@ -80,23 +89,74 @@ export async function POST(request) {
             movieId = newMovie.id
         }
 
-        // Add to user's list or update status
-        const { data: userMovie, error: userMovieError } = await supabase
-            .from('user_movies')
-            .upsert({
+        // Handle different status transitions properly
+        if (status === 'watching') {
+            // For watching status, use the watching table (only one movie can be watched at a time)
+            // First, remove any existing watching movie for this user
+            await supabase
+                .from('watching')
+                .delete()
+                .eq('user_id', userId)
+
+            // Then add the new watching movie
+            const { data: watchingData, error: watchingError } = await supabase
+                .from('watching')
+                .insert({
+                    user_id: userId,
+                    movie_id: movieId,
+                    movie_name: movieData.Title
+                })
+
+            if (watchingError) {
+                return NextResponse.json({ error: watchingError.message }, { status: 500 })
+            }
+
+            // Also remove this movie from user_movies if it exists there
+            await supabase
+                .from('user_movies')
+                .delete()
+                .eq('user_id', userId)
+                .eq('movie_id', movieId)
+
+            return NextResponse.json({ success: true, data: watchingData })
+        } else {
+            // For watched and wishlist status, use user_movies table
+            // First, remove from watching table if it exists there
+            await supabase
+                .from('watching')
+                .delete()
+                .eq('user_id', userId)
+                .eq('movie_id', movieId)
+
+            // Prepare the upsert data
+            const upsertData = {
                 user_id: userId,
                 movie_id: movieId,
-                status
-            }, {
-                onConflict: 'user_id,movie_id'
-            })
+                status: status
+            }
 
-        if (userMovieError) {
-            return NextResponse.json({ error: userMovieError.message }, { status: 500 })
+            // Add watched_date if status is watched
+            if (status === 'watched' && watchedDate) {
+                upsertData.watched_date = watchedDate
+            } else if (status === 'watched') {
+                upsertData.watched_date = new Date().toISOString()
+            }
+
+            // Upsert to user_movies (this will update status if movie already exists for user)
+            const { data: userMovie, error: userMovieError } = await supabase
+                .from('user_movies')
+                .upsert(upsertData, {
+                    onConflict: 'user_id,movie_id'
+                })
+
+            if (userMovieError) {
+                return NextResponse.json({ error: userMovieError.message }, { status: 500 })
+            }
+
+            return NextResponse.json({ success: true, data: userMovie })
         }
-
-        return NextResponse.json({ success: true, data: userMovie })
     } catch (error) {
+        console.error('API Error:', error)
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }
