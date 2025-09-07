@@ -749,12 +749,12 @@ export default function Home() {
                         <p className="text-center mt-8">Loading your saved movies...</p>
                     ) : savedMovies.length > 0 ? (
                         <div className="mt-8">
-                            <h2 className="text-xl font-bold mb-4">Your Movie Collections</h2>
+                            <h2 className="text-xl font-bold mb-4">Your Collections</h2>
                             
                             {/* Watched movies */}
                             {savedMovies.some(item => item.status === 'watched') && (
                                 <div className="mb-6">
-                                    <h3 className="text-lg font-medium mb-2">Watched Movies</h3>
+                                    <h3 className="text-lg font-medium mb-2">Watched</h3>
                                     <div className="flex flex-wrap gap-2 sm:gap-3">
                                         {savedMovies
                                             .filter(item => item.status === 'watched')

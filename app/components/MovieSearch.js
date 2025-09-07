@@ -83,8 +83,8 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
             const baseImageUrl = 'https://image.tmdb.org/t/p/w500';
             
-            // TMDB search endpoint
-            const apiUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(searchTerm)}&page=${page}`;
+            // TMDB multi-search endpoint to search both movies and TV series
+            const apiUrl = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(searchTerm)}&page=${page}`;
 
             const response = await fetch(apiUrl);
 
@@ -95,23 +95,35 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             const data = await response.json();
 
             if (data.results && data.results.length > 0) {
+                // Filter out person results and only keep movies and TV series
+                const filteredResults = data.results.filter(item => 
+                    item.media_type === 'movie' || item.media_type === 'tv'
+                );
+
                 // Transform TMDB data to match OMDB structure
-                let transformedMovies = data.results.map(movie => {
-                    const tmdbPosterUrl = movie.poster_path ? `${baseImageUrl}${movie.poster_path}` : "N/A";
+                let transformedMovies = filteredResults.map(item => {
+                    const tmdbPosterUrl = item.poster_path ? `${baseImageUrl}${item.poster_path}` : "N/A";
                     
-                    console.log(`TMDB Movie: ${movie.title} - Poster Path: ${movie.poster_path} - Full URL: ${tmdbPosterUrl}`);
+                    // Handle different field names for movies vs TV series
+                    const title = item.media_type === 'movie' ? item.title : item.name;
+                    const releaseDate = item.media_type === 'movie' ? item.release_date : item.first_air_date;
+                    const year = releaseDate ? new Date(releaseDate).getFullYear().toString() : "N/A";
+                    const type = item.media_type === 'movie' ? "movie" : "series";
+                    
+                    console.log(`TMDB ${type}: ${title} - Poster Path: ${item.poster_path} - Full URL: ${tmdbPosterUrl}`);
                     
                     return {
-                        tmdbID: movie.id.toString(), // Store TMDB ID separately
+                        tmdbID: item.id.toString(), // Store TMDB ID separately
                         imdbID: "N/A", // Will be populated from OMDB if available
-                        Title: movie.title,
+                        Title: title,
                         Poster: validatePosterUrl(tmdbPosterUrl, "TMDB"),
-                        Year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "N/A",
-                        Type: "movie", // TMDB search/movie always returns movies
+                        Year: year,
+                        Type: type, // Now can be "movie" or "series"
                         imdbRating: "N/A", // Default rating
-                        tmdbRating: movie.vote_average ? movie.vote_average.toFixed(1) : "N/A", // TMDB rating as fallback
+                        tmdbRating: item.vote_average ? item.vote_average.toFixed(1) : "N/A", // TMDB rating as fallback
                         ratingSource: "N/A", // Track which source provided the rating
-                        posterSource: movie.poster_path ? "TMDB" : "None"
+                        posterSource: item.poster_path ? "TMDB" : "None",
+                        mediaType: item.media_type // Keep original media type for reference
                     };
                 });
 
@@ -121,7 +133,9 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 if (omdbApiKey) {
                     const omdbPromises = transformedMovies.map(async (movie) => {
                         try {
-                            const omdbUrl = `https://www.omdbapi.com/?apikey=${omdbApiKey}&t=${encodeURIComponent(movie.Title)}&y=${movie.Year}&type=movie`;
+                            // Use appropriate OMDB type parameter based on media type
+                            const omdbType = movie.Type === 'series' ? 'series' : 'movie';
+                            const omdbUrl = `https://www.omdbapi.com/?apikey=${omdbApiKey}&t=${encodeURIComponent(movie.Title)}&y=${movie.Year}&type=${omdbType}`;
                             const omdbResponse = await fetch(omdbUrl);
                             const omdbData = await omdbResponse.json();
                             
@@ -618,7 +632,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 <div className="relative w-full">
                     <input
                         type="text"
-                        placeholder="Search for a movie..."
+                        placeholder="Search for movies and TV series..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="bg-gray-100 outline-none p-2 px-4 pr-10 border border-gray-300 rounded-lg w-full placeholder-gray-500 text-black"
@@ -686,7 +700,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
 
                     <div className="flex justify-between items-center">
                         <h3 className="text-lg mb-2">
-                            Search Results <small className='text-gray-600'>{totalResults > 0 ? `(${movies.length} of ${totalResults})` : ''}</small>
+                            Movies & Series <small className='text-gray-600'>{totalResults > 0 ? `(${movies.length} of ${totalResults})` : ''}</small>
                         </h3>
                         <h3 className="gap-[7px] text-lg mb-2 flex">
                             <div className="flex items-center gap-2  text-sm">
