@@ -78,7 +78,8 @@ export default function Home() {
                         type
                     )
                 `)
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .order('id', { ascending: false });
                 
             if (userMoviesError) throw userMoviesError;
             
@@ -723,10 +724,18 @@ export default function Home() {
                             {/* Currently watching movies - First */}
                             {savedMovies.some(item => item.status === 'currently_watching') && (
                                 <div className="mb-6">
-                                    <h3 className="text-lg font-medium mb-2">Currently Watching</h3>
+                                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                                        Currently Watching
+                                    </h3>
                                     <div className="flex flex-wrap gap-2 sm:gap-3">
                                         {savedMovies
                                             .filter(item => item.status === 'currently_watching')
+                                            .sort((a, b) => {
+                                                // Sort by updated_at (latest first) - this updates when status changes
+                                                const dateA = new Date(a.updated_at || a.created_at || 0);
+                                                const dateB = new Date(b.updated_at || b.created_at || 0);
+                                                return dateB - dateA;
+                                            })
                                             .map(item => (
                                                 <MovieCard
                                                     key={item.id}
@@ -753,10 +762,17 @@ export default function Home() {
                                             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
                                         </svg>
                                         Watchlist
+                                    
                                     </h3>
                                     <div className="flex flex-wrap gap-2 sm:gap-3">
                                         {savedMovies
                                             .filter(item => item.status === 'wishlist')
+                                            .sort((a, b) => {
+                                                // Sort by updated_at (latest first) - this updates when status changes
+                                                const dateA = new Date(a.updated_at || a.created_at || 0);
+                                                const dateB = new Date(b.updated_at || b.created_at || 0);
+                                                return dateB - dateA;
+                                            })
                                             .map(item => (
                                                 <MovieCard
                                                     key={item.id}
@@ -782,7 +798,6 @@ export default function Home() {
                                 <div className="mb-6">
                                     <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
                                         Watched
-                                        <span className="text-xs text-gray-500 font-normal">(latest first)</span>
                                     </h3>
                                     <div className="flex flex-wrap gap-2 sm:gap-3">
                                         {savedMovies

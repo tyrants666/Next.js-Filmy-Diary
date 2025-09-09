@@ -129,7 +129,8 @@ export async function POST(request) {
             movie_id: movieId,
             movie_imdb_id: movieData.imdbID !== "N/A" ? movieData.imdbID : null,
             movie_name: movieData.Title,
-            status: status
+            status: status,
+            updated_at: new Date().toISOString() // Explicitly set updated_at for proper sorting
         }
 
         // Add watched_date if status is watched

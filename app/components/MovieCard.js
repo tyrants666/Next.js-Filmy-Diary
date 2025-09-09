@@ -693,19 +693,16 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
-                        <span>
-                            {(() => {
-                                const watchDate = new Date(movie.watchedDate);
-                                const today = new Date();
-                                const diffTime = today - watchDate;
-                                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                                
-                                if (diffDays === 0) return 'Watched today';
-                                if (diffDays === 1) return 'Watched yesterday';
-                                if (diffDays < 7) return `Watched ${diffDays} days ago`;
-                                return `Watched ${watchDate.toLocaleDateString()}`;
-                            })()}
-                        </span>
+                         <span>
+                             {(() => {
+                                 const watchDate = new Date(movie.watchedDate);
+                                 // Format date as DD/MM/YYYY
+                                 const day = watchDate.getDate().toString().padStart(2, '0');
+                                 const month = (watchDate.getMonth() + 1).toString().padStart(2, '0');
+                                 const year = watchDate.getFullYear();
+                                 return `Watched ${day}/${month}/${year}`;
+                             })()}
+                         </span>
                     </div>
                 )}
             </div>
