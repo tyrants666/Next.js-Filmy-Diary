@@ -694,14 +694,16 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                          <span>
+                             Watched <span className="text-[10px]">
                              {(() => {
                                  const watchDate = new Date(movie.watchedDate);
                                  // Format date as DD/MM/YYYY
                                  const day = watchDate.getDate().toString().padStart(2, '0');
                                  const month = (watchDate.getMonth() + 1).toString().padStart(2, '0');
                                  const year = watchDate.getFullYear();
-                                 return `Watched ${day}/${month}/${year}`;
+                                 return `${day}/${month}/${year}`;
                              })()}
+                             </span>
                          </span>
                     </div>
                 )}
