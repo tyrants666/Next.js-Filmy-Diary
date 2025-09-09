@@ -306,14 +306,17 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
 
             if (existingMovie && existingMovie.status !== status) {
                 // Movie exists in a different status, ask user if they want to move it
+                const existingStatusText = existingMovie.status === 'currently_watching' ? 'watching' : existingMovie.status;
+                const newStatusText = status === 'currently_watching' ? 'watching' : status;
                 const confirmMove = window.confirm(
-                    `"${movie.Title}" is already in your ${existingMovie.status} list. Do you want to move it to ${status}?`
+                    `"${movie.Title}" is already in your ${existingStatusText} list. Do you want to move it to ${newStatusText}?`
                 );
                 if (!confirmMove) {
                     return;
                 }
             } else if (existingMovie && existingMovie.status === status) {
-                showError(`"${movie.Title}" is already in your ${status} list!`);
+                const statusText = status === 'currently_watching' ? 'watching' : status;
+                showError(`"${movie.Title}" is already in your ${statusText} list!`);
                 return;
             }
 
@@ -343,7 +346,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             }
 
             // Show appropriate success message
-            let actionText = status === 'watching' ? 'Now watching' : 
+            let actionText = status === 'currently_watching' ? 'Added to watching list' : 
                            status === 'watched' ? 'Added to watched list' : 
                            'Added to watchlist';
             showSuccess(`${actionText}: "${movie.Title}"!`);
@@ -650,31 +653,6 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                         <h3 className="text-lg mb-2">
                             Movies & Series <small className='text-gray-600'>{totalResults > 0 ? `(${movies.length} of ${totalResults})` : ''}</small>
                         </h3>
-                        <h3 className="gap-[7px] text-lg mb-2 flex">
-                            <div className="flex items-center gap-2  text-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <circle cx="12" cy="12" r="3" className="fill-gray-400"/>
-                                </svg>
-                                {/* <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse">
-                                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
-                                    <polyline points="17 2 12 7 7 2"/>
-                                    <line x1="7" y1="12" x2="17" y2="12"/>
-                                    <line x1="7" y1="15" x2="17" y2="15"/>
-                                    <line x1="7" y1="18" x2="17" y2="18"/>
-                                </svg> */}
-                            </div>
-                            {savedMovies.filter(m => m.status === 'watching').length > 0 ? (
-                                savedMovies.filter(m => m.status === 'watching').map((movie, index) => (
-                                    <span key={movie.id} className="text-sm">
-                                        {movie.movies.title}
-                                        {index < savedMovies.filter(m => m.status === 'watching').length - 1 && ', '}
-                                    </span>
-                                ))
-                            ) : (
-                                <span className='text-sm text-gray-500'>No movies currently watching</span>
-                            )}
-                        </h3>
                     </div>
 
                     {/* ======================================== Movie cards section ======================================== */}
@@ -688,7 +666,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                                 onHover={() => null}
                                 onLeave={() => null}
                                 onClickWatched={(watchedDate) => addMovieToList(movie, 'watched', watchedDate)}
-                                onClickWatching={() => addMovieToList(movie, 'watching')}
+                                onClickWatching={() => addMovieToList(movie, 'currently_watching')}
                                 onClickWishlist={() => toggleWishlistStatus(movie)}
                                 onRemoveWatched={() => removeWatchedStatus(movie)}
                                 watched={watchedMovies.has(movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)}
