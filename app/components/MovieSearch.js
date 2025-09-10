@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import MovieCard from './MovieCard';
+import ConfirmationModal from './ConfirmationModal';
 
 export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSavedMovies, onSearchStateChange }) {
     const { showSuccess, showError, showInfo } = useToast();
@@ -52,6 +53,16 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
 
     // Create a Set of watched movie IDs for O(1) lookup
     const [wishlistMovies, setWishlistMovies] = useState(new Set());
+
+    // Modal state for confirmation
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmModalData, setConfirmModalData] = useState({
+        movie: null,
+        newStatus: null,
+        existingStatus: null,
+        watchedDate: null
+    });
+    const [isMovingMovie, setIsMovingMovie] = useState(false);
 
     // Notify parent about search state changes
     useEffect(() => {
@@ -305,15 +316,18 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             );
 
             if (existingMovie && existingMovie.status !== status) {
-                // Movie exists in a different status, ask user if they want to move it
+                // Movie exists in a different status, show modal to ask user if they want to move it
                 const existingStatusText = existingMovie.status === 'currently_watching' ? 'watching' : existingMovie.status;
                 const newStatusText = status === 'currently_watching' ? 'watching' : status;
-                const confirmMove = window.confirm(
-                    `"${movie.Title}" is already in your ${existingStatusText} list. Do you want to move it to ${newStatusText}?`
-                );
-                if (!confirmMove) {
-                    return;
-                }
+                
+                setConfirmModalData({
+                    movie: movie,
+                    newStatus: status,
+                    existingStatus: existingMovie.status,
+                    watchedDate: watchedDate
+                });
+                setShowConfirmModal(true);
+                return;
             } else if (existingMovie && existingMovie.status === status) {
                 const statusText = status === 'currently_watching' ? 'watching' : status;
                 showError(`"${movie.Title}" is already in your ${statusText} list!`);
@@ -438,6 +452,72 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             // Re-throw the error so MovieCard can handle the state properly
             throw error;
         }
+    };
+
+    // Handle modal confirmation
+    const handleConfirmMove = async () => {
+        setIsMovingMovie(true);
+        try {
+            const { movie, newStatus, watchedDate } = confirmModalData;
+            await performMovieOperation(movie, newStatus, watchedDate);
+        } catch (error) {
+            console.error('Error moving movie:', error);
+            showError('Failed to move movie. Please try again.');
+        } finally {
+            setIsMovingMovie(false);
+            setShowConfirmModal(false);
+            setConfirmModalData({
+                movie: null,
+                newStatus: null,
+                existingStatus: null,
+                watchedDate: null
+            });
+        }
+    };
+
+    // Handle modal cancellation
+    const handleCancelMove = () => {
+        setShowConfirmModal(false);
+        setConfirmModalData({
+            movie: null,
+            newStatus: null,
+            existingStatus: null,
+            watchedDate: null
+        });
+    };
+
+    // Perform the actual movie operation (extracted from addMovieToList)
+    const performMovieOperation = async (movie, status, watchedDate = null) => {
+        // Use the API endpoint for all statuses including watching (now that we use user_movies table)
+        const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: (await validateSession()).user.id,
+                    userEmail: (await validateSession()).user.email,
+                    movieData: movie,
+                    status: status,
+                    watchedDate: watchedDate
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to add movie: ${response.status} - ${errorText}`);
+            }
+
+        // Success! Refresh the saved movies list to get the updated state
+        if (fetchSavedMovies) {
+            await fetchSavedMovies();
+        }
+
+        // Show appropriate success message
+        let actionText = status === 'currently_watching' ? 'Added to watching list' : 
+                       status === 'watched' ? 'Added to watched list' : 
+                       'Added to watchlist';
+        showSuccess(`${actionText}: "${movie.Title}"!`);
     };
 
     // Toggle wishlist status
@@ -689,6 +769,23 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                     )}
                 </div>
             )}
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={showConfirmModal}
+                onClose={handleCancelMove}
+                onConfirm={handleConfirmMove}
+                title="Move Movie"
+                message={
+                    confirmModalData.movie 
+                        ? `"${confirmModalData.movie.Title}" is already in your ${confirmModalData.existingStatus === 'currently_watching' ? 'watching' : confirmModalData.existingStatus} list. Do you want to move it to ${confirmModalData.newStatus === 'currently_watching' ? 'watching' : confirmModalData.newStatus}?`
+                        : ''
+                }
+                confirmText="Yes, Move It"
+                cancelText="Cancel"
+                confirmButtonClass="bg-blue-600 hover:bg-blue-700"
+                isLoading={isMovingMovie}
+            />
         </div>
     );
 }
