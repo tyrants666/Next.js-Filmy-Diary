@@ -2,6 +2,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Jost } from 'next/font/google';
 import { Poppins } from 'next/font/google';
 import { AuthProvider } from './context/AuthContext'
+import { ToastProvider } from './context/ToastContext'
+import Footer from './components/Footer'
 import "./globals.css";
 
 const geistSans = Geist({
@@ -34,10 +36,15 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} relative antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} relative antialiased flex flex-col min-h-screen`}
       >
         <AuthProvider>
-          {children}
+          <ToastProvider>
+            <div className="flex-1">
+              {children}
+            </div>
+            <Footer />
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>
