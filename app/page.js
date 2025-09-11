@@ -67,6 +67,8 @@ export default function Home() {
                     id,
                     status,
                     watched_date,
+                    updated_at,
+                    created_at,
                     movies (
                         id,
                         movie_id,
@@ -143,42 +145,19 @@ export default function Home() {
                 return;
             }
 
-            console.log('Removing watched movie from database first, movieId:', movieId);
+            console.log('Removing watched movie via API, movieId:', movieId);
 
-            // Delete the movie from user_movies first - NO optimistic update
-            const { error: deleteError } = await supabase
-                .from('user_movies')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('movie_id', movieId)
-                .eq('status', 'watched');
+            // Use the API endpoint to delete the movie (this will also update the counter)
+            const response = await fetch(`/api/movies?userId=${user.id}&movieId=${movieId}`, {
+                method: 'DELETE'
+            });
 
-            if (deleteError) {
-                console.error('Delete error:', deleteError);
-                throw deleteError;
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to remove movie: ${response.status} - ${errorText}`);
             }
 
-            // Update saved_movies count in profiles table
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('saved_movies')
-                .eq('id', user.id)
-                .single();
-
-            if (profile !== null) {
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({
-                        saved_movies: Math.max(0, (profile.saved_movies || 0) - 1)
-                    })
-                    .eq('id', user.id);
-
-                if (updateError) {
-                    console.error('Error updating saved_movies count:', updateError);
-                }
-            }
-
-            // Only update UI after successful database operation
+            // Only update UI after successful API operation
             setSavedMovies(prevMovies => 
                 prevMovies.filter(movie => 
                     !(movie.status === 'watched' && movie.movies.id === movieId)
@@ -206,22 +185,19 @@ export default function Home() {
                 return;
             }
 
-            console.log('Removing watching movie from database first, movieId:', movieId);
+            console.log('Removing watching movie via API, movieId:', movieId);
 
-            // Delete the specific movie from user_movies table (watching status) - NO optimistic update
-            const { error: deleteError } = await supabase
-                .from('user_movies')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('movie_id', movieId)
-                .eq('status', 'currently_watching');
+            // Use the API endpoint to delete the movie (this will also update the counter)
+            const response = await fetch(`/api/movies?userId=${user.id}&movieId=${movieId}`, {
+                method: 'DELETE'
+            });
 
-            if (deleteError) {
-                console.error('Delete error:', deleteError);
-                throw deleteError;
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to remove movie: ${response.status} - ${errorText}`);
             }
 
-            // Only update UI after successful database operation
+            // Only update UI after successful API operation
             setSavedMovies(prevMovies => 
                 prevMovies.filter(movie => 
                     !(movie.status === 'currently_watching' && movie.movies.id === movieId)
@@ -273,27 +249,8 @@ export default function Home() {
                 throw new Error(`Failed to move to watched: ${response.status} - ${JSON.stringify(errorData)}`);
             }
 
-            // Update saved_movies count in profiles table
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('saved_movies')
-                .eq('id', user.id)
-                .single();
-
-            if (profile !== null) {
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({
-                        saved_movies: (profile.saved_movies || 0) + 1
-                    })
-                    .eq('id', user.id);
-
-                if (updateError) {
-                    console.error('Error updating saved_movies count:', updateError);
-                }
-            }
-
-            // Only update UI after all database operations succeed
+            // Counter is now handled by the API - no need to manually update it here
+            // Only update UI after successful API operation
             // Refresh data from database to get correct structure
             await fetchSavedMovies(true, false);
 
@@ -539,6 +496,190 @@ export default function Home() {
         }
     };
 
+    // Move movie from watching to wishlist
+    const moveWatchingToWishlist = async (movieId, movieData) => {
+        try {
+            // Validate session first
+            const session = await validateSession();
+            
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                setTimeout(() => router.push('/login'), 2000);
+                return;
+            }
+
+            console.log('Moving watching to wishlist using API, movieId:', movieId);
+
+            // Use the API endpoint to ensure consistency
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: session.user.id,
+                    userEmail: session.user.email,
+                    movieData: movieData,
+                    status: 'wishlist'
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Failed to move to wishlist: ${response.status} - ${JSON.stringify(errorData)}`);
+            }
+
+            // Counter is now handled by the API - no need to manually update it here
+            // Only update UI after successful API operation
+            await fetchSavedMovies(true, false);
+
+            showSuccess(`"${movieData.Title}" moved to watchlist!`);
+            console.log('Successfully moved watching to wishlist');
+            
+        } catch (error) {
+            console.error('Error moving movie to wishlist:', error);
+            showError('Failed to move movie to wishlist. Please try again.');
+        }
+    };
+
+    // Move movie from wishlist to watching
+    const moveWishlistToWatching = async (movieId, movieData) => {
+        try {
+            // Validate session first
+            const session = await validateSession();
+            
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                setTimeout(() => router.push('/login'), 2000);
+                return;
+            }
+
+            console.log('Moving wishlist to watching using API, movieId:', movieId);
+
+            // Use the API endpoint to ensure consistency
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: session.user.id,
+                    userEmail: session.user.email,
+                    movieData: movieData,
+                    status: 'currently_watching'
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Failed to move to watching: ${response.status} - ${JSON.stringify(errorData)}`);
+            }
+
+            // Counter is now handled by the API - no need to manually update it here
+            // Only update UI after successful API operation
+            await fetchSavedMovies(true, false);
+
+            showSuccess(`"${movieData.Title}" moved to currently watching!`);
+            console.log('Successfully moved wishlist to watching');
+            
+        } catch (error) {
+            console.error('Error moving movie to watching:', error);
+            showError('Failed to move movie to watching. Please try again.');
+        }
+    };
+
+    // Move movie from watched to wishlist
+    const moveWatchedToWishlist = async (movieId, movieData) => {
+        try {
+            // Validate session first
+            const session = await validateSession();
+            
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                setTimeout(() => router.push('/login'), 2000);
+                return;
+            }
+
+            console.log('Moving watched to wishlist using API, movieId:', movieId);
+
+            // Use the API endpoint to ensure consistency
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: session.user.id,
+                    userEmail: session.user.email,
+                    movieData: movieData,
+                    status: 'wishlist'
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Failed to move to wishlist: ${response.status} - ${JSON.stringify(errorData)}`);
+            }
+
+            // Counter is now handled by the API - no need to manually update it here
+            // Only update UI after successful API operation
+            await fetchSavedMovies(true, false);
+
+            showSuccess(`"${movieData.Title}" moved to watchlist!`);
+            console.log('Successfully moved watched to wishlist');
+            
+        } catch (error) {
+            console.error('Error moving movie to wishlist:', error);
+            showError('Failed to move movie to wishlist. Please try again.');
+        }
+    };
+
+    // Move movie from watched to watching
+    const moveWatchedToWatching = async (movieId, movieData) => {
+        try {
+            // Validate session first
+            const session = await validateSession();
+            
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                setTimeout(() => router.push('/login'), 2000);
+                return;
+            }
+
+            console.log('Moving watched to watching using API, movieId:', movieId);
+
+            // Use the API endpoint to ensure consistency
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: session.user.id,
+                    userEmail: session.user.email,
+                    movieData: movieData,
+                    status: 'currently_watching'
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Failed to move to watching: ${response.status} - ${JSON.stringify(errorData)}`);
+            }
+
+            // Counter is now handled by the API - no need to manually update it here
+            // Only update UI after successful API operation
+            await fetchSavedMovies(true, false);
+
+            showSuccess(`"${movieData.Title}" moved to currently watching!`);
+            console.log('Successfully moved watched to watching');
+            
+        } catch (error) {
+            console.error('Error moving movie to watching:', error);
+            showError('Failed to move movie to watching. Please try again.');
+        }
+    };
+
     // Transform saved movie data to match MovieCard expected format
     const transformSavedMovieToCardFormat = (savedMovie) => {
         const movieId = savedMovie.movies.movie_id;
@@ -719,12 +860,14 @@ export default function Home() {
                         <p className="text-center mt-8">Loading your saved movies...</p>
                     ) : (savedMovies && savedMovies.length > 0) ? (
                         <div className="mt-8">
-                            <h2 className="text-xl font-bold mb-4">Your Collections</h2>
                             
                             {/* Currently watching movies - First */}
                             {savedMovies.some(item => item.status === 'currently_watching') && (
-                                <div className="mb-6">
+                                <div className="mb-10">
                                     <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-red-500">
+                                            <polygon points="5,3 19,12 5,21"></polygon>
+                                        </svg>
                                         Currently Watching
                                     </h3>
                                     <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -744,6 +887,7 @@ export default function Home() {
                                                     onLeave={() => null}
                                                     onClickWatched={(watchedDate) => moveWatchingToWatched(item.movies.id, transformSavedMovieToCardFormat(item), watchedDate)}
                                                     onClickWatching={() => removeWatchingStatus(item.movies.id)}
+                                                    onClickWishlist={() => moveWatchingToWishlist(item.movies.id, transformSavedMovieToCardFormat(item))}
                                                     onRemoveWatched={() => null}
                                                     watched={false}
                                                     cardType="watching"
@@ -756,7 +900,7 @@ export default function Home() {
 
                             {/* Watchlist movies - Second */}
                             {savedMovies.some(item => item.status === 'wishlist') && (
-                                <div className="mb-6">
+                                <div className="mb-10">
                                     <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-purple-600">
                                             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
@@ -780,7 +924,7 @@ export default function Home() {
                                                     onHover={() => null}
                                                     onLeave={() => null}
                                                     onClickWatched={(watchedDate) => moveWishlistToWatched(item.movies.id, transformSavedMovieToCardFormat(item), watchedDate)}
-                                                    onClickWatching={() => null}
+                                                    onClickWatching={() => moveWishlistToWatching(item.movies.id, transformSavedMovieToCardFormat(item))}
                                                     onClickWishlist={() => toggleWishlistStatus(transformSavedMovieToCardFormat(item))}
                                                     onRemoveWatched={() => null}
                                                     watched={false}
@@ -795,10 +939,13 @@ export default function Home() {
 
                             {/* Watched movies - Third */}
                             {savedMovies.some(item => item.status === 'watched') && (
-                                <div className="mb-6">
-                                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
-                                        Watched
-                                    </h3>
+                                <div className="mb-10">
+                                     <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" className="text-green-600 font-bold">
+                                             <polyline points="20,6 9,17 4,12"></polyline>
+                                         </svg>
+                                         Watched
+                                     </h3>
                                     <div className="flex flex-wrap gap-2 sm:gap-3">
                                         {savedMovies
                                             .filter(item => item.status === 'watched')
@@ -815,7 +962,8 @@ export default function Home() {
                                                     onHover={() => null}
                                                     onLeave={() => null}
                                                     onClickWatched={() => null}
-                                                    onClickWatching={() => null}
+                                                    onClickWatching={() => moveWatchedToWatching(item.movies.id, transformSavedMovieToCardFormat(item))}
+                                                    onClickWishlist={() => moveWatchedToWishlist(item.movies.id, transformSavedMovieToCardFormat(item))}
                                                     onRemoveWatched={() => removeWatchedStatus(item.movies.id)}
                                                     onUpdateWatchDate={(newWatchedDate) => updateWatchDate(item.movies.id, newWatchedDate)}
                                                     watched={true}

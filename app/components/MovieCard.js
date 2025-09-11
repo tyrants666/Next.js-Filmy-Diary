@@ -218,16 +218,12 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
     const handleWishlistClick = async () => {
         setIsWishlistLoading(true);
         setOperationError(false);
-        const originalWishlistState = isWishlist;
         
         try {
             await onClickWishlist();
-            // Toggle wishlist state optimistically
-            setIsWishlist(!originalWishlistState);
+            // Parent component handles all state updates
         } catch (error) {
             console.error('Failed to toggle wishlist:', error);
-            // Restore the original state if operation fails
-            setIsWishlist(originalWishlistState);
             setOperationError(true);
             // Clear error after 3 seconds
             setTimeout(() => setOperationError(false), 3000);
@@ -304,7 +300,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                         </svg>
                         <span>{movie.imdbRating}</span>
                         {movie.ratingSource && movie.ratingSource !== "N/A" && (
-                            <span className="text-[10px] opacity-75 ml-0.5">
+                            <span className="hidden md:inline text-[10px] opacity-75 ml-0.5">
                                 {movie.ratingSource === "IMDB" ? "IMDb" : movie.ratingSource}
                             </span>
                         )}
@@ -509,6 +505,27 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                     )}
                                 </button>
                                 <button
+                                    onClick={handleWishlistClick}
+                                    disabled={isWishlistLoading}
+                                    className="bg-purple-700/90 hover:bg-purple-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                >
+                                    {isWishlistLoading ? (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                            </svg>
+                                            Moving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+                                            </svg>
+                                            Watchlist
+                                        </>
+                                    )}
+                                </button>
+                                <button
                                     onClick={handleRemoveWatching}
                                     disabled={isWatchingLoading}
                                                 className="bg-red-700/90 hover:bg-red-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
@@ -547,6 +564,48 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                         <line x1="3" y1="10" x2="21" y2="10"></line>
                                     </svg>
                                     Edit Date
+                                </button>
+                                <button
+                                    onClick={handleWatchingClick}
+                                    disabled={isWatchingLoading}
+                                    className="bg-indigo-700/90 hover:bg-indigo-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                >
+                                    {isWatchingLoading ? (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                            </svg>
+                                            Moving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <polygon points="5,3 19,12 5,21"></polygon>
+                                            </svg>
+                                            Watching
+                                        </>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={handleWishlistClick}
+                                    disabled={isWishlistLoading}
+                                    className="bg-purple-700/90 hover:bg-purple-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                >
+                                    {isWishlistLoading ? (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                            </svg>
+                                            Moving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+                                            </svg>
+                                            Watchlist
+                                        </>
+                                    )}
                                 </button>
                                 <button
                                     onClick={handleRemoveWatched}
@@ -638,6 +697,27 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                     )}
                                 </button>
                                 <button
+                                    onClick={handleWatchingClick}
+                                    disabled={isWatchingLoading}
+                                    className="bg-indigo-700/90 hover:bg-indigo-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                >
+                                    {isWatchingLoading ? (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                            </svg>
+                                            Moving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <polygon points="5,3 19,12 5,21"></polygon>
+                                            </svg>
+                                            Watching
+                                        </>
+                                    )}
+                                </button>
+                                <button
                                     onClick={handleWishlistClick}
                                     disabled={isWishlistLoading}
                                     className="bg-red-700/90 hover:bg-red-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
@@ -665,8 +745,8 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                 </div>
             </a>
 
-            <div className="px-2 pb-2 flex w-full flex-col gap-1">
-                <div className="flex text-xs text-gray-700 font-medium justify-between">
+            <div className="px-2 pb-2 flex w-full flex-col h-full">
+                <div className="flex text-xs text-gray-700 font-medium justify-between mb-1">
                     <span className="uppercase bg-gray-100 py-0.5 rounded-full">{movie.Type}</span>
                     <span className="bg-gray-100 px-2 py-0.5 rounded-full">{movie.Year.replace(/\D/g, '')}</span>
                 </div>
@@ -680,7 +760,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                     : `https://www.themoviedb.org/movie/${movie.tmdbID}`
                                 : `https://www.google.com/search?q=${encodeURIComponent(movie.Title + " " + (movie.Type || "movie"))}`
                     } 
-                    className="flex w-full text-[.82rem] sm:text-sm font-semibold !line-clamp-2 tracking-wider text-gray-900 hover:text-blue-600 transition-colors" 
+                    className="flex w-full text-[.82rem] sm:text-sm font-semibold !line-clamp-2 tracking-wider text-gray-900 hover:text-blue-600 transition-colors flex-grow" 
                     target="_blank" 
                     rel="noopener noreferrer"
                 >
@@ -689,12 +769,12 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                 
                 {/* Show watch date for watched movies */}
                 {movie.watchedDate && cardType === 'watched' && (
-                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <div className="text-xs text-gray-500 mt-auto pt-2 flex items-center gap-1">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                          <span>
-                             Watched <span className="text-[10px]">
+                             <span className="hidden md:inline"> </span><span className="text-[10px]">
                              {(() => {
                                  const watchDate = new Date(movie.watchedDate);
                                  // Format date as DD/MM/YYYY

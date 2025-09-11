@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import MovieCard from './MovieCard';
+import ConfirmationModal from './ConfirmationModal';
 
 export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSavedMovies, onSearchStateChange }) {
     const { showSuccess, showError, showInfo } = useToast();
@@ -52,6 +53,16 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
 
     // Create a Set of watched movie IDs for O(1) lookup
     const [wishlistMovies, setWishlistMovies] = useState(new Set());
+
+    // Modal state for confirmation
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmModalData, setConfirmModalData] = useState({
+        movie: null,
+        newStatus: null,
+        existingStatus: null,
+        watchedDate: null
+    });
+    const [isMovingMovie, setIsMovingMovie] = useState(false);
 
     // Notify parent about search state changes
     useEffect(() => {
@@ -305,15 +316,18 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             );
 
             if (existingMovie && existingMovie.status !== status) {
-                // Movie exists in a different status, ask user if they want to move it
+                // Movie exists in a different status, show modal to ask user if they want to move it
                 const existingStatusText = existingMovie.status === 'currently_watching' ? 'watching' : existingMovie.status;
                 const newStatusText = status === 'currently_watching' ? 'watching' : status;
-                const confirmMove = window.confirm(
-                    `"${movie.Title}" is already in your ${existingStatusText} list. Do you want to move it to ${newStatusText}?`
-                );
-                if (!confirmMove) {
-                    return;
-                }
+                
+                setConfirmModalData({
+                    movie: movie,
+                    newStatus: status,
+                    existingStatus: existingMovie.status,
+                    watchedDate: watchedDate
+                });
+                setShowConfirmModal(true);
+                return;
             } else if (existingMovie && existingMovie.status === status) {
                 const statusText = status === 'currently_watching' ? 'watching' : status;
                 showError(`"${movie.Title}" is already in your ${statusText} list!`);
@@ -381,36 +395,14 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 throw new Error('Movie not found in database');
             }
 
-            // Delete the movie from user_movies using the correct movie_id (primary key)
-            const { error: deleteError } = await supabase
-                .from('user_movies')
-                .delete()
-                .eq('user_id', sessionData.session.user.id)
-                .eq('movie_id', movieData.id)
-                .eq('status', 'watched');
+            // Use the API endpoint to delete the movie (this will also update the counter)
+            const response = await fetch(`/api/movies?userId=${sessionData.session.user.id}&movieId=${movieData.id}`, {
+                method: 'DELETE'
+            });
 
-            if (deleteError) {
-                throw deleteError;
-            }
-
-            // Update saved_movies count in profiles table
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('saved_movies')
-                .eq('id', sessionData.session.user.id)
-                .single();
-
-            if (profile !== null) {
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({
-                        saved_movies: Math.max(0, (profile.saved_movies || 0) - 1)
-                    })
-                    .eq('id', sessionData.session.user.id);
-
-                if (updateError) {
-                    console.error('Error updating saved_movies count:', updateError);
-                }
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to remove movie: ${response.status} - ${errorText}`);
             }
 
             // Update the watchedMovies set
@@ -440,6 +432,72 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
         }
     };
 
+    // Handle modal confirmation
+    const handleConfirmMove = async () => {
+        setIsMovingMovie(true);
+        try {
+            const { movie, newStatus, watchedDate } = confirmModalData;
+            await performMovieOperation(movie, newStatus, watchedDate);
+        } catch (error) {
+            console.error('Error moving movie:', error);
+            showError('Failed to move movie. Please try again.');
+        } finally {
+            setIsMovingMovie(false);
+            setShowConfirmModal(false);
+            setConfirmModalData({
+                movie: null,
+                newStatus: null,
+                existingStatus: null,
+                watchedDate: null
+            });
+        }
+    };
+
+    // Handle modal cancellation
+    const handleCancelMove = () => {
+        setShowConfirmModal(false);
+        setConfirmModalData({
+            movie: null,
+            newStatus: null,
+            existingStatus: null,
+            watchedDate: null
+        });
+    };
+
+    // Perform the actual movie operation (extracted from addMovieToList)
+    const performMovieOperation = async (movie, status, watchedDate = null) => {
+        // Use the API endpoint for all statuses including watching (now that we use user_movies table)
+        const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: (await validateSession()).user.id,
+                    userEmail: (await validateSession()).user.email,
+                    movieData: movie,
+                    status: status,
+                    watchedDate: watchedDate
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to add movie: ${response.status} - ${errorText}`);
+            }
+
+        // Success! Refresh the saved movies list to get the updated state
+        if (fetchSavedMovies) {
+            await fetchSavedMovies();
+        }
+
+        // Show appropriate success message
+        let actionText = status === 'currently_watching' ? 'Added to watching list' : 
+                       status === 'watched' ? 'Added to watched list' : 
+                       'Added to watchlist';
+        showSuccess(`${actionText}: "${movie.Title}"!`);
+    };
+
     // Toggle wishlist status
     const toggleWishlistStatus = async (movie) => {
         const movieId = movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID;
@@ -454,14 +512,47 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             }
 
             if (isInWishlist) {
-                // Update local state optimistically
+                // Update local state optimistically for immediate UI feedback
                 setWishlistMovies(prev => {
                     const newSet = new Set(prev);
                     newSet.delete(movieId);
                     return newSet;
                 });
 
-                // Update parent state optimistically
+                // First, find the movie in the movies table to get the correct movie_id
+                const { data: movieData, error: findError } = await supabase
+                    .from('movies')
+                    .select('id')
+                    .eq('movie_id', movieId)
+                    .single();
+
+                if (findError || !movieData) {
+                    // Revert optimistic update on error
+                    setWishlistMovies(prev => {
+                        const newSet = new Set(prev);
+                        newSet.add(movieId);
+                        return newSet;
+                    });
+                    throw new Error('Movie not found in database');
+                }
+
+                // Use the API endpoint to delete the movie (this will also update the counter)
+                const response = await fetch(`/api/movies?userId=${sessionData.session.user.id}&movieId=${movieData.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    // Revert optimistic update on error
+                    setWishlistMovies(prev => {
+                        const newSet = new Set(prev);
+                        newSet.add(movieId);
+                        return newSet;
+                    });
+                    const errorText = await response.text();
+                    throw new Error(`Failed to remove movie: ${response.status} - ${errorText}`);
+                }
+
+                // Update parent state after successful database operation
                 if (setSavedMovies) {
                     setSavedMovies(prevMovies => 
                         prevMovies.filter(movie => 
@@ -470,47 +561,28 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                     );
                 }
 
-                // Remove from database
-                const { error: deleteError } = await supabase
-                    .from('user_movies')
-                    .delete()
-                    .eq('user_id', sessionData.session.user.id)
-                    .eq('movie_imdb_id', movieId)
-                    .eq('status', 'wishlist');
-
-                if (deleteError) {
-                    throw deleteError;
-                }
-
                 showSuccess(`"${movie.Title}" removed from your watchlist!`);
             } else {
-                // Update local state optimistically first
+                // Update local state optimistically for immediate UI feedback
                 setWishlistMovies(prev => {
                     const newSet = new Set(prev);
                     newSet.add(movieId);
                     return newSet;
                 });
 
-                // Update parent state optimistically
-                if (setSavedMovies) {
-                    const newWatchlistMovie = {
-                        id: Date.now(), // Temporary ID
-                        status: 'wishlist',
-                        movies: {
-                            id: Date.now(), // Temporary ID
-                            movie_id: movieId,
-                            title: movie.Title,
-                            poster: movie.Poster,
-                            year: movie.Year,
-                            rating: movie.imdbRating,
-                            rating_source: movie.ratingSource
-                        }
-                    };
-                    setSavedMovies(prevMovies => [...prevMovies, newWatchlistMovie]);
+                try {
+                    // Add to database
+                    await addMovieToList(movie, 'wishlist');
+                    // Note: addMovieToList already handles parent state updates and success messages
+                } catch (error) {
+                    // Revert optimistic update on error
+                    setWishlistMovies(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(movieId);
+                        return newSet;
+                    });
+                    throw error;
                 }
-
-                // Add to database
-                await addMovieToList(movie, 'wishlist');
             }
             
             // Call the callback to refresh the parent's savedMovies list
@@ -689,6 +761,23 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                     )}
                 </div>
             )}
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={showConfirmModal}
+                onClose={handleCancelMove}
+                onConfirm={handleConfirmMove}
+                title="Move Movie"
+                message={
+                    confirmModalData.movie 
+                        ? `"${confirmModalData.movie.Title}" is already in your ${confirmModalData.existingStatus === 'currently_watching' ? 'watching' : confirmModalData.existingStatus} list. Do you want to move it to ${confirmModalData.newStatus === 'currently_watching' ? 'watching' : confirmModalData.newStatus}?`
+                        : ''
+                }
+                confirmText="Yes, Move It"
+                cancelText="Cancel"
+                confirmButtonClass="bg-blue-600 hover:bg-blue-700"
+                isLoading={isMovingMovie}
+            />
         </div>
     );
 }
