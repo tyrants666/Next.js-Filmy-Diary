@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from "next/image";
 
 import MovieSearch from './components/MovieSearch';
 import MovieCard from './components/MovieCard';
+import GoogleLoginButton from './components/GoogleLoginButton';
 import { useRouter } from 'next/navigation'
 import { useAuth } from './context/AuthContext'
 import { useToast } from './context/ToastContext'
@@ -32,19 +33,19 @@ export default function Home() {
     const STALE_WHILE_REVALIDATE_DURATION = 10 * 60 * 1000; // 10 minutes stale-while-revalidate
 
     // Check if data is fresh (within cache duration)
-    const isDataFresh = () => {
+    const isDataFresh = useCallback(() => {
         if (!lastFetchTime) return false;
         return Date.now() - lastFetchTime < CACHE_DURATION;
-    };
+    }, [lastFetchTime, CACHE_DURATION]);
 
     // Check if data is stale but acceptable (stale-while-revalidate)
-    const isDataStale = () => {
+    const isDataStale = useCallback(() => {
         if (!lastFetchTime) return true;
         return Date.now() - lastFetchTime > STALE_WHILE_REVALIDATE_DURATION;
-    };
+    }, [lastFetchTime, STALE_WHILE_REVALIDATE_DURATION]);
 
     // Smart fetch with caching - like Netflix, YouTube, etc.
-    const fetchSavedMovies = async (forceRefresh = false, showLoading = true) => {
+    const fetchSavedMovies = useCallback(async (forceRefresh = false, showLoading = true) => {
         if (!user) return;
         
         // If data is fresh and not forcing refresh, skip API call
@@ -131,7 +132,7 @@ export default function Home() {
         } finally {
             setLoadingSavedMovies(false);
         }
-    };
+    }, [user, isDataFresh, isDataStale, isInitialLoad, showError]);
 
     // Remove movie from watched list
     const removeWatchedStatus = async (movieId) => {
@@ -701,13 +702,11 @@ export default function Home() {
 
     // Smart initial load and user change handling
     useEffect(() => {
-        if (!loading && !user) {
-            router.push('/login')
-        } else if (user && isInitialLoad) {
+        if (user && isInitialLoad) {
             // Only fetch on initial load or user change, not on every re-render
             fetchSavedMovies(false, true);
         }
-    }, [user, loading, router]);
+    }, [user, loading, router, isInitialLoad, fetchSavedMovies]);
 
 
     // Professional window focus management - like Gmail, Slack, etc.
@@ -739,7 +738,7 @@ export default function Home() {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('focus', handleFocus);
         };
-    }, [user]);
+    }, [user, isDataStale, fetchSavedMovies]);
 
     // Periodic session validation (every 5 minutes)
     useEffect(() => {
@@ -761,86 +760,93 @@ export default function Home() {
     }, [user, validateSession, router, showError]);
 
     if (loading) {
-        return <div className="min-h-screen flex flex-col items-center justify-center">
-            <Image 
-                src="/images/babu-rao-stickers.png" 
-                alt="Babu Rao" 
-                width={240} 
-                height={250} 
-                className='mb-2'
-                priority
-            />
-                <p className='text-center text-md px-4'>Please wait while Mr Babu Rao fixes his dhoti...
-                    <svg className="animate-spin h-4 w-4 inline-block text-white ms-2 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        return (
+            <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+                <Image 
+                    src="/images/babu-rao-stickers.png" 
+                    alt="Babu Rao" 
+                    width={240} 
+                    height={250} 
+                    className='mb-2'
+                    priority
+                />
+                <p className='text-center text-md px-4 text-gray-800'>Please wait while Mr Babu Rao fixes his dhoti...
+                    <svg className="animate-spin h-4 w-4 inline-block text-gray-600 ms-2 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                 </p>
-        </div>
+            </div>
+        );
     }
 
-    if (!user) {
-        return null
-    }
+    // Remove the authentication check - allow all users to see the page
 
     return (
         <div className="min-h-screen flex flex-col bg-white">
 
             <div className='container mx-auto text-black'>
                 <header className="py-4 m-4 mb-0 rounded-xl text-center flex justify-between items-center">
-                    {/* <h1 className="text-2xl font-bold">Filmy Diary</h1> */}
                     <Image
                         src="/images/logo.png"
-                        alt="Pokemon"
+                        alt="Filmy Diary Logo"
                         width={100}
                         height={100}
                         priority
                     />
                     <div className="flex items-center gap-2 sm:gap-4">
-                        <span className="hidden sm:block">{user.user_metadata?.name?.split(' ')[0] || user.email}</span>
-                        <button 
-                            onClick={() => router.push('/settings')}
-                            className="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-black transition-colors"
-                            title="Settings"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            </svg>
-                        </button>
-                        <button 
-                            onClick={async () => {
-                                if (isSigningOut) return; // Prevent double clicks
-                                
-                                setIsSigningOut(true);
-                                try {
-                                    await signOut();
-                                } catch (error) {
-                                    console.error('Sign out button error:', error);
-                                    // Force redirect even if signOut fails
-                                    window.location.href = '/login';
-                                } finally {
-                                    setIsSigningOut(false);
-                                }
-                            }} 
-                            disabled={isSigningOut}
-                            className={`p-2 rounded-lg transition-colors ${
-                                isSigningOut 
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                                    : 'bg-gray-200 hover:bg-gray-300 text-black'
-                            }`}
-                            title={isSigningOut ? 'Signing Out...' : 'Sign Out'}
-                        >
-                            {isSigningOut ? (
-                                <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                </svg>
-                            ) : (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                                </svg>
-                            )}
-                        </button>
+                        {user ? (
+                            // Authenticated user header
+                            <>
+                                <span className="hidden sm:block">{user.user_metadata?.name?.split(' ')[0] || user.email}</span>
+                                <button 
+                                    onClick={() => router.push('/settings')}
+                                    className="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-black transition-colors"
+                                    title="Settings"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                </button>
+                                <button 
+                                    onClick={async () => {
+                                        if (isSigningOut) return; // Prevent double clicks
+                                        
+                                        setIsSigningOut(true);
+                                        try {
+                                            await signOut();
+                                        } catch (error) {
+                                            console.error('Sign out button error:', error);
+                                            // Force redirect even if signOut fails
+                                            window.location.reload();
+                                        } finally {
+                                            setIsSigningOut(false);
+                                        }
+                                    }} 
+                                    disabled={isSigningOut}
+                                    className={`p-2 rounded-lg transition-colors ${
+                                        isSigningOut 
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                            : 'bg-gray-200 hover:bg-gray-300 text-black'
+                                    }`}
+                                    title={isSigningOut ? 'Signing Out...' : 'Sign Out'}
+                                >
+                                    {isSigningOut ? (
+                                        <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                        </svg>
+                                    )}
+                                </button>
+                            </>
+                        ) : (
+                            // Non-authenticated user header - Google Login button
+                            <GoogleLoginButton />
+                        )}
                     </div>
                 </header>
                 <main className="flex-grow p-4">
@@ -850,15 +856,17 @@ export default function Home() {
                         fetchSavedMovies={() => fetchSavedMovies(true, false)}
                         setSavedMovies={setSavedMovies}
                         onSearchStateChange={handleSearchStateChange}
+                        user={user}
                     />
                     
                     {/* ======================================== Saved movies section ======================================== */}
                     {/* ======================================== Saved movies section ======================================== */}
                     
-                    
-                    {loadingSavedMovies ? (
-                        <p className="text-center mt-8">Loading your saved movies...</p>
-                    ) : (savedMovies && savedMovies.length > 0) ? (
+                    {user && (
+                        <>
+                            {loadingSavedMovies ? (
+                                <p className="text-center mt-8">Loading your saved movies...</p>
+                            ) : (savedMovies && savedMovies.length > 0) ? (
                         <div className="mt-8">
                             
                             {/* Currently watching movies - First */}
@@ -974,8 +982,53 @@ export default function Home() {
                                     </div>
                                 </div>
                             )}
-                        </div>
-                    ) : !isSearchActive ? (
+                            </div>
+                            ) : !isSearchActive ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    {/* Cute movie character SVG */}
+                                    <div className="mb-6">
+                                        <svg width="120" height="120" viewBox="0 0 200 200" className="text-gray-400">
+                                            {/* Movie reel body */}
+                                            <circle cx="100" cy="100" r="80" fill="currentColor" opacity="0.1" stroke="currentColor" strokeWidth="2"/>
+                                            <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                            <circle cx="100" cy="100" r="40" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                            <circle cx="100" cy="100" r="20" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                            
+                                            {/* Film holes */}
+                                            <circle cx="70" cy="70" r="4" fill="currentColor"/>
+                                            <circle cx="130" cy="70" r="4" fill="currentColor"/>
+                                            <circle cx="70" cy="130" r="4" fill="currentColor"/>
+                                            <circle cx="130" cy="130" r="4" fill="currentColor"/>
+                                            <circle cx="100" cy="60" r="4" fill="currentColor"/>
+                                            <circle cx="100" cy="140" r="4" fill="currentColor"/>
+                                            <circle cx="60" cy="100" r="4" fill="currentColor"/>
+                                            <circle cx="140" cy="100" r="4" fill="currentColor"/>
+                                            
+                                            {/* Cute face */}
+                                            <circle cx="85" cy="85" r="3" fill="currentColor"/> {/* Left eye */}
+                                            <circle cx="115" cy="85" r="3" fill="currentColor"/> {/* Right eye */}
+                                            <path d="M 90 110 Q 100 120 110 110" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/> {/* Smile */}
+                                            
+                                            {/* Film strip coming out */}
+                                            <rect x="180" y="95" width="15" height="10" fill="currentColor" opacity="0.3"/>
+                                            <rect x="185" y="90" width="5" height="20" fill="currentColor" opacity="0.5"/>
+                                            <rect x="190" y="85" width="8" height="30" fill="currentColor" opacity="0.3"/>
+                                        </svg>
+                                    </div>
+                                    
+                                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                                        Ready to discover movies?
+                                    </h3>
+                                    <p className="text-gray-500 max-w-md">
+                                        Search for your favorite movies and TV series and start building your personal entertainment diary!
+                                    </p>
+                                </div>
+                            ) : null}
+                        </>
+                    )}
+                    
+                    {/* Show welcome message for non-authenticated users when not searching */}
+                    {!user && !isSearchActive && (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                             {/* Cute movie character SVG */}
                             <div className="mb-6">
@@ -1009,13 +1062,14 @@ export default function Home() {
                             </div>
                             
                             <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                Ready to discover movies?
+                                Welcome to Filmy Diary!
                             </h3>
-                            <p className="text-gray-500 max-w-md">
-                                Search for your favorite movies and TV series and start building your personal entertainment diary!
+                            <p className="text-gray-500 max-w-md mb-4">
+                                Search for your favorite movies and TV series. Sign in with Google to add them to your personal watchlist and track what you&apos;ve watched!
                             </p>
+                            <GoogleLoginButton />
                         </div>
-                    ) : null}
+                    )}
                 </main>
             </div>
 

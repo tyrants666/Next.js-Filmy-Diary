@@ -321,8 +321,8 @@ export function AuthProvider({ children }) {
       
       console.log('Complete logout cleanup finished');
       
-      // Force a complete page reload to ensure clean state
-      window.location.replace('/login');
+      // Reload the page to show the logged-out state
+      window.location.reload();
       
     } catch (error) {
       console.error('Unexpected error during sign out:', error);
@@ -333,7 +333,77 @@ export function AuthProvider({ children }) {
         localStorage.clear();
         sessionStorage.clear();
       }
-      window.location.replace('/login');
+      window.location.reload();
+    }
+  };
+
+  // Google login function with popup
+  const signInWithGoogle = async () => {
+    try {
+      console.log('Starting Google login with popup...');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+          // Force account selection
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline'
+          },
+          // Skip browser redirect to handle popup manually
+          skipBrowserRedirect: true,
+        },
+      })
+      
+      if (error) {
+        console.error('OAuth error:', error);
+        throw error;
+      }
+      
+      if (data?.url) {
+        // Open popup window
+        const popup = window.open(
+          data.url,
+          'google-oauth',
+          'width=500,height=600,scrollbars=yes,resizable=yes'
+        );
+        
+        // Listen for popup to close or receive message
+        return new Promise((resolve, reject) => {
+          const checkClosed = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(checkClosed);
+              // Check if authentication was successful by getting session
+              supabase.auth.getSession().then(({ data: { session }, error }) => {
+                if (error) {
+                  reject(error);
+                } else if (session) {
+                  console.log('Google OAuth completed successfully');
+                  resolve(session);
+                } else {
+                  reject(new Error('Authentication was cancelled or failed'));
+                }
+              });
+            }
+          }, 1000);
+          
+          // Timeout after 5 minutes
+          setTimeout(() => {
+            clearInterval(checkClosed);
+            if (!popup.closed) {
+              popup.close();
+            }
+            reject(new Error('Authentication timeout'));
+          }, 300000);
+        });
+      } else {
+        throw new Error('No OAuth URL received');
+      }
+      
+    } catch (error) {
+      console.error('Error logging in with Google:', error.message);
+      throw error;
     }
   };
 
@@ -343,6 +413,7 @@ export function AuthProvider({ children }) {
     validateSession,
     withSessionValidation,
     signOut,
+    signInWithGoogle,
   }
 
   return (

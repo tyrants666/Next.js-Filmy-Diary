@@ -6,8 +6,9 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import MovieCard from './MovieCard';
 import ConfirmationModal from './ConfirmationModal';
+import LoginModal from './LoginModal';
 
-export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSavedMovies, onSearchStateChange }) {
+export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSavedMovies, onSearchStateChange, user }) {
     const { showSuccess, showError, showInfo } = useToast();
     const { validateSession } = useAuth();
 
@@ -63,6 +64,10 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
         watchedDate: null
     });
     const [isMovingMovie, setIsMovingMovie] = useState(false);
+
+    // Login modal state
+    const [showLoginModal, setShowLoginModal] = useState(false);
+    const [loginModalMovieTitle, setLoginModalMovieTitle] = useState('');
 
     // Notify parent about search state changes
     useEffect(() => {
@@ -295,6 +300,34 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
 
 
     
+    // Wrapper functions that check authentication first
+    const handleAddToWatchlist = (movie) => {
+        if (!user) {
+            setLoginModalMovieTitle(movie.Title);
+            setShowLoginModal(true);
+            return;
+        }
+        toggleWishlistStatus(movie);
+    };
+
+    const handleAddToWatching = (movie) => {
+        if (!user) {
+            setLoginModalMovieTitle(movie.Title);
+            setShowLoginModal(true);
+            return;
+        }
+        addMovieToList(movie, 'currently_watching');
+    };
+
+    const handleAddToWatched = (movie, watchedDate) => {
+        if (!user) {
+            setLoginModalMovieTitle(movie.Title);
+            setShowLoginModal(true);
+            return;
+        }
+        addMovieToList(movie, 'watched', watchedDate);
+    };
+
     // Add movie to user's list
     const addMovieToList = async (movie, status, watchedDate = null) => {
         try {
@@ -303,9 +336,6 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             
             if (!session) {
                 showError('Your session has expired. Please log in again.');
-                setTimeout(() => {
-                    window.location.href = '/login';
-                }, 2000);
                 return;
             }
 
@@ -737,9 +767,9 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                                 movie={movie}
                                 onHover={() => null}
                                 onLeave={() => null}
-                                onClickWatched={(watchedDate) => addMovieToList(movie, 'watched', watchedDate)}
-                                onClickWatching={() => addMovieToList(movie, 'currently_watching')}
-                                onClickWishlist={() => toggleWishlistStatus(movie)}
+                                onClickWatched={(watchedDate) => handleAddToWatched(movie, watchedDate)}
+                                onClickWatching={() => handleAddToWatching(movie)}
+                                onClickWishlist={() => handleAddToWatchlist(movie)}
                                 onRemoveWatched={() => removeWatchedStatus(movie)}
                                 watched={watchedMovies.has(movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)}
                                 wishlist={wishlistMovies.has(movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)}
@@ -777,6 +807,13 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 cancelText="Cancel"
                 confirmButtonClass="bg-blue-600 hover:bg-blue-700"
                 isLoading={isMovingMovie}
+            />
+
+            {/* Login Modal */}
+            <LoginModal
+                isOpen={showLoginModal}
+                onClose={() => setShowLoginModal(false)}
+                movieTitle={loginModalMovieTitle}
             />
         </div>
     );
