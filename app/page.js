@@ -864,7 +864,7 @@ export default function Home() {
                             {savedMovies.some(item => item.status === 'currently_watching') && (
                                 <div className="mb-6">
                                     <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-orange-500">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-red-500">
                                             <polygon points="5,3 19,12 5,21"></polygon>
                                         </svg>
                                         Currently Watching
