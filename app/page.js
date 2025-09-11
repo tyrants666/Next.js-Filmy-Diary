@@ -494,6 +494,98 @@ export default function Home() {
         }
     };
 
+    // Move movie from watching to wishlist
+    const moveWatchingToWishlist = async (movieId, movieData) => {
+        try {
+            // Validate session first
+            const session = await validateSession();
+            
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                setTimeout(() => router.push('/login'), 2000);
+                return;
+            }
+
+            console.log('Moving watching to wishlist using API, movieId:', movieId);
+
+            // Use the API endpoint to ensure consistency
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: session.user.id,
+                    userEmail: session.user.email,
+                    movieData: movieData,
+                    status: 'wishlist'
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Failed to move to wishlist: ${response.status} - ${JSON.stringify(errorData)}`);
+            }
+
+            // Counter is now handled by the API - no need to manually update it here
+            // Only update UI after successful API operation
+            await fetchSavedMovies(true, false);
+
+            showSuccess(`"${movieData.Title}" moved to watchlist!`);
+            console.log('Successfully moved watching to wishlist');
+            
+        } catch (error) {
+            console.error('Error moving movie to wishlist:', error);
+            showError('Failed to move movie to wishlist. Please try again.');
+        }
+    };
+
+    // Move movie from wishlist to watching
+    const moveWishlistToWatching = async (movieId, movieData) => {
+        try {
+            // Validate session first
+            const session = await validateSession();
+            
+            if (!session) {
+                showError('Your session has expired. Please log in again.');
+                setTimeout(() => router.push('/login'), 2000);
+                return;
+            }
+
+            console.log('Moving wishlist to watching using API, movieId:', movieId);
+
+            // Use the API endpoint to ensure consistency
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: session.user.id,
+                    userEmail: session.user.email,
+                    movieData: movieData,
+                    status: 'currently_watching'
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Failed to move to watching: ${response.status} - ${JSON.stringify(errorData)}`);
+            }
+
+            // Counter is now handled by the API - no need to manually update it here
+            // Only update UI after successful API operation
+            await fetchSavedMovies(true, false);
+
+            showSuccess(`"${movieData.Title}" moved to currently watching!`);
+            console.log('Successfully moved wishlist to watching');
+            
+        } catch (error) {
+            console.error('Error moving movie to watching:', error);
+            showError('Failed to move movie to watching. Please try again.');
+        }
+    };
+
     // Transform saved movie data to match MovieCard expected format
     const transformSavedMovieToCardFormat = (savedMovie) => {
         const movieId = savedMovie.movies.movie_id;
@@ -702,6 +794,7 @@ export default function Home() {
                                                     onLeave={() => null}
                                                     onClickWatched={(watchedDate) => moveWatchingToWatched(item.movies.id, transformSavedMovieToCardFormat(item), watchedDate)}
                                                     onClickWatching={() => removeWatchingStatus(item.movies.id)}
+                                                    onClickWishlist={() => moveWatchingToWishlist(item.movies.id, transformSavedMovieToCardFormat(item))}
                                                     onRemoveWatched={() => null}
                                                     watched={false}
                                                     cardType="watching"
@@ -738,7 +831,7 @@ export default function Home() {
                                                     onHover={() => null}
                                                     onLeave={() => null}
                                                     onClickWatched={(watchedDate) => moveWishlistToWatched(item.movies.id, transformSavedMovieToCardFormat(item), watchedDate)}
-                                                    onClickWatching={() => null}
+                                                    onClickWatching={() => moveWishlistToWatching(item.movies.id, transformSavedMovieToCardFormat(item))}
                                                     onClickWishlist={() => toggleWishlistStatus(transformSavedMovieToCardFormat(item))}
                                                     onRemoveWatched={() => null}
                                                     watched={false}

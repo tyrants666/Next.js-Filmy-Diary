@@ -505,6 +505,27 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                     )}
                                 </button>
                                 <button
+                                    onClick={handleWishlistClick}
+                                    disabled={isWishlistLoading}
+                                    className="bg-purple-700/90 hover:bg-purple-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                >
+                                    {isWishlistLoading ? (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                            </svg>
+                                            Moving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+                                            </svg>
+                                            Watchlist
+                                        </>
+                                    )}
+                                </button>
+                                <button
                                     onClick={handleRemoveWatching}
                                     disabled={isWatchingLoading}
                                                 className="bg-red-700/90 hover:bg-red-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
@@ -630,6 +651,27 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                                 <polyline points="20,6 9,17 4,12"></polyline>
                                             </svg>
                                             Watched
+                                        </>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={handleWatchingClick}
+                                    disabled={isWatchingLoading}
+                                    className="bg-indigo-700/90 hover:bg-indigo-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
+                                >
+                                    {isWatchingLoading ? (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                            </svg>
+                                            Moving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <polygon points="5,3 19,12 5,21"></polygon>
+                                            </svg>
+                                            Watching
                                         </>
                                     )}
                                 </button>
