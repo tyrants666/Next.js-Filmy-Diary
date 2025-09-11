@@ -860,7 +860,6 @@ export default function Home() {
                         <p className="text-center mt-8">Loading your saved movies...</p>
                     ) : (savedMovies && savedMovies.length > 0) ? (
                         <div className="mt-8">
-                            <h2 className="text-xl font-bold mb-4">Your Collections</h2>
                             
                             {/* Currently watching movies - First */}
                             {savedMovies.some(item => item.status === 'currently_watching') && (
