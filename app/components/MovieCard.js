@@ -745,8 +745,8 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                 </div>
             </a>
 
-            <div className="px-2 pb-2 flex w-full flex-col gap-1">
-                <div className="flex text-xs text-gray-700 font-medium justify-between">
+            <div className="px-2 pb-2 flex w-full flex-col h-full">
+                <div className="flex text-xs text-gray-700 font-medium justify-between mb-1">
                     <span className="uppercase bg-gray-100 py-0.5 rounded-full">{movie.Type}</span>
                     <span className="bg-gray-100 px-2 py-0.5 rounded-full">{movie.Year.replace(/\D/g, '')}</span>
                 </div>
@@ -760,7 +760,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                     : `https://www.themoviedb.org/movie/${movie.tmdbID}`
                                 : `https://www.google.com/search?q=${encodeURIComponent(movie.Title + " " + (movie.Type || "movie"))}`
                     } 
-                    className="flex w-full text-[.82rem] sm:text-sm font-semibold !line-clamp-2 tracking-wider text-gray-900 hover:text-blue-600 transition-colors" 
+                    className="flex w-full text-[.82rem] sm:text-sm font-semibold !line-clamp-2 tracking-wider text-gray-900 hover:text-blue-600 transition-colors flex-grow" 
                     target="_blank" 
                     rel="noopener noreferrer"
                 >
@@ -769,7 +769,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                 
                 {/* Show watch date for watched movies */}
                 {movie.watchedDate && cardType === 'watched' && (
-                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <div className="text-xs text-gray-500 mt-auto pt-2 flex items-center gap-1">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
