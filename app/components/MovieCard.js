@@ -218,16 +218,12 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
     const handleWishlistClick = async () => {
         setIsWishlistLoading(true);
         setOperationError(false);
-        const originalWishlistState = isWishlist;
         
         try {
             await onClickWishlist();
-            // Toggle wishlist state optimistically
-            setIsWishlist(!originalWishlistState);
+            // Parent component handles all state updates
         } catch (error) {
             console.error('Failed to toggle wishlist:', error);
-            // Restore the original state if operation fails
-            setIsWishlist(originalWishlistState);
             setOperationError(true);
             // Clear error after 3 seconds
             setTimeout(() => setOperationError(false), 3000);

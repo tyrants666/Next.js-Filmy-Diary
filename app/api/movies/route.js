@@ -140,6 +140,16 @@ export async function POST(request) {
             upsertData.watched_date = new Date().toISOString()
         }
 
+        // Check if this is a new movie for the user (for counter update)
+        const { data: existingUserMovie } = await supabase
+            .from('user_movies')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('movie_id', movieId)
+            .single()
+
+        const isNewMovie = !existingUserMovie;
+
         // Upsert to user_movies (this will update status if movie already exists for user)
         const { data: userMovie, error: userMovieError } = await supabase
             .from('user_movies')
@@ -149,6 +159,28 @@ export async function POST(request) {
 
         if (userMovieError) {
             return NextResponse.json({ error: userMovieError.message }, { status: 500 })
+        }
+
+        // Update saved_movies count in profiles table only if this is a new movie
+        if (isNewMovie) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('saved_movies')
+                .eq('id', userId)
+                .single();
+
+            if (profile !== null) {
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({
+                        saved_movies: (profile.saved_movies || 0) + 1
+                    })
+                    .eq('id', userId);
+
+                if (updateError) {
+                    console.error('Error updating saved_movies count:', updateError);
+                }
+            }
         }
 
         return NextResponse.json({ success: true, data: userMovie })
@@ -177,6 +209,26 @@ export async function DELETE(request) {
 
         if (deleteError) {
             return NextResponse.json({ error: deleteError.message }, { status: 500 })
+        }
+
+        // Update saved_movies count in profiles table
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('saved_movies')
+            .eq('id', userId)
+            .single();
+
+        if (profile !== null) {
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({
+                    saved_movies: Math.max(0, (profile.saved_movies || 0) - 1)
+                })
+                .eq('id', userId);
+
+            if (updateError) {
+                console.error('Error updating saved_movies count:', updateError);
+            }
         }
 
         return NextResponse.json({ success: true })

@@ -395,36 +395,14 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 throw new Error('Movie not found in database');
             }
 
-            // Delete the movie from user_movies using the correct movie_id (primary key)
-            const { error: deleteError } = await supabase
-                .from('user_movies')
-                .delete()
-                .eq('user_id', sessionData.session.user.id)
-                .eq('movie_id', movieData.id)
-                .eq('status', 'watched');
+            // Use the API endpoint to delete the movie (this will also update the counter)
+            const response = await fetch(`/api/movies?userId=${sessionData.session.user.id}&movieId=${movieData.id}`, {
+                method: 'DELETE'
+            });
 
-            if (deleteError) {
-                throw deleteError;
-            }
-
-            // Update saved_movies count in profiles table
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('saved_movies')
-                .eq('id', sessionData.session.user.id)
-                .single();
-
-            if (profile !== null) {
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({
-                        saved_movies: Math.max(0, (profile.saved_movies || 0) - 1)
-                    })
-                    .eq('id', sessionData.session.user.id);
-
-                if (updateError) {
-                    console.error('Error updating saved_movies count:', updateError);
-                }
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to remove movie: ${response.status} - ${errorText}`);
             }
 
             // Update the watchedMovies set
@@ -534,14 +512,47 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             }
 
             if (isInWishlist) {
-                // Update local state optimistically
+                // Update local state optimistically for immediate UI feedback
                 setWishlistMovies(prev => {
                     const newSet = new Set(prev);
                     newSet.delete(movieId);
                     return newSet;
                 });
 
-                // Update parent state optimistically
+                // First, find the movie in the movies table to get the correct movie_id
+                const { data: movieData, error: findError } = await supabase
+                    .from('movies')
+                    .select('id')
+                    .eq('movie_id', movieId)
+                    .single();
+
+                if (findError || !movieData) {
+                    // Revert optimistic update on error
+                    setWishlistMovies(prev => {
+                        const newSet = new Set(prev);
+                        newSet.add(movieId);
+                        return newSet;
+                    });
+                    throw new Error('Movie not found in database');
+                }
+
+                // Use the API endpoint to delete the movie (this will also update the counter)
+                const response = await fetch(`/api/movies?userId=${sessionData.session.user.id}&movieId=${movieData.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    // Revert optimistic update on error
+                    setWishlistMovies(prev => {
+                        const newSet = new Set(prev);
+                        newSet.add(movieId);
+                        return newSet;
+                    });
+                    const errorText = await response.text();
+                    throw new Error(`Failed to remove movie: ${response.status} - ${errorText}`);
+                }
+
+                // Update parent state after successful database operation
                 if (setSavedMovies) {
                     setSavedMovies(prevMovies => 
                         prevMovies.filter(movie => 
@@ -550,47 +561,28 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                     );
                 }
 
-                // Remove from database
-                const { error: deleteError } = await supabase
-                    .from('user_movies')
-                    .delete()
-                    .eq('user_id', sessionData.session.user.id)
-                    .eq('movie_imdb_id', movieId)
-                    .eq('status', 'wishlist');
-
-                if (deleteError) {
-                    throw deleteError;
-                }
-
                 showSuccess(`"${movie.Title}" removed from your watchlist!`);
             } else {
-                // Update local state optimistically first
+                // Update local state optimistically for immediate UI feedback
                 setWishlistMovies(prev => {
                     const newSet = new Set(prev);
                     newSet.add(movieId);
                     return newSet;
                 });
 
-                // Update parent state optimistically
-                if (setSavedMovies) {
-                    const newWatchlistMovie = {
-                        id: Date.now(), // Temporary ID
-                        status: 'wishlist',
-                        movies: {
-                            id: Date.now(), // Temporary ID
-                            movie_id: movieId,
-                            title: movie.Title,
-                            poster: movie.Poster,
-                            year: movie.Year,
-                            rating: movie.imdbRating,
-                            rating_source: movie.ratingSource
-                        }
-                    };
-                    setSavedMovies(prevMovies => [...prevMovies, newWatchlistMovie]);
+                try {
+                    // Add to database
+                    await addMovieToList(movie, 'wishlist');
+                    // Note: addMovieToList already handles parent state updates and success messages
+                } catch (error) {
+                    // Revert optimistic update on error
+                    setWishlistMovies(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(movieId);
+                        return newSet;
+                    });
+                    throw error;
                 }
-
-                // Add to database
-                await addMovieToList(movie, 'wishlist');
             }
             
             // Call the callback to refresh the parent's savedMovies list

@@ -143,42 +143,19 @@ export default function Home() {
                 return;
             }
 
-            console.log('Removing watched movie from database first, movieId:', movieId);
+            console.log('Removing watched movie via API, movieId:', movieId);
 
-            // Delete the movie from user_movies first - NO optimistic update
-            const { error: deleteError } = await supabase
-                .from('user_movies')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('movie_id', movieId)
-                .eq('status', 'watched');
+            // Use the API endpoint to delete the movie (this will also update the counter)
+            const response = await fetch(`/api/movies?userId=${user.id}&movieId=${movieId}`, {
+                method: 'DELETE'
+            });
 
-            if (deleteError) {
-                console.error('Delete error:', deleteError);
-                throw deleteError;
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to remove movie: ${response.status} - ${errorText}`);
             }
 
-            // Update saved_movies count in profiles table
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('saved_movies')
-                .eq('id', user.id)
-                .single();
-
-            if (profile !== null) {
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({
-                        saved_movies: Math.max(0, (profile.saved_movies || 0) - 1)
-                    })
-                    .eq('id', user.id);
-
-                if (updateError) {
-                    console.error('Error updating saved_movies count:', updateError);
-                }
-            }
-
-            // Only update UI after successful database operation
+            // Only update UI after successful API operation
             setSavedMovies(prevMovies => 
                 prevMovies.filter(movie => 
                     !(movie.status === 'watched' && movie.movies.id === movieId)
@@ -206,22 +183,19 @@ export default function Home() {
                 return;
             }
 
-            console.log('Removing watching movie from database first, movieId:', movieId);
+            console.log('Removing watching movie via API, movieId:', movieId);
 
-            // Delete the specific movie from user_movies table (watching status) - NO optimistic update
-            const { error: deleteError } = await supabase
-                .from('user_movies')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('movie_id', movieId)
-                .eq('status', 'currently_watching');
+            // Use the API endpoint to delete the movie (this will also update the counter)
+            const response = await fetch(`/api/movies?userId=${user.id}&movieId=${movieId}`, {
+                method: 'DELETE'
+            });
 
-            if (deleteError) {
-                console.error('Delete error:', deleteError);
-                throw deleteError;
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to remove movie: ${response.status} - ${errorText}`);
             }
 
-            // Only update UI after successful database operation
+            // Only update UI after successful API operation
             setSavedMovies(prevMovies => 
                 prevMovies.filter(movie => 
                     !(movie.status === 'currently_watching' && movie.movies.id === movieId)
