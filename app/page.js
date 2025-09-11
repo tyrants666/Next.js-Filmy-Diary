@@ -67,6 +67,8 @@ export default function Home() {
                     id,
                     status,
                     watched_date,
+                    updated_at,
+                    created_at,
                     movies (
                         id,
                         movie_id,
@@ -862,7 +864,7 @@ export default function Home() {
                             
                             {/* Currently watching movies - First */}
                             {savedMovies.some(item => item.status === 'currently_watching') && (
-                                <div className="mb-6">
+                                <div className="mb-10">
                                     <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-red-500">
                                             <polygon points="5,3 19,12 5,21"></polygon>
@@ -899,7 +901,7 @@ export default function Home() {
 
                             {/* Watchlist movies - Second */}
                             {savedMovies.some(item => item.status === 'wishlist') && (
-                                <div className="mb-6">
+                                <div className="mb-10">
                                     <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-purple-600">
                                             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
@@ -938,7 +940,7 @@ export default function Home() {
 
                             {/* Watched movies - Third */}
                             {savedMovies.some(item => item.status === 'watched') && (
-                                <div className="mb-6">
+                                <div className="mb-10">
                                      <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
                                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" className="text-green-600 font-bold">
                                              <polyline points="20,6 9,17 4,12"></polyline>
