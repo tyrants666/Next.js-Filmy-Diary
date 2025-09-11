@@ -345,7 +345,7 @@ export function AuthProvider({ children }) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/auth/callback`,
           // Force account selection
           queryParams: {
             prompt: 'select_account',
@@ -366,35 +366,70 @@ export function AuthProvider({ children }) {
         const popup = window.open(
           data.url,
           'google-oauth',
-          'width=500,height=600,scrollbars=yes,resizable=yes'
+          'width=500,height=600,scrollbars=yes,resizable=yes,left=' + 
+          (window.screen.width / 2 - 250) + ',top=' + (window.screen.height / 2 - 300)
         );
         
-        // Listen for popup to close or receive message
+        // Listen for messages from popup or popup close
         return new Promise((resolve, reject) => {
+          let resolved = false;
+          
+          // Listen for messages from the popup
+          const messageListener = (event) => {
+            if (event.origin !== window.location.origin) return;
+            
+            if (event.data.type === 'SUPABASE_AUTH_SUCCESS') {
+              resolved = true;
+              popup.close();
+              window.removeEventListener('message', messageListener);
+              console.log('Google OAuth completed successfully');
+              resolve(event.data.session);
+            } else if (event.data.type === 'SUPABASE_AUTH_ERROR') {
+              resolved = true;
+              popup.close();
+              window.removeEventListener('message', messageListener);
+              reject(new Error(event.data.error || 'Authentication failed'));
+            }
+          };
+          
+          window.addEventListener('message', messageListener);
+          
+          // Check if popup is closed
           const checkClosed = setInterval(() => {
-            if (popup.closed) {
+            if (popup.closed && !resolved) {
               clearInterval(checkClosed);
-              // Check if authentication was successful by getting session
-              supabase.auth.getSession().then(({ data: { session }, error }) => {
-                if (error) {
-                  reject(error);
-                } else if (session) {
-                  console.log('Google OAuth completed successfully');
-                  resolve(session);
-                } else {
+              window.removeEventListener('message', messageListener);
+              
+              // Give a small delay to check if we got a session
+              setTimeout(async () => {
+                try {
+                  const { data: { session }, error } = await supabase.auth.getSession();
+                  if (error) {
+                    reject(error);
+                  } else if (session) {
+                    console.log('Google OAuth completed successfully (detected via session check)');
+                    resolve(session);
+                  } else {
+                    reject(new Error('Authentication was cancelled or failed'));
+                  }
+                } catch (err) {
                   reject(new Error('Authentication was cancelled or failed'));
                 }
-              });
+              }, 1000);
             }
           }, 1000);
           
           // Timeout after 5 minutes
           setTimeout(() => {
-            clearInterval(checkClosed);
-            if (!popup.closed) {
-              popup.close();
+            if (!resolved) {
+              resolved = true;
+              clearInterval(checkClosed);
+              window.removeEventListener('message', messageListener);
+              if (!popup.closed) {
+                popup.close();
+              }
+              reject(new Error('Authentication timeout'));
             }
-            reject(new Error('Authentication timeout'));
           }, 300000);
         });
       } else {
