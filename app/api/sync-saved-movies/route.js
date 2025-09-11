@@ -43,7 +43,7 @@ export async function POST(request) {
         return NextResponse.json({ 
             success: true, 
             actualCount: actualCount,
-            message: `Synchronized saved_movies count to ${actualCount}` 
+            message: `Synchronized saved_movies count to ${actualCount} (includes all statuses: watched, wishlist, currently_watching)` 
         })
     } catch (error) {
         console.error('Sync API Error:', error)

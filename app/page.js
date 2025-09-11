@@ -247,27 +247,8 @@ export default function Home() {
                 throw new Error(`Failed to move to watched: ${response.status} - ${JSON.stringify(errorData)}`);
             }
 
-            // Update saved_movies count in profiles table
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('saved_movies')
-                .eq('id', user.id)
-                .single();
-
-            if (profile !== null) {
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({
-                        saved_movies: (profile.saved_movies || 0) + 1
-                    })
-                    .eq('id', user.id);
-
-                if (updateError) {
-                    console.error('Error updating saved_movies count:', updateError);
-                }
-            }
-
-            // Only update UI after all database operations succeed
+            // Counter is now handled by the API - no need to manually update it here
+            // Only update UI after successful API operation
             // Refresh data from database to get correct structure
             await fetchSavedMovies(true, false);
 
