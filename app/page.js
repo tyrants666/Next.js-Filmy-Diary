@@ -1059,6 +1059,14 @@ export default function Home() {
                                     <rect x="185" y="90" width="5" height="20" fill="currentColor" opacity="0.5"/>
                                     <rect x="190" y="85" width="8" height="30" fill="currentColor" opacity="0.3"/>
                                 </svg>
+                                {/* <Image
+                                    src="/images/search-monster.png"
+                                    alt="Search Monster"
+                                    width={120}
+                                    height={120}
+                                    className="mx-auto"
+                                    priority
+                                /> */}
                             </div>
                             
                             <h3 className="text-xl font-semibold text-gray-600 mb-2">
@@ -1075,7 +1083,8 @@ export default function Home() {
 
             <div className='text-center w-full flex justify-center pt-6' style={{ marginBottom: '-8px' }}>
                 <Image 
-                    src="/images/pokemon.gif" 
+                    src="/images/search-monster.png" 
+                    // src="/images/pokemon.gif" 
                     alt="Pokemon" 
                     width={100} 
                     height={100} 
