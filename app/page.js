@@ -1070,12 +1070,49 @@ export default function Home() {
                                 /> */}
                             </div>
                             
-                            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                            <h3 className="text-xl font-semibold text-gray-600 mb-4">
                                 Welcome to Filmy Diary!
                             </h3>
-                            <p className="text-gray-500 max-w-md mb-4">
-                                Search for your favorite movies and TV series. Sign in with Google to add them to your personal watchlist and track what you&apos;ve watched!
-                            </p>
+                            
+                            {/* Getting Started Instructions */}
+                            <div className="bg-gray-50 rounded-lg p-4 max-w-md mb-3 text-sm">
+                                <h4 className="font-medium text-gray-700 mb-3">How to get started:</h4>
+                                <div className="space-y-2 text-left">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></span>
+                                        <span className="text-gray-600">Search for your favorite movies and TV series</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></span>
+                                        <span className="text-gray-600">Sign in with Google to save them</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Movie Lists Instructions */}
+                            <div className="bg-gray-50 rounded-lg p-4 max-w-md mb-4 text-sm">
+                                <h4 className="font-medium text-gray-700 mb-3">How to use your movie lists:</h4>
+                                <div className="space-y-2 text-left">
+                                    <div className="flex items-center gap-2">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-purple-600 flex-shrink-0">
+                                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+                                        </svg>
+                                        <span className="text-gray-600">Add movies to <strong>Watchlist</strong> for later</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-red-500 flex-shrink-0">
+                                            <polygon points="5,3 19,12 5,21"></polygon>
+                                        </svg>
+                                        <span className="text-gray-600">Move to <strong>Currently Watching</strong> when you start</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-green-600 flex-shrink-0">
+                                            <polyline points="20,6 9,17 4,12"></polyline>
+                                        </svg>
+                                        <span className="text-gray-600">Mark as <strong>Watched</strong> when finished</span>
+                                    </div>
+                                </div>
+                            </div>
                             <GoogleLoginButton />
                         </div>
                     )}
