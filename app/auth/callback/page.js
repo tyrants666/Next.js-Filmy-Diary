@@ -7,43 +7,84 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // Get the session from the URL hash
-        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Auth callback page loaded');
         
-        if (error) {
-          console.error('Auth callback error:', error);
-          // Send error message to parent window
-          if (window.opener) {
+        // Check if this is a popup window
+        const isPopup = window.opener && window.opener !== window;
+        console.log('Is popup window:', isPopup);
+        
+        if (!isPopup) {
+          // If not a popup, redirect to home page
+          console.log('Not a popup, redirecting to home');
+          window.location.href = '/';
+          return;
+        }
+
+        // Handle OAuth callback from URL hash
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        
+        console.log('Hash params:', { 
+          hasAccessToken: !!accessToken, 
+          hasRefreshToken: !!refreshToken 
+        });
+
+        if (accessToken) {
+          // Set the session using the tokens from the URL
+          const { data: { session }, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error) {
+            console.error('Error setting session:', error);
             window.opener.postMessage({
               type: 'SUPABASE_AUTH_ERROR',
               error: error.message
             }, window.location.origin);
-          }
-          window.close();
-          return;
-        }
-
-        if (session) {
-          console.log('Auth callback successful:', session.user.email);
-          // Send success message to parent window
-          if (window.opener) {
+          } else if (session) {
+            console.log('Session set successfully:', session.user.email);
             window.opener.postMessage({
               type: 'SUPABASE_AUTH_SUCCESS',
               session: session
             }, window.location.origin);
-          }
-        } else {
-          // No session found, send error
-          if (window.opener) {
+          } else {
+            console.error('No session after setting tokens');
             window.opener.postMessage({
               type: 'SUPABASE_AUTH_ERROR',
-              error: 'No session found'
+              error: 'Failed to create session'
+            }, window.location.origin);
+          }
+        } else {
+          // Try to get existing session
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error('Auth callback error:', error);
+            window.opener.postMessage({
+              type: 'SUPABASE_AUTH_ERROR',
+              error: error.message
+            }, window.location.origin);
+          } else if (session) {
+            console.log('Existing session found:', session.user.email);
+            window.opener.postMessage({
+              type: 'SUPABASE_AUTH_SUCCESS',
+              session: session
+            }, window.location.origin);
+          } else {
+            console.error('No session or tokens found');
+            window.opener.postMessage({
+              type: 'SUPABASE_AUTH_ERROR',
+              error: 'No authentication data found'
             }, window.location.origin);
           }
         }
         
-        // Close the popup window
-        window.close();
+        // Close the popup window after a short delay
+        setTimeout(() => {
+          window.close();
+        }, 500);
         
       } catch (error) {
         console.error('Unexpected auth callback error:', error);
@@ -53,7 +94,9 @@ export default function AuthCallback() {
             error: 'Authentication failed'
           }, window.location.origin);
         }
-        window.close();
+        setTimeout(() => {
+          window.close();
+        }, 500);
       }
     };
 
