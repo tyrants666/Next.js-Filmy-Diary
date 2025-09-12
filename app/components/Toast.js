@@ -7,12 +7,12 @@ const Toast = ({ message, type = 'success', isVisible, onClose, duration = 4000 
 
     useEffect(() => {
         if (isVisible) {
-            // Trigger slide-up animation
+            // Trigger slide-down animation from top
             setTimeout(() => setIsAnimating(true), 10);
             
             const timer = setTimeout(() => {
                 setIsAnimating(false);
-                setTimeout(() => onClose(), 300); // Wait for slide-down animation
+                setTimeout(() => onClose(), 300); // Wait for slide-up animation to complete
             }, duration);
 
             return () => clearTimeout(timer);
@@ -95,8 +95,8 @@ const Toast = ({ message, type = 'success', isVisible, onClose, duration = 4000 
                 bg-white border border-gray-200 rounded-lg shadow-lg
                 transform transition-all duration-300 ease-out
                 ${isAnimating 
-                    ? 'bottom-4 -translate-x-1/2 translate-y-0 opacity-100 scale-100' 
-                    : 'bottom-0 -translate-x-1/2 translate-y-full opacity-0 scale-95'
+                    ? 'top-4 -translate-x-1/2 translate-y-0 opacity-100 scale-100' 
+                    : 'top-0 -translate-x-1/2 -translate-y-full opacity-0 scale-95'
                 }
             `}
             style={{ maxWidth: 'calc(100vw - 24px)' }}
