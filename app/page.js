@@ -1033,31 +1033,32 @@ export default function Home() {
                             {/* Cute movie character SVG */}
                             <div className="mb-6">
                                 <svg width="120" height="120" viewBox="0 0 200 200" className="text-gray-400">
-                                    {/* Movie reel body */}
-                                    <circle cx="100" cy="100" r="80" fill="currentColor" opacity="0.1" stroke="currentColor" strokeWidth="2"/>
-                                    <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" strokeWidth="2"/>
-                                    <circle cx="100" cy="100" r="40" fill="none" stroke="currentColor" strokeWidth="2"/>
-                                    <circle cx="100" cy="100" r="20" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                    {/* Movie reel body - rotating */}
+                                    <g className="animate-spin" style={{ transformOrigin: '100px 100px', animationDuration: '8s' }}>
+                                        <circle cx="100" cy="100" r="80" fill="currentColor" opacity="0.1" stroke="currentColor" strokeWidth="2"/>
+                                        <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                        <circle cx="100" cy="100" r="40" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                        <circle cx="100" cy="100" r="20" fill="none" stroke="currentColor" strokeWidth="2"/>
+                                        
+                                        {/* Film holes */}
+                                        <circle cx="70" cy="70" r="4" fill="currentColor"/>
+                                        <circle cx="130" cy="70" r="4" fill="currentColor"/>
+                                        <circle cx="70" cy="130" r="4" fill="currentColor"/>
+                                        <circle cx="130" cy="130" r="4" fill="currentColor"/>
+                                        <circle cx="100" cy="60" r="4" fill="currentColor"/>
+                                        <circle cx="100" cy="140" r="4" fill="currentColor"/>
+                                        <circle cx="60" cy="100" r="4" fill="currentColor"/>
+                                        <circle cx="140" cy="100" r="4" fill="currentColor"/>
+                                    </g>
                                     
-                                    {/* Film holes */}
-                                    <circle cx="70" cy="70" r="4" fill="currentColor"/>
-                                    <circle cx="130" cy="70" r="4" fill="currentColor"/>
-                                    <circle cx="70" cy="130" r="4" fill="currentColor"/>
-                                    <circle cx="130" cy="130" r="4" fill="currentColor"/>
-                                    <circle cx="100" cy="60" r="4" fill="currentColor"/>
-                                    <circle cx="100" cy="140" r="4" fill="currentColor"/>
-                                    <circle cx="60" cy="100" r="4" fill="currentColor"/>
-                                    <circle cx="140" cy="100" r="4" fill="currentColor"/>
-                                    
-                                    {/* Cute face */}
-                                    <circle cx="85" cy="85" r="3" fill="currentColor"/> {/* Left eye */}
-                                    <circle cx="115" cy="85" r="3" fill="currentColor"/> {/* Right eye */}
+                                    {/* Cute face - stays stationary with blinking eyes */}
+                                    <g className="animate-pulse" style={{ animationDuration: '3s' }}>
+                                        <circle cx="85" cy="85" r="3" fill="currentColor"/> {/* Left eye */}
+                                        <circle cx="115" cy="85" r="3" fill="currentColor"/> {/* Right eye */}
+                                    </g>
                                     <path d="M 90 110 Q 100 120 110 110" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/> {/* Smile */}
                                     
-                                    {/* Film strip coming out */}
-                                    <rect x="180" y="95" width="15" height="10" fill="currentColor" opacity="0.3"/>
-                                    <rect x="185" y="90" width="5" height="20" fill="currentColor" opacity="0.5"/>
-                                    <rect x="190" y="85" width="8" height="30" fill="currentColor" opacity="0.3"/>
+                                   
                                 </svg>
                                 {/* <Image
                                     src="/images/search-monster.png"
