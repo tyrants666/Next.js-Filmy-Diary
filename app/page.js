@@ -1034,10 +1034,10 @@ export default function Home() {
                             <div className="mb-6">
                                 
                                 {/* <Image
-                                    src="/images/search-monster.png"
+                                    src="/images/search-monster1.png"
                                     alt="Search Monster"
-                                    width={120}
-                                    height={120}
+                                    width={250}
+                                    height={350}
                                     className="mx-auto"
                                     priority
                                 /> */}
@@ -1063,7 +1063,7 @@ export default function Home() {
                             </div>
                             
                             {/* Movie Lists Instructions */}
-                            <div className="bg-gray-50 rounded-lg p-4 max-w-md mb-4 text-sm">
+                            <div className="bg-gray-50 rounded-lg p-4 max-w-md mb-3 text-sm">
                                 <h4 className="font-medium text-gray-700 mb-3">How to use your movie lists:</h4>
                                 <div className="space-y-2 text-left">
                                     <div className="flex items-center gap-2">
@@ -1086,7 +1086,38 @@ export default function Home() {
                                     </div>
                                 </div>
                             </div>
+                            
                             <GoogleLoginButton />
+                            
+                            {/* Upcoming Features */}
+                            <div className="bg-blue-50 rounded-lg p-4 max-w-md mt-[100px] text-sm border border-blue-100">
+                                <h4 className="font-medium text-blue-800 mb-3 flex items-center gap-2">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600">
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
+                                    </svg>
+                                    Coming Soon:
+                                </h4>
+                                <div className="space-y-2 text-left">
+                                    <div className="flex items-center gap-2">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-500 flex-shrink-0">
+                                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="9" cy="7" r="4"></circle>
+                                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                        </svg>
+                                        <span className="text-blue-700">Follow friends to see what they're watching</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-500 flex-shrink-0">
+                                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                                            <polyline points="16,6 12,2 8,6"></polyline>
+                                            <line x1="12" y1="2" x2="12" y2="15"></line>
+                                        </svg>
+                                        <span className="text-blue-700">Share your favorite movie lists with others</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </main>
