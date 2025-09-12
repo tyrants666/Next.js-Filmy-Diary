@@ -14,8 +14,35 @@ export default function AuthCallback() {
         console.log('Is popup window:', isPopup);
         
         if (!isPopup) {
-          // If not a popup, redirect to home page
-          console.log('Not a popup, redirecting to home');
+          // If not a popup, this is a redirect flow - handle the auth and redirect to home
+          console.log('Not a popup, handling redirect flow');
+          
+          // Handle OAuth callback from URL hash or search params
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const searchParams = new URLSearchParams(window.location.search);
+          
+          const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
+          
+          if (accessToken) {
+            try {
+              // Set the session using the tokens from the URL
+              const { data: { session }, error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+              });
+
+              if (error) {
+                console.error('Error setting session in redirect flow:', error);
+              } else if (session) {
+                console.log('Session set successfully in redirect flow:', session.user.email);
+              }
+            } catch (error) {
+              console.error('Error in redirect flow:', error);
+            }
+          }
+          
+          // Redirect to home page
           window.location.href = '/';
           return;
         }

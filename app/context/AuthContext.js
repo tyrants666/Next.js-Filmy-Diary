@@ -364,7 +364,7 @@ export function AuthProvider({ children }) {
       if (data?.url) {
         console.log('Opening popup with URL:', data.url);
         
-        // Open popup window with better positioning
+        // Try to open popup window with better positioning
         const popup = window.open(
           data.url,
           'google-oauth',
@@ -372,8 +372,26 @@ export function AuthProvider({ children }) {
           (window.screen.width / 2 - 250) + ',top=' + (window.screen.height / 2 - 300)
         );
         
-        if (!popup) {
-          throw new Error('Popup blocked. Please allow popups for this site.');
+        if (!popup || popup.closed || typeof popup.closed == 'undefined') {
+          console.warn('Popup was blocked, falling back to redirect flow');
+          // Fallback to redirect flow if popup is blocked
+          const { error: redirectError } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: `${window.location.origin}/auth/callback`,
+              queryParams: {
+                prompt: 'select_account',
+                access_type: 'offline'
+              }
+            }
+          });
+          
+          if (redirectError) {
+            throw redirectError;
+          }
+          
+          // Return a promise that never resolves since we're redirecting
+          return new Promise(() => {});
         }
         
         // Listen for messages from popup or popup close
