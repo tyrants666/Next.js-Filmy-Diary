@@ -1125,8 +1125,7 @@ export default function Home() {
 
             <div className='text-center w-full flex justify-center pt-6' style={{ marginBottom: '-8px' }}>
                 <Image 
-                    src="/images/search-monster.png" 
-                    // src="/images/pokemon.gif" 
+                    src="/images/pokemon.gif" 
                     alt="Pokemon" 
                     width={100} 
                     height={100} 
