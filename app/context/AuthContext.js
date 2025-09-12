@@ -337,12 +337,12 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Google login function with popup
+  // Google login function with redirect (separate page)
   const signInWithGoogle = async () => {
     try {
-      console.log('Starting Google login with popup...');
+      console.log('Starting Google login with redirect...');
       
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
@@ -350,133 +350,17 @@ export function AuthProvider({ children }) {
           queryParams: {
             prompt: 'select_account',
             access_type: 'offline'
-          },
-          // Skip browser redirect to handle popup manually
-          skipBrowserRedirect: true,
-        },
-      })
+          }
+        }
+      });
       
       if (error) {
         console.error('OAuth error:', error);
         throw error;
       }
       
-      if (data?.url) {
-        console.log('Opening popup with URL:', data.url);
-        
-        // Try to open popup window with better positioning
-        const popup = window.open(
-          data.url,
-          'google-oauth',
-          'width=500,height=600,scrollbars=yes,resizable=yes,status=yes,location=yes,left=' + 
-          (window.screen.width / 2 - 250) + ',top=' + (window.screen.height / 2 - 300)
-        );
-        
-        if (!popup || popup.closed || typeof popup.closed == 'undefined') {
-          console.warn('Popup was blocked, falling back to redirect flow');
-          // Fallback to redirect flow if popup is blocked
-          const { error: redirectError } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-              redirectTo: `${window.location.origin}/auth/callback`,
-              queryParams: {
-                prompt: 'select_account',
-                access_type: 'offline'
-              }
-            }
-          });
-          
-          if (redirectError) {
-            throw redirectError;
-          }
-          
-          // Return a promise that never resolves since we're redirecting
-          return new Promise(() => {});
-        }
-        
-        // Listen for messages from popup or popup close
-        return new Promise((resolve, reject) => {
-          let resolved = false;
-          
-          // Listen for messages from the popup
-          const messageListener = (event) => {
-            console.log('Received message:', event.data);
-            
-            if (event.origin !== window.location.origin) {
-              console.log('Message from different origin, ignoring');
-              return;
-            }
-            
-            if (event.data.type === 'SUPABASE_AUTH_SUCCESS') {
-              console.log('Auth success message received');
-              resolved = true;
-              if (!popup.closed) {
-                popup.close();
-              }
-              window.removeEventListener('message', messageListener);
-              clearInterval(checkClosed);
-              resolve(event.data.session);
-            } else if (event.data.type === 'SUPABASE_AUTH_ERROR') {
-              console.log('Auth error message received:', event.data.error);
-              resolved = true;
-              if (!popup.closed) {
-                popup.close();
-              }
-              window.removeEventListener('message', messageListener);
-              clearInterval(checkClosed);
-              reject(new Error(event.data.error || 'Authentication failed'));
-            }
-          };
-          
-          window.addEventListener('message', messageListener);
-          
-          // Check if popup is closed manually
-          const checkClosed = setInterval(() => {
-            if (popup.closed && !resolved) {
-              console.log('Popup closed manually');
-              resolved = true;
-              clearInterval(checkClosed);
-              window.removeEventListener('message', messageListener);
-              
-              // Give a small delay to check if we got a session anyway
-              setTimeout(async () => {
-                try {
-                  const { data: { session }, error } = await supabase.auth.getSession();
-                  if (error) {
-                    console.log('No session after popup close:', error);
-                    reject(new Error('Authentication was cancelled or failed'));
-                  } else if (session) {
-                    console.log('Session found after popup close');
-                    resolve(session);
-                  } else {
-                    console.log('No session found after popup close');
-                    reject(new Error('Authentication was cancelled or failed'));
-                  }
-                } catch (err) {
-                  console.log('Error checking session after popup close:', err);
-                  reject(new Error('Authentication was cancelled or failed'));
-                }
-              }, 1000);
-            }
-          }, 500); // Check more frequently
-          
-          // Timeout after 5 minutes
-          setTimeout(() => {
-            if (!resolved) {
-              console.log('Authentication timeout');
-              resolved = true;
-              clearInterval(checkClosed);
-              window.removeEventListener('message', messageListener);
-              if (!popup.closed) {
-                popup.close();
-              }
-              reject(new Error('Authentication timeout'));
-            }
-          }, 300000);
-        });
-      } else {
-        throw new Error('No OAuth URL received');
-      }
+      // The browser will redirect to Google OAuth page
+      // No need to return anything as the page will redirect
       
     } catch (error) {
       console.error('Error logging in with Google:', error.message);

@@ -32,8 +32,6 @@ export default function LoginModal({ isOpen, onClose, movieTitle }) {
                 showError('Login was cancelled. Please try again.');
             } else if (error.message === 'Authentication timeout') {
                 showError('Login timed out. Please try again.');
-            } else if (error.message.includes('Popup blocked')) {
-                showError('Popup was blocked. Please allow popups and try again, or the page will redirect automatically.');
             } else {
                 showError(`Login failed: ${error.error_description || error.message}`);
             }

@@ -7,123 +7,57 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        console.log('Auth callback page loaded');
+        console.log('Auth callback page loaded - redirect flow');
         
-        // Check if this is a popup window
-        const isPopup = window.opener && window.opener !== window;
-        console.log('Is popup window:', isPopup);
-        
-        if (!isPopup) {
-          // If not a popup, this is a redirect flow - handle the auth and redirect to home
-          console.log('Not a popup, handling redirect flow');
-          
-          // Handle OAuth callback from URL hash or search params
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const searchParams = new URLSearchParams(window.location.search);
-          
-          const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
-          
-          if (accessToken) {
-            try {
-              // Set the session using the tokens from the URL
-              const { data: { session }, error } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken
-              });
-
-              if (error) {
-                console.error('Error setting session in redirect flow:', error);
-              } else if (session) {
-                console.log('Session set successfully in redirect flow:', session.user.email);
-              }
-            } catch (error) {
-              console.error('Error in redirect flow:', error);
-            }
-          }
-          
-          // Redirect to home page
-          window.location.href = '/';
-          return;
-        }
-
-        // Handle OAuth callback from URL hash
+        // Handle OAuth callback from URL hash or search params
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
+        const searchParams = new URLSearchParams(window.location.search);
         
-        console.log('Hash params:', { 
+        const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
+        
+        console.log('Token extraction:', { 
           hasAccessToken: !!accessToken, 
           hasRefreshToken: !!refreshToken 
         });
 
         if (accessToken) {
-          // Set the session using the tokens from the URL
-          const { data: { session }, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
+          try {
+            // Set the session using the tokens from the URL
+            const { data: { session }, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
 
-          if (error) {
-            console.error('Error setting session:', error);
-            window.opener.postMessage({
-              type: 'SUPABASE_AUTH_ERROR',
-              error: error.message
-            }, window.location.origin);
-          } else if (session) {
-            console.log('Session set successfully:', session.user.email);
-            window.opener.postMessage({
-              type: 'SUPABASE_AUTH_SUCCESS',
-              session: session
-            }, window.location.origin);
-          } else {
-            console.error('No session after setting tokens');
-            window.opener.postMessage({
-              type: 'SUPABASE_AUTH_ERROR',
-              error: 'Failed to create session'
-            }, window.location.origin);
+            if (error) {
+              console.error('Error setting session:', error);
+            } else if (session) {
+              console.log('Session set successfully:', session.user.email);
+            }
+          } catch (error) {
+            console.error('Error in auth callback:', error);
           }
         } else {
-          // Try to get existing session
+          // Try to get existing session (fallback)
           const { data: { session }, error } = await supabase.auth.getSession();
           
           if (error) {
             console.error('Auth callback error:', error);
-            window.opener.postMessage({
-              type: 'SUPABASE_AUTH_ERROR',
-              error: error.message
-            }, window.location.origin);
           } else if (session) {
             console.log('Existing session found:', session.user.email);
-            window.opener.postMessage({
-              type: 'SUPABASE_AUTH_SUCCESS',
-              session: session
-            }, window.location.origin);
           } else {
-            console.error('No session or tokens found');
-            window.opener.postMessage({
-              type: 'SUPABASE_AUTH_ERROR',
-              error: 'No authentication data found'
-            }, window.location.origin);
+            console.log('No session or tokens found');
           }
         }
         
-        // Close the popup window after a short delay
-        setTimeout(() => {
-          window.close();
-        }, 500);
+        // Always redirect to home page after processing
+        console.log('Redirecting to home page...');
+        window.location.href = '/';
         
       } catch (error) {
         console.error('Unexpected auth callback error:', error);
-        if (window.opener) {
-          window.opener.postMessage({
-            type: 'SUPABASE_AUTH_ERROR',
-            error: 'Authentication failed'
-          }, window.location.origin);
-        }
-        setTimeout(() => {
-          window.close();
-        }, 500);
+        // Still redirect to home even on error
+        window.location.href = '/';
       }
     };
 
