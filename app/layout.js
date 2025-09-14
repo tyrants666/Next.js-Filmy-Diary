@@ -1,6 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import { Jost } from 'next/font/google';
-import { Poppins } from 'next/font/google';
 import { AuthProvider } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
 import Footer from './components/Footer'
@@ -21,11 +20,6 @@ const jost = Jost({
   variable: '--font-jost',
 });
 
-const poppins = Poppins({
-  subsets: ['latin'], // Or other relevant subsets
-  variable: '--font-poppins', // Optional: for CSS variables
-  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'] 
-});
 
 export const metadata = {
   title: "Filmy Diary",
@@ -36,7 +30,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} relative antialiased flex flex-col min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} ${jost.variable} relative antialiased flex flex-col min-h-screen`}
       >
         <AuthProvider>
           <ToastProvider>

@@ -46,6 +46,9 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
     const [movies, setMovies] = useState([]);
     const [error, setError] = useState(null);
     const [loadingMovie, setLoadingMovie] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [isAutoFetching, setIsAutoFetching] = useState(false);
+    const [showResults, setShowResults] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalResults, setTotalResults] = useState(0);
     const [hasMorePages, setHasMorePages] = useState(false);
@@ -68,6 +71,21 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
     // Login modal state
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [loginModalMovieTitle, setLoginModalMovieTitle] = useState('');
+
+    // Clear movies when search term changes (new search)
+    useEffect(() => {
+        if (searchTerm.length === 0) {
+            // Clear everything when search term is empty
+            setMovies([]);
+            setError(null);
+            setHasMorePages(false);
+            setTotalResults(0);
+            setLoadingMore(false);
+            setIsAutoFetching(false);
+            setLoadingMovie(false);
+            setShowResults(false);
+        }
+    }, [searchTerm]);
 
     // Notify parent about search state changes
     useEffect(() => {
@@ -93,8 +111,18 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
         setWishlistMovies(wishlistSet);
     }, [savedMovies]);
 
-    const fetchMovies = async (page = 1) => {
-        setLoadingMovie(true);
+    const fetchMovies = async (page = 1, isLoadMore = false) => {
+        if (isLoadMore) {
+            setLoadingMore(true);
+        } else {
+            // Only set loading for the initial search, not for auto-fetch pages
+            if (page === 1) {
+                setLoadingMovie(true);
+            }
+            if (page > 1) {
+                setIsAutoFetching(true);
+            }
+        }
         setError(null);
 
         try {
@@ -119,10 +147,19 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             const data = await response.json();
 
             if (data.results && data.results.length > 0) {
+                console.log(`TMDB API Response - Page ${page}:`, {
+                    totalResults: data.total_results,
+                    totalPages: data.total_pages,
+                    currentPageResults: data.results.length,
+                    searchTerm: searchTerm
+                });
+                
                 // Filter out person results and only keep movies and TV series
                 const filteredResults = data.results.filter(item => 
                     item.media_type === 'movie' || item.media_type === 'tv'
                 );
+                
+                console.log(`Filtered results (movies/TV only): ${filteredResults.length} out of ${data.results.length}`);
 
                 // Transform TMDB data to match OMDB structure
                 let transformedMovies = filteredResults.map(item => {
@@ -248,27 +285,65 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                     });
                 }
 
-                // If it's the first page, replace movies, otherwise append
+                // Calculate the new movies array
+                let newMoviesArray;
                 if (page === 1) {
-                    // Limit initial load to moviesPerPage (18 movies)
-                    transformedMovies = transformedMovies.slice(0, moviesPerPage);
-                    setMovies(transformedMovies);
+                    newMoviesArray = transformedMovies;
                 } else {
                     // Filter out any duplicates before appending
-                    const existingIds = new Set(movies.map(m => m.imdbID));
-                    const newMovies = transformedMovies.filter(movie => !existingIds.has(movie.imdbID));
-                    setMovies(prevMovies => [...prevMovies, ...newMovies]);
+                    const existingIds = new Set(movies.map(m => m.tmdbID || m.imdbID));
+                    const newMovies = transformedMovies.filter(movie => 
+                        !existingIds.has(movie.tmdbID) && !existingIds.has(movie.imdbID)
+                    );
+                    newMoviesArray = [...movies, ...newMovies];
                 }
                 
                 // Update total results count
                 setTotalResults(data.total_results);
                 
-                // Check if there are more pages
-                setHasMorePages(page < data.total_pages);
+                // Check if there are more pages available
+                const hasMorePagesAvailable = page < data.total_pages;
+                
+                if (isLoadMore) {
+                    // For Load More: Add new movies to existing ones (no limit)
+                    setMovies(newMoviesArray);
+                    setHasMorePages(hasMorePagesAvailable);
+                    setShowResults(true); // Always show results for Load More
+                    // Reset loading states for Load More
+                    setLoadingMore(false);
+                } else {
+                    // For auto-fetch: Limit to 18 movies and continue fetching if needed
+                    const limitedMovies = newMoviesArray.slice(0, moviesPerPage);
+                    
+                    const needsMoreMovies = limitedMovies.length < moviesPerPage;
+                    
+                    // Auto-fetch more pages if we have too few results
+                    if (needsMoreMovies && hasMorePagesAvailable) {
+                        console.log(`Only ${limitedMovies.length} movies found so far, auto-fetching page ${page + 1}...`);
+                        // Update movies but don't show results section yet
+                        setMovies(limitedMovies);
+                        const nextPage = page + 1;
+                        setCurrentPage(nextPage);
+                        setTimeout(() => fetchMovies(nextPage, false), 100);
+                        return; // Don't set loading to false yet, don't show results yet
+                    }
+                    
+                    // Auto-fetch complete: Show final results
+                    setMovies(limitedMovies);
+                    setHasMorePages(hasMorePagesAvailable && limitedMovies.length >= moviesPerPage);
+                    setShowResults(true); // Only show results when auto-fetch is complete
+                    // Reset loading states since auto-fetch is complete
+                    setLoadingMovie(false);
+                    setIsAutoFetching(false);
+                }
                 
             } else {
                 setError('No movies found');
                 setHasMorePages(false);
+                setShowResults(false);
+                // Reset loading states when no movies found
+                setLoadingMovie(false);
+                setIsAutoFetching(false);
             }
 
 
@@ -276,8 +351,13 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             setError('An error occurred. Please try again.');
             console.error(err); 
             setHasMorePages(false);
-        } finally {
+            setShowResults(false);
+            // Reset all loading states on error
             setLoadingMovie(false);
+            setLoadingMore(false);
+            setIsAutoFetching(false);
+        } finally {
+            // Loading states are managed explicitly in success/error cases
         }
     };
 
@@ -286,16 +366,27 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             e.preventDefault();
         }
         
-        // Reset to page 1 when performing a new search
+        // Reset all state when performing a new search
         setCurrentPage(1);
         setMovies([]);
-        await fetchMovies(1);
+        setError(null);
+        setHasMorePages(false);
+        setTotalResults(0);
+        setLoadingMore(false);
+        setIsAutoFetching(false);
+        setShowResults(false); // Hide results section during new search
+        await fetchMovies(1, false);
     };
 
     const loadMoreMovies = async () => {
+        if (loadingMore || loadingMovie) {
+            return; // Prevent multiple simultaneous requests
+        }
+        
         const nextPage = currentPage + 1;
+        console.log(`Loading more movies - Current page: ${currentPage}, Next page: ${nextPage}`);
         setCurrentPage(nextPage);
-        await fetchMovies(nextPage);
+        await fetchMovies(nextPage, true);
     };
 
 
@@ -687,7 +778,20 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                         type="text"
                         placeholder="Search for movies and TV series..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                            const newValue = e.target.value;
+                            setSearchTerm(newValue);
+                            // Clear previous results when user starts typing a new search
+                            if (newValue !== searchTerm && movies.length > 0) {
+                                setMovies([]);
+                                setError(null);
+                                setHasMorePages(false);
+                                setTotalResults(0);
+                                setLoadingMore(false);
+                                setIsAutoFetching(false);
+                                setShowResults(false);
+                            }
+                        }}
                         className="bg-gray-100 outline-none p-2 px-4 pr-10 border border-gray-300 rounded-lg w-full placeholder-gray-500 text-black"
                     />
                     {searchTerm && (
@@ -700,6 +804,10 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                                 setCurrentPage(1);
                                 setTotalResults(0);
                                 setHasMorePages(false);
+                                setLoadingMore(false);
+                                setIsAutoFetching(false);
+                                setLoadingMovie(false);
+                                setShowResults(false);
                             }}
                             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                             title="Clear search"
@@ -728,7 +836,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 </button>
             </form>
 
-            {loadingMovie && currentPage === 1 && (
+            {loadingMovie && (
                 <div className="flex flex-col items-center justify-center py-12">
                     {/* Attractive loading animation */}
                     <div className="relative mb-4">
@@ -746,14 +854,20 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             {error && <p className="text-center">{error}</p>}
 
 
-            {movies.length > 0 && ( 
+            {showResults && movies.length > 0 && ( 
                 <div className="mt-4">
                     {/* ======================================== Search results section ======================================== */}
                     {/* ======================================== Search results section ======================================== */}
 
                     <div className="flex justify-between items-center">
                         <h3 className="text-lg mb-2">
-                            Movies & Series <small className='text-gray-600'>{totalResults > 0 ? `(${movies.length} of ${totalResults})` : ''}</small>
+                            Movies & Series 
+                            {!isAutoFetching && totalResults > 0 && (
+                                <small className='text-gray-600'> ({movies.length} of {totalResults} results)</small>
+                            )}
+                            {isAutoFetching && (
+                                <small className='text-gray-600'> (finding movies...)</small>
+                            )}
                         </h3>
                     </div>
 
@@ -778,14 +892,22 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                         ))}
                     </div>
                     
-                    {hasMorePages && (
+                    {hasMorePages && !isAutoFetching && (
                         <div className="text-center mt-4 mb-6">
                             <button 
                                 onClick={loadMoreMovies} 
-                                disabled={loadingMovie}
-                                className="bg-gray-200 hover:bg-gray-300 text-black py-2 px-6 rounded-lg"
+                                disabled={loadingMore || loadingMovie}
+                                className="bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-black py-2 px-6 rounded-lg transition-colors"
                             >
-                                {loadingMovie ? 'Loading...' : 'Load More Movies'}
+                                {loadingMore ? (
+                                    <span className="flex items-center justify-center">
+                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Loading...
+                                    </span>
+                                ) : 'Load More Movies'}
                             </button>
                         </div>
                     )}
