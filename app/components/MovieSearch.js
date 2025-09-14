@@ -444,13 +444,11 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
 
             // Call the callback to refresh the parent's savedMovies list
             if (fetchSavedMovies) {
-                console.log('Refreshing saved movies list after removal...');
                 await fetchSavedMovies();
             }
 
-            // Refresh the current search results to ensure UI is in sync
-            console.log('Refreshing search results after removal...');
-            await fetchMovies(currentPage);
+            // No need to refresh search results - the UI will update automatically
+            // when the parent state changes and the movie is no longer marked as watched
 
             showSuccess(`Removed "${movie.Title}" from your watched list!`);
             
