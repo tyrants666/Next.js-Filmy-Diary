@@ -76,24 +76,42 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
         setIsWishlist(wishlist);
     }, [wishlist]);
 
+    // Debug logging for loading states
+    useEffect(() => {
+        console.log('🔍 MovieCard loading states:', {
+            isWatchedLoading,
+            isRemoveWatchedLoading,
+            isWatchingLoading,
+            isWishlistLoading,
+            movieTitle: movie.Title
+        });
+    }, [isWatchedLoading, isRemoveWatchedLoading, isWatchingLoading, isWishlistLoading, movie.Title]);
+
     useEffect(() => {
         setImageError(false); // Reset image error when movie changes
     }, [movie.Poster]);
 
     const handleWatchedClick = async () => {
+        console.log('🔄 Watched button clicked - setting loading to true');
         setIsWatchedLoading(true);
         setOperationError(false);
         
         try {
-            // Use current date for quick watched action
-            await onClickWatched(null); // null will default to current date in backend
+            console.log('📡 Starting API call for watched movie');
+            // Add minimum loading time to ensure loading state is visible
+            const [apiResult] = await Promise.all([
+                onClickWatched(null), // null will default to current date in backend
+                new Promise(resolve => setTimeout(resolve, 1000)) // Minimum 1 second loading
+            ]);
+            console.log('✅ API call completed successfully');
             // Only update local state after successful API call
             // The parent component will handle updating the watched prop
         } catch (error) {
-            console.error('Failed to mark as watched:', error);
+            console.error('❌ Failed to mark as watched:', error);
             setOperationError(true);
             setTimeout(() => setOperationError(false), 3000);
         } finally {
+            console.log('🏁 Setting loading to false');
             setIsWatchedLoading(false);
         }
     };
@@ -160,34 +178,50 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
     };
 
     const handleRemoveWatched = async () => {
+        console.log('🔄 Remove watched button clicked - setting loading to true');
         setIsRemoveWatchedLoading(true);
         setOperationError(false);
         
         try {
-            await onRemoveWatched();
+            console.log('📡 Starting API call to remove watched movie');
+            // Add minimum loading time to ensure loading state is visible
+            const [apiResult] = await Promise.all([
+                onRemoveWatched(),
+                new Promise(resolve => setTimeout(resolve, 1000)) // Minimum 1 second loading
+            ]);
+            console.log('✅ Remove watched API call completed successfully');
             // The parent component will handle updating the watched prop
         } catch (error) {
-            console.error('Failed to remove watched status:', error);
+            console.error('❌ Failed to remove watched status:', error);
             setOperationError(true);
             // Clear error after 3 seconds
             setTimeout(() => setOperationError(false), 3000);
         } finally {
+            console.log('🏁 Setting remove watched loading to false');
             setIsRemoveWatchedLoading(false);
         }
     };
 
     const handleWatchingClick = async () => {
+        console.log('🔄 Watching button clicked - setting loading to true');
         setIsWatchingLoading(true);
         setOperationError(false);
         
         try {
-            await onClickWatching();
+            console.log('📡 Starting API call for watching movie');
+            // Add minimum loading time to ensure loading state is visible
+            const [apiResult] = await Promise.all([
+                onClickWatching(),
+                new Promise(resolve => setTimeout(resolve, 1000)) // Minimum 1 second loading
+            ]);
+            console.log('✅ Watching API call completed successfully');
         } catch (error) {
-            console.error('Failed to add to watching:', error);
+            console.error('❌ Failed to add to watching:', error);
             setOperationError(true);
             // Clear error after 3 seconds
             setTimeout(() => setOperationError(false), 3000);
         } finally {
+            console.log('🏁 Setting watching loading to false');
             setIsWatchingLoading(false);
         }
     };
@@ -209,18 +243,26 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
     };
 
     const handleWishlistClick = async () => {
+        console.log('🔄 Wishlist button clicked - setting loading to true');
         setIsWishlistLoading(true);
         setOperationError(false);
         
         try {
-            await onClickWishlist();
+            console.log('📡 Starting API call for wishlist movie');
+            // Add minimum loading time to ensure loading state is visible
+            const [apiResult] = await Promise.all([
+                onClickWishlist(),
+                new Promise(resolve => setTimeout(resolve, 1000)) // Minimum 1 second loading
+            ]);
+            console.log('✅ Wishlist API call completed successfully');
             // Parent component handles all state updates
         } catch (error) {
-            console.error('Failed to toggle wishlist:', error);
+            console.error('❌ Failed to toggle wishlist:', error);
             setOperationError(true);
             // Clear error after 3 seconds
             setTimeout(() => setOperationError(false), 3000);
         } finally {
+            console.log('🏁 Setting wishlist loading to false');
             setIsWishlistLoading(false);
         }
     };
@@ -323,7 +365,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                 {/* Hover overlay with action buttons */}
                 <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                     <div className="flex flex-col gap-2 px-3">
-                        {cardType === 'search' && !isWatched && (
+                                        {cardType === 'search' && !isWatched && (
                             <>
                                 {!showDatePicker && (
                                     <>
@@ -334,7 +376,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                         >
                                             {isWatchedLoading ? (
                                                 <>
-                                                    <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                         <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                                     </svg>
                                                     Adding...
@@ -368,7 +410,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                         >
                                             {isWatchingLoading ? (
                                                 <>
-                                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                         <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                                     </svg>
                                                     Adding...
@@ -389,7 +431,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                         >
                                             {isWishlistLoading ? (
                                                 <>
-                                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                         <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                                     </svg>
                                                     {isWishlist ? 'Removing...' : 'Adding...'}
@@ -457,7 +499,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                             >
                                 {isRemoveWatchedLoading ? (
                                     <>
-                                        <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                         </svg>
                                         Removing...
@@ -483,7 +525,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWatchedLoading ? (
                                         <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Moving...
@@ -504,7 +546,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWishlistLoading ? (
                                         <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Moving...
@@ -525,7 +567,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWatchingLoading ? (
                                         <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Removing...
@@ -565,7 +607,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWatchingLoading ? (
                                         <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Moving...
@@ -586,7 +628,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWishlistLoading ? (
                                         <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Moving...
@@ -675,7 +717,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWatchedLoading ? (
                                         <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Moving...
@@ -696,7 +738,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWatchingLoading ? (
                                         <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Moving...
@@ -717,7 +759,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                 >
                                     {isWishlistLoading ? (
                                         <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
                                             </svg>
                                             Removing...
