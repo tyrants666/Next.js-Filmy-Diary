@@ -49,12 +49,12 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
         }
 
-        // Debug: Log the incoming movieData to check Type field
-        console.log('API received movieData:', {
-            Title: movieData.Title,
-            Type: movieData.Type,
-            imdbID: movieData.imdbID,
-            tmdbID: movieData.tmdbID
+        // Debug: Log the incoming data
+        console.log('API received request body:', {
+            userId: userId,
+            userEmail: userEmail,
+            movieTitle: movieData?.Title,
+            status: status
         });
 
         // Determine the correct movie ID to use (prefer imdbID, fallback to tmdbID)
@@ -156,6 +156,14 @@ export async function POST(request) {
             isStatusChange,
             existingStatus: existingUserMovie?.status,
             newStatus: status
+        });
+
+        // Debug: Log the upsert data before inserting
+        console.log('About to insert upsertData:', {
+            user_id: upsertData.user_id,
+            user_email: upsertData.user_email,
+            movie_name: upsertData.movie_name,
+            status: upsertData.status
         });
 
         // Upsert to user_movies (this will update status if movie already exists for user)

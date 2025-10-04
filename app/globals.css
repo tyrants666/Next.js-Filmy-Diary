@@ -27,10 +27,49 @@
 
 body {
   color: var(--foreground);
-  background: var(--background);
+  background: white;
   font-family: Jost, Helvetica, sans-serif;
   /* font-family: Poppins, Helvetica, sans-serif; */
   /* font-family: Arial, Helvetica, sans-serif; */
+  /* Hide scrollbar but keep scroll functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+body::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+/* Hide scrollbar for all elements */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+/* Line clamp utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .blur-overlay{
@@ -42,4 +81,14 @@ body {
 
 .smoothie {
   transition: all .3s ease;
+}
+
+.swiper-wrapper {
+  padding-bottom: 30px !important;
+}
+.swiper-slide {
+  height: auto !important;
+}
+.swiper-slide>div {
+  height: 100% !important;
 }

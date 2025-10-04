@@ -3,6 +3,7 @@ import { Jost } from 'next/font/google';
 import { Poppins } from 'next/font/google';
 import { AuthProvider } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
+import { MovieCacheProvider } from './context/MovieCacheContext'
 import Footer from './components/Footer'
 import "./globals.css";
 
@@ -40,10 +41,12 @@ export default function RootLayout({ children }) {
       >
         <AuthProvider>
           <ToastProvider>
-            <div className="flex-1">
-              {children}
-            </div>
-            <Footer />
+            <MovieCacheProvider>
+              <div className="flex-1">
+                {children}
+              </div>
+              <Footer />
+            </MovieCacheProvider>
           </ToastProvider>
         </AuthProvider>
       </body>
