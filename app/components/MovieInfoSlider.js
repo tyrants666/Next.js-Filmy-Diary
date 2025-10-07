@@ -114,7 +114,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
 
     return (
         <div className={`fixed inset-0 z-50 flex transition-all duration-200 ${
-            isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            isOpen ? '' : 'pointer-events-none'
         }`}>
             {/* Backdrop */}
             <div 
@@ -125,12 +125,12 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
             />
             
             {/* Backdrop Blur Layer */}
-            <div className={`fixed top-0 right-0 h-full w-full md:w-[500px] lg:w-[370px] backdrop-blur-[45px] transition-opacity duration-200 ease-in-out ${
+            <div className={`fixed top-0 right-0 h-full w-full md:w-[500px] lg:w-[370px] transition-opacity duration-200 ease-in-out ${
                 isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`} />
             
             {/* Slider Content */}
-            <div className={`fixed top-0 right-0 h-full w-full md:w-[500px] lg:w-[370px] shadow-xl shadow-black/60 transform transition-transform duration-200 ease-in-out overflow-hidden rounded-t-3xl md:rounded-none ${
+            <div className={`fixed top-0 right-0 h-full w-full md:w-[500px] lg:w-[370px] shadow-xl shadow-black/60 transform transition-transform duration-500 overflow-hidden rounded-t-3xl md:rounded-none ${
                 isOpen ? 'translate-x-0' : 'translate-x-full'
             }`}>
                 {/* Close Button */}
@@ -176,7 +176,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                     </div>
 
                     {/* Movie Details - 50% height */}
-                    <div className="flex-1 h-1/2 p-6 overflow-y-auto">
+                    <div className="flex-1 backdrop-blur-[45px] h-1/2 p-6 overflow-y-auto">
                         {/* Title and Year */}
                         <div className="mb-4">
                             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
