@@ -1,26 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
-const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, onRemoveWatched, onClickWishlist, onUpdateWatchDate, watched, wishlist, cardType = 'search', onClick }) => {
-    // Add custom styles for date input icon
-    useEffect(() => {
-        const style = document.createElement('style');
-        style.textContent = `
-            .date-input-custom::-webkit-calendar-picker-indicator {
-                filter: invert(1) brightness(1.2);
-                cursor: pointer;
-                opacity: 0.8;
-            }
-            .date-input-custom::-webkit-calendar-picker-indicator:hover {
-                opacity: 1;
-            }
-        `;
-        document.head.appendChild(style);
-        
-        return () => {
-            document.head.removeChild(style);
-        };
-    }, []);
+const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, onRemoveWatched, onClickWishlist, onUpdateWatchDate, watched, wishlist, cardType = 'search', onClick, imagePriority = false }) => {
+    // Removed dynamic style injection to prevent flickering
     const [isWatched, setIsWatched] = useState(false);
     const [isWatchedLoading, setIsWatchedLoading] = useState(false);
     const [isRemoveWatchedLoading, setIsRemoveWatchedLoading] = useState(false);
@@ -32,6 +14,8 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
     const [operationError, setOperationError] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState('');
+    // Track the last poster index we handled an error for to avoid duplicate state churn
+    const lastFailedIndexRef = useRef(-1);
     
     // Generate alternative poster URLs for fallback (TMDB priority)
     const getPosterAlternatives = () => {
@@ -241,16 +225,17 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
         }
     };
 
-    const handleImageError = (e) => {
-        const failedUrl = posterAlternatives[currentPosterIndex];
-        
-        // Try next alternative poster if available
+    const handleImageError = () => {
+        // Prevent multiple increments for the same failing index (Next/Image may fire more than once)
+        if (lastFailedIndexRef.current === currentPosterIndex) return;
+        lastFailedIndexRef.current = currentPosterIndex;
+
         if (currentPosterIndex < posterAlternatives.length - 1) {
-            setCurrentPosterIndex(currentPosterIndex + 1);
-            setImageError(false); // Reset error to try the next poster
+            setCurrentPosterIndex((idx) => idx + 1);
+            setImageError(false);
         } else {
-            // Only log error when all alternatives have failed
-            console.error(`All poster alternatives failed for "${movie.Title}"`);
+            // Downgrade to warn to avoid red error overlay noise in dev
+            console.warn(`All poster alternatives failed for "${movie.Title}"`);
             setImageError(true);
         }
     };
@@ -260,6 +245,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
         basis-[31.7%] sm:basis-[18.4%] lg:basis-[13.24%] xl:basis-[11.65%] 2xl:basis-[10.3%] max-w-[180px] !select-none transition-all duration-200 ${
             operationError ? 'border-2 border-red-500' : 'border border-gray-200'
         }`}
+        style={{ willChange: 'transform' }}
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
         >
@@ -275,14 +261,16 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                             fill
                             className="object-cover !select-none rounded-xl"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            priority={true}
+                            priority={false}
+                            loading={undefined}
+                            decoding="async"
                             onError={handleImageError}
-                            placeholder="blur"
-                            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
+                            placeholder="empty"
+                            unoptimized
                         />
                     </span>
                 ) : (
-                    <span className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl relative h-full w-full flex items-center justify-center">
+                    <span className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl relative h-full w-full flex items-center justify-center will-change-transform">
                         <div className="text-center">
                             <div className="w-12 h-12 mx-auto mb-2 bg-gray-300 rounded-lg flex items-center justify-center">
                                 <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

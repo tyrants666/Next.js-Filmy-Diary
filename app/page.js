@@ -46,73 +46,28 @@ export default function Home() {
     // Centralized functions for adding movies to different lists
     const addToWatched = async (movieData, watchedDate = null) => {
         try {
-            console.log('Adding movie to watched:', movieData);
             const { data: sessionData } = await supabase.auth.getSession();
-            
             if (!sessionData.session) {
                 showError('You need to be logged in to add movies');
                 return;
             }
 
-            console.log('User session:', sessionData.session.user);
-            const movieIdToUse = movieData.imdbID !== "N/A" ? movieData.imdbID : movieData.tmdbID;
-            
-            // First, add the movie to the movies table if it doesn't exist
-            const { data: existingMovie, error: findError } = await supabase
-                .from('movies')
-                .select('id')
-                .eq('movie_id', movieIdToUse)
-                .single();
-
-            let movieId;
-            if (findError || !existingMovie) {
-                // Movie doesn't exist, add it
-                console.log('Inserting new movie:', {
-                    movie_id: movieIdToUse,
-                    title: movieData.Title,
-                    year: movieData.Year,
-                    poster: movieData.Poster,
-                    type: movieData.Type
-                });
-                const { data: newMovie, error: insertError } = await supabase
-                    .from('movies')
-                    .insert({
-                        movie_id: movieIdToUse,
-                        title: movieData.Title,
-                        year: movieData.Year,
-                        poster: movieData.Poster,
-                        type: movieData.Type
-                    })
-                    .select()
-                    .single();
-
-                if (insertError) throw insertError;
-                movieId = newMovie.id;
-            } else {
-                movieId = existingMovie.id;
-            }
-
-            // Add to user_movies table
-            console.log('Inserting user movie:', {
-                user_id: sessionData.session.user.id,
-                movie_id: movieId,
-                status: 'watched',
-                watched_date: watchedDate || new Date().toISOString()
-            });
-            const { error: userMovieError } = await supabase
-                .from('user_movies')
-                .insert({
-                    user_id: sessionData.session.user.id,
-                    user_email: sessionData.session.user.email,
-                    movie_id: movieId,
-                    movie_imdb_id: movieData.imdbID !== "N/A" ? movieData.imdbID : null,
-                    movie_name: movieData.Title,
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: sessionData.session.user.id,
+                    userEmail: sessionData.session.user.email,
+                    movieData,
                     status: 'watched',
-                    watched_date: watchedDate || new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                });
+                    watchedDate
+                })
+            });
 
-            if (userMovieError) throw userMovieError;
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || 'Failed to add movie');
+            }
 
             showSuccess(`"${movieData.Title}" added to watched movies`);
             await fetchSavedMovies(true, false);
@@ -124,59 +79,27 @@ export default function Home() {
 
     const addToWatching = async (movieData) => {
         try {
-            console.log('Adding movie to watching:', movieData);
             const { data: sessionData } = await supabase.auth.getSession();
-            
             if (!sessionData.session) {
                 showError('You need to be logged in to add movies');
                 return;
             }
 
-            console.log('User session:', sessionData.session.user);
-            const movieIdToUse = movieData.imdbID !== "N/A" ? movieData.imdbID : movieData.tmdbID;
-            
-            // First, add the movie to the movies table if it doesn't exist
-            const { data: existingMovie, error: findError } = await supabase
-                .from('movies')
-                .select('id')
-                .eq('movie_id', movieIdToUse)
-                .single();
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: sessionData.session.user.id,
+                    userEmail: sessionData.session.user.email,
+                    movieData,
+                    status: 'currently_watching'
+                })
+            });
 
-            let movieId;
-            if (findError || !existingMovie) {
-                // Movie doesn't exist, add it
-                const { data: newMovie, error: insertError } = await supabase
-                    .from('movies')
-                    .insert({
-                        movie_id: movieIdToUse,
-                        title: movieData.Title,
-                        year: movieData.Year,
-                        poster: movieData.Poster,
-                        type: movieData.Type
-                    })
-                    .select()
-                    .single();
-
-                if (insertError) throw insertError;
-                movieId = newMovie.id;
-            } else {
-                movieId = existingMovie.id;
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || 'Failed to add movie');
             }
-
-            // Add to user_movies table
-            const { error: userMovieError } = await supabase
-                .from('user_movies')
-                .insert({
-                    user_id: sessionData.session.user.id,
-                    user_email: sessionData.session.user.email,
-                    movie_id: movieId,
-                    movie_imdb_id: movieData.imdbID !== "N/A" ? movieData.imdbID : null,
-                    movie_name: movieData.Title,
-                    status: 'currently_watching',
-                    updated_at: new Date().toISOString()
-                });
-
-            if (userMovieError) throw userMovieError;
 
             showSuccess(`"${movieData.Title}" added to currently watching`);
             await fetchSavedMovies(true, false);
@@ -189,56 +112,26 @@ export default function Home() {
     const addToWatchlist = async (movieData) => {
         try {
             const { data: sessionData } = await supabase.auth.getSession();
-            
             if (!sessionData.session) {
                 showError('You need to be logged in to add movies');
                 return;
             }
 
-            const movieIdToUse = movieData.imdbID !== "N/A" ? movieData.imdbID : movieData.tmdbID;
-            
-            // First, add the movie to the movies table if it doesn't exist
-            const { data: existingMovie, error: findError } = await supabase
-                .from('movies')
-                .select('id')
-                .eq('movie_id', movieIdToUse)
-                .single();
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: sessionData.session.user.id,
+                    userEmail: sessionData.session.user.email,
+                    movieData,
+                    status: 'wishlist'
+                })
+            });
 
-            let movieId;
-            if (findError || !existingMovie) {
-                // Movie doesn't exist, add it
-                const { data: newMovie, error: insertError } = await supabase
-                    .from('movies')
-                    .insert({
-                        movie_id: movieIdToUse,
-                        title: movieData.Title,
-                        year: movieData.Year,
-                        poster: movieData.Poster,
-                        type: movieData.Type
-                    })
-                    .select()
-                    .single();
-
-                if (insertError) throw insertError;
-                movieId = newMovie.id;
-            } else {
-                movieId = existingMovie.id;
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || 'Failed to add movie');
             }
-
-            // Add to user_movies table
-            const { error: userMovieError } = await supabase
-                .from('user_movies')
-                .insert({
-                    user_id: sessionData.session.user.id,
-                    user_email: sessionData.session.user.email,
-                    movie_id: movieId,
-                    movie_imdb_id: movieData.imdbID !== "N/A" ? movieData.imdbID : null,
-                    movie_name: movieData.Title,
-                    status: 'wishlist',
-                    updated_at: new Date().toISOString()
-                });
-
-            if (userMovieError) throw userMovieError;
 
             showSuccess(`"${movieData.Title}" added to watchlist`);
             await fetchSavedMovies(true, false);
@@ -296,7 +189,8 @@ export default function Home() {
                         year,
                         rating,
                         rating_source,
-                        type
+                        type,
+                        description
                     )
                 `)
                 .eq('user_id', user.id)
@@ -933,6 +827,7 @@ export default function Home() {
             Type: savedMovie.movies.type || "movie", // Use the type from database, fallback to "movie"
             imdbRating: savedMovie.movies.rating || "N/A",
             ratingSource: savedMovie.movies.rating_source || "N/A",
+            Plot: savedMovie.movies.description || "N/A",
             watchedDate: savedMovie.watched_date || null
         };
     };
@@ -1050,7 +945,7 @@ export default function Home() {
                         <div className="mt-8">
                             
                             {/* TMDB Banner - Always show regardless of currently watching movies */}
-                            <TMDBBanner />
+                            <TMDBBanner onMovieClick={handleMovieClick} />
                             
                             {/* Currently watching movies */}
                             {savedMovies.some(item => item.status === 'currently_watching') && (
@@ -1064,6 +959,7 @@ export default function Home() {
                                             const dateB = new Date(b.updated_at || b.created_at || 0);
                                             return dateB - dateA;
                                         })
+                                        .slice(0, 25)
                                         .map(item => ({
                                             ...transformSavedMovieToCardFormat(item),
                                             id: item.id,
@@ -1101,6 +997,7 @@ export default function Home() {
                                             const dateB = new Date(b.updated_at || b.created_at || 0);
                                             return dateB - dateA;
                                         })
+                                        .slice(0, 25)
                                         .map(item => ({
                                             ...transformSavedMovieToCardFormat(item),
                                             id: item.id,
@@ -1138,6 +1035,7 @@ export default function Home() {
                                             const dateB = new Date(b.watched_date || 0);
                                             return dateB - dateA;
                                         })
+                                        .slice(0, 25)
                                         .map(item => ({
                                             ...transformSavedMovieToCardFormat(item),
                                             id: item.id,
@@ -1323,6 +1221,14 @@ export default function Home() {
                         } else {
                             // Movie is not in savedMovies, add it to watched
                             await addToWatched(selectedMovie, watchedDate);
+                        }
+                    }
+                }}
+                onUpdateWatchDate={async (newWatchedDate) => {
+                    if (selectedMovie) {
+                        const item = savedMovies.find(saved => saved.movies.movie_id === (selectedMovie.imdbID !== "N/A" ? selectedMovie.imdbID : selectedMovie.tmdbID));
+                        if (item && item.status === 'watched') {
+                            await updateWatchDate(item.movies.id, newWatchedDate);
                         }
                     }
                 }}

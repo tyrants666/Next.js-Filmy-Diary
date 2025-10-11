@@ -11,8 +11,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     // More aggressive token refresh
     refreshTokenMargin: 300, // Refresh 5 minutes before expiry
-    // Debug settings
-    debug: process.env.NODE_ENV === 'development',
+    // Debug settings - disabled to reduce console noise
+    debug: false,
     // Ensure session is loaded properly
     flowType: 'pkce',
   }

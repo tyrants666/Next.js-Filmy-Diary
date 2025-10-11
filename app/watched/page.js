@@ -49,6 +49,7 @@ export default function WatchedPage() {
             Type: savedMovie.movies.type || "movie",
             imdbRating: savedMovie.movies.rating || "N/A",
             ratingSource: savedMovie.movies.rating_source || "N/A",
+            Plot: savedMovie.movies.description || "N/A",
             watchedDate: savedMovie.watched_date || null
         };
     };
@@ -87,7 +88,8 @@ export default function WatchedPage() {
                         year,
                         rating,
                         rating_source,
-                        type
+                        type,
+                        description
                     )
                 `)
                 .eq('user_id', user.id)
@@ -230,14 +232,11 @@ export default function WatchedPage() {
 
             const watchedDateToUse = newWatchedDate || new Date().toISOString();
             
-            // Optimistically update local state first
-            setSavedMovies(prevMovies => 
-                prevMovies.map(movie => 
-                    movie.movies.id === movieId
-                        ? { ...movie, watched_date: watchedDateToUse }
-                        : movie
-                )
-            );
+            console.log('Updating watch date:', {
+                movieId,
+                watchedDateToUse,
+                userId: user.id
+            });
 
             const { data: updateData, error: updateError } = await supabase
                 .from('user_movies')
@@ -247,19 +246,26 @@ export default function WatchedPage() {
                 .eq('status', 'watched')
                 .select();
 
+            console.log('Update result:', { updateData, updateError });
+
             if (updateError) {
+                console.error('Update error:', updateError);
                 await fetchWatchedMovies(true, false);
-            clearCache('watched'); // Clear cache to force refresh
+                clearCache('watched');
                 throw updateError;
             }
 
             if (!updateData || updateData.length === 0) {
+                console.error('No data returned from update');
                 showError('Failed to update watch date. Please try again.');
                 await fetchWatchedMovies(true, false);
-            clearCache('watched'); // Clear cache to force refresh
+                clearCache('watched');
                 return;
             }
 
+            // Success - refresh the data
+            await fetchWatchedMovies(true, false);
+            clearCache('watched');
             showSuccess('Watch date updated successfully!');
             
         } catch (error) {
@@ -385,6 +391,47 @@ export default function WatchedPage() {
                 isOpen={isSliderOpen}
                 onClose={() => setIsSliderOpen(false)}
                 movie={selectedMovie}
+                onClickWatched={async (watchedDate) => {
+                    if (selectedMovie) {
+                        const movieItem = savedMovies.find(item => 
+                            transformSavedMovieToCardFormat(item).Title === selectedMovie.Title
+                        );
+                        if (movieItem) {
+                            // If movie is in watched list, update the date
+                            await updateWatchDate(movieItem.movies.id, watchedDate);
+                        } else {
+                            // If it's a search result, add to watched
+                            const session = await validateSession();
+                            if (!session) {
+                                showError('Your session has expired. Please log in again.');
+                                return;
+                            }
+                            
+                            const response = await fetch('/api/movies', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    userId: session.user.id,
+                                    userEmail: session.user.email,
+                                    movieData: selectedMovie,
+                                    status: 'watched',
+                                    watchedDate: watchedDate || new Date().toISOString()
+                                })
+                            });
+
+                            if (!response.ok) {
+                                throw new Error(`Failed to add to watched: ${response.status}`);
+                            }
+
+                            await fetchWatchedMovies(true, false);
+                            clearCache('watched');
+                            showSuccess(`"${selectedMovie.Title}" added to watched list!`);
+                            setIsSliderOpen(false);
+                        }
+                    }
+                }}
                 onClickWatching={async () => {
                     if (selectedMovie) {
                         const movieItem = savedMovies.find(item => 
@@ -392,6 +439,7 @@ export default function WatchedPage() {
                         );
                         if (movieItem) {
                             await moveWatchedToWatching(movieItem.movies.id, selectedMovie);
+                            setIsSliderOpen(false);
                         }
                     }
                 }}
@@ -402,6 +450,7 @@ export default function WatchedPage() {
                         );
                         if (movieItem) {
                             await moveWatchedToWishlist(movieItem.movies.id, selectedMovie);
+                            setIsSliderOpen(false);
                         }
                     }
                 }}
@@ -412,12 +461,27 @@ export default function WatchedPage() {
                         );
                         if (movieItem) {
                             await removeWatchedStatus(movieItem.movies.id, selectedMovie);
+                            setIsSliderOpen(false);
                         }
                     }
                 }}
-                watched={true}
+                onUpdateWatchDate={async (newWatchedDate) => {
+                    if (selectedMovie) {
+                        const movieItem = savedMovies.find(item => 
+                            transformSavedMovieToCardFormat(item).Title === selectedMovie.Title
+                        );
+                        if (movieItem) {
+                            await updateWatchDate(movieItem.movies.id, newWatchedDate);
+                        }
+                    }
+                }}
+                watched={selectedMovie ? savedMovies.some(item => 
+                    transformSavedMovieToCardFormat(item).Title === selectedMovie.Title
+                ) : false}
                 wishlist={false}
-                cardType="watched"
+                cardType={selectedMovie && savedMovies.some(item => 
+                    transformSavedMovieToCardFormat(item).Title === selectedMovie.Title
+                ) ? "watched" : "search"}
             />
         </div>
     );

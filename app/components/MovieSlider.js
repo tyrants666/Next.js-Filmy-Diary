@@ -12,20 +12,8 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/free-mode';
 
-// Hide default Swiper navigation arrows
-const hideSwiperArrows = `
-  .swiper-button-next,
-  .swiper-button-prev {
-    display: none !important;
-  }
-`;
-
-// Inject the CSS
-if (typeof document !== 'undefined') {
-  const style = document.createElement('style');
-  style.textContent = hideSwiperArrows;
-  document.head.appendChild(style);
-}
+// Removed dynamic style injection to prevent flickering
+// Swiper arrows are now hidden via CSS classes in the component
 
 const MovieSlider = ({ 
     title, 
@@ -64,7 +52,7 @@ const MovieSlider = ({
     if (!movies || movies.length === 0) return null;
 
     return (
-        <div className="mb-5 relative group overflow-hidden">
+        <div className="mb-0 md:mb-2 relative group overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium flex items-center gap-2">
@@ -85,14 +73,14 @@ const MovieSlider = ({
 
             {/* Slider Container with white fade */}
             <div className="relative -mx-4 md:mx-0 overflow-hidden">
-                {/* White fade overlay on the right */}
-                <div className="absolute top-0 right-0 w-12 h-full bg-gradient-to-l from-white to-transparent pointer-events-none z-20"></div>
-                {/* Navigation Arrows - Only show if there are enough cards */}
+                {/* White fade overlay on the right - hidden on mobile */}
+                <div className="absolute top-0 right-0 w-12 h-full bg-gradient-to-l from-white to-transparent pointer-events-none z-20 hidden md:block"></div>
+                {/* Navigation Arrows - Only show on desktop if there are enough cards */}
                 {movies.length > 3 && (
                     <>
                         <button
                             onClick={slidePrev}
-                            className={`absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 hover:bg-white shadow-lg rounded-full flex items-center justify-center transition-all duration-200 ${
+                            className={`hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 hover:bg-white shadow-lg rounded-full items-center justify-center transition-all duration-200 ${
                                 isBeginning ? 'opacity-0 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100'
                             }`}
                             disabled={isBeginning}
@@ -102,7 +90,7 @@ const MovieSlider = ({
 
                         <button
                             onClick={slideNext}
-                            className={`absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 hover:bg-white shadow-lg rounded-full flex items-center justify-center transition-all duration-200 ${
+                            className={`hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 hover:bg-white shadow-lg rounded-full items-center justify-center transition-all duration-200 ${
                                 isEnd ? 'opacity-0 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100'
                             }`}
                             disabled={isEnd}
@@ -119,7 +107,10 @@ const MovieSlider = ({
                     slidesPerView="auto"
                     freeMode={true}
                     watchSlidesProgress={true}
-                    navigation={movies.length > 3}
+                    navigation={false}
+                    touchEventsTarget="container"
+                    simulateTouch={true}
+                    grabCursor={true}
                     onSwiper={(swiper) => {
                         swiperRef.current = swiper;
                         handleSlideChange(swiper);
@@ -130,6 +121,12 @@ const MovieSlider = ({
                             spaceBetween: 8,
                             slidesOffsetBefore: 16,
                             slidesOffsetAfter: 16,
+                            freeMode: {
+                                enabled: true,
+                                momentum: true,
+                                momentumRatio: 1,
+                                momentumVelocityRatio: 1,
+                            },
                         },
                         640: {
                             spaceBetween: 12,
@@ -142,10 +139,19 @@ const MovieSlider = ({
                             slidesOffsetAfter: 0,
                         },
                     }}
-                    className="!overflow-hidden"
+                    className="!overflow-hidden !cursor-grab active:!cursor-grabbing"
+                    style={{ willChange: 'transform' }}
                 >
-                    {movies.map((movie, index) => (
-                        <SwiperSlide key={`${movie.id || index}`} className="!w-auto">
+                    {movies.map((movie, index) => {
+                        // Build a stable unique key avoiding 'N/A'
+                        const keyParts = [];
+                        if (movie.imdbID && movie.imdbID !== 'N/A') keyParts.push(movie.imdbID);
+                        if (movie.tmdbID && movie.tmdbID !== 'N/A') keyParts.push(movie.tmdbID);
+                        if (movie.id !== undefined && movie.id !== null) keyParts.push(String(movie.id));
+                        if (keyParts.length === 0) keyParts.push(movie.Title || 'untitled', movie.Year || '', String(index));
+                        const slideKey = keyParts.join('-');
+                        return (
+                        <SwiperSlide key={slideKey} className="!w-auto">
                             <div className="w-[140px] sm:w-[160px] lg:w-[180px] relative">
                                 <MovieCard
                                     movie={movie}
@@ -163,7 +169,7 @@ const MovieSlider = ({
                                 />
                             </div>
                         </SwiperSlide>
-                    ))}
+                    )})}
                 </Swiper>
             </div>
         </div>

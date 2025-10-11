@@ -49,6 +49,7 @@ export default function WatchingPage() {
             Type: savedMovie.movies.type || "movie",
             imdbRating: savedMovie.movies.rating || "N/A",
             ratingSource: savedMovie.movies.rating_source || "N/A",
+            Plot: savedMovie.movies.description || "N/A",
             watchedDate: savedMovie.watched_date || null
         };
     };
@@ -87,7 +88,8 @@ export default function WatchingPage() {
                         year,
                         rating,
                         rating_source,
-                        type
+                        type,
+                        description
                     )
                 `)
                 .eq('user_id', user.id)
