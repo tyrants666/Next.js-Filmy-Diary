@@ -98,8 +98,8 @@ export default function WatchlistPage() {
                 
             if (userMoviesError) throw userMoviesError;
             
-            // Update global cache
-            updateCache('watchlist', userMoviesData || [], false);
+            // Update global cache with poster validation
+            await updateCache('watchlist', userMoviesData || [], false);
             
             console.log(`✅ Watchlist data fetched successfully (${userMoviesData?.length || 0} movies)`);
         } catch (error) {

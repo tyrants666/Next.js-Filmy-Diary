@@ -98,8 +98,8 @@ export default function WatchedPage() {
                 
             if (userMoviesError) throw userMoviesError;
             
-            // Update global cache
-            updateCache('watched', userMoviesData || [], false);
+            // Update global cache with poster validation
+            await updateCache('watched', userMoviesData || [], false);
             
             console.log(`✅ Watched data fetched successfully (${userMoviesData?.length || 0} movies)`);
         } catch (error) {
