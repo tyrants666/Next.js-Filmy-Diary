@@ -73,6 +73,16 @@ export async function POST(request) {
                 type: movieData.Type || 'movie',
                 description: (movieData.Plot && movieData.Plot !== "N/A") ? movieData.Plot : null
             };
+
+            // If rating info is provided (e.g., from TMDB banner), persist it too
+            const providedRating = movieData?.imdbRating || movieData?.rating;
+            const providedSource = movieData?.ratingSource;
+            if (providedRating && providedRating !== 'N/A') {
+                updateData.rating = providedRating;
+                if (providedSource && providedSource !== 'N/A') {
+                    updateData.rating_source = providedSource;
+                }
+            }
             
             const { error: updateError } = await supabase
                 .from('movies')

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -14,6 +14,38 @@ export default function Settings() {
     const { user, loading, signOut } = useAuth();
     const { showSuccess, showError } = useToast();
     const router = useRouter();
+
+    // Banner slider settings
+    const [bannerAutoplayEnabled, setBannerAutoplayEnabled] = useState(true);
+    const [bannerAutoplayDelayMs, setBannerAutoplayDelayMs] = useState(5000);
+
+    // Load persisted settings on mount
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const storedEnabled = localStorage.getItem('bannerAutoplayEnabled');
+        const storedDelay = localStorage.getItem('bannerAutoplayDelayMs');
+        if (storedEnabled !== null) {
+            setBannerAutoplayEnabled(storedEnabled === 'true');
+        }
+        if (storedDelay !== null) {
+            const parsed = parseInt(storedDelay, 10);
+            if (!isNaN(parsed)) {
+                const clamped = Math.min(20000, Math.max(1000, parsed));
+                setBannerAutoplayDelayMs(clamped);
+            }
+        }
+    }, []);
+
+    // Persist settings when changed
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        localStorage.setItem('bannerAutoplayEnabled', String(bannerAutoplayEnabled));
+    }, [bannerAutoplayEnabled]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        localStorage.setItem('bannerAutoplayDelayMs', String(bannerAutoplayDelayMs));
+    }, [bannerAutoplayDelayMs]);
 
     // Redirect to login if not authenticated
     if (!loading && !user) {
@@ -122,6 +154,50 @@ export default function Settings() {
                                 <p><span className="font-medium">Name:</span> {user.user_metadata?.name || 'Not provided'}</p>
                                 <p><span className="font-medium">Email:</span> {user.email}</p>
                                 <p><span className="font-medium">Account created:</span> {new Date(user.created_at).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+
+                        {/* Banner Slider Settings */}
+                        <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                            <h2 className="text-xl font-semibold mb-4">Banner Slider</h2>
+                            <div className="space-y-5">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-medium">Autoplay</label>
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={bannerAutoplayEnabled}
+                                            onChange={(e) => setBannerAutoplayEnabled(e.target.checked)}
+                                        />
+                                        <div className="relative inline-block w-11 h-6 rounded-full bg-gray-200 transition-colors peer-checked:bg-green-500">
+                                            <span className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></span>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="text-sm font-medium">Autoplay speed</label>
+                                        <span className="text-xs text-gray-600">{bannerAutoplayDelayMs} ms ({(bannerAutoplayDelayMs / 1000).toFixed(1)}s)</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min={1000}
+                                        max={20000}
+                                        step={500}
+                                        value={bannerAutoplayDelayMs}
+                                        onChange={(e) => {
+                                            const next = parseInt(e.target.value, 10);
+                                            if (!isNaN(next)) {
+                                                const clamped = Math.min(20000, Math.max(1000, next));
+                                                setBannerAutoplayDelayMs(clamped);
+                                            }
+                                        }}
+                                        className="w-full accent-black"
+                                        disabled={!bannerAutoplayEnabled}
+                                    />
+                                </div>
                             </div>
                         </div>
 

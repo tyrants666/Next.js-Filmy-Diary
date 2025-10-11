@@ -967,7 +967,7 @@ export default function Home() {
                                             wishlist: false
                                         }))
                                     }
-                                    seeAllLink="/watching"
+                                    seeAllLink={(savedMovies.filter(item => item.status === 'currently_watching').length > 2) ? "/watching" : undefined}
                                     onMovieClick={handleMovieClick}
                                     onClickWatched={(movie, watchedDate) => {
                                         const item = savedMovies.find(saved => saved.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID));

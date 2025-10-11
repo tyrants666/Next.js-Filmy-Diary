@@ -3,15 +3,17 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Pagination, Autoplay } from 'swiper/modules';
+import { Autoplay } from 'swiper/modules';
 
 // Import Swiper styles
 import 'swiper/css';
-import 'swiper/css/pagination';
 
 const TMDBBanner = ({ onMovieClick }) => {
     const [backdropImages, setBackdropImages] = useState([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
     const swiperRef = useRef(null);
+    const [autoplayEnabled, setAutoplayEnabled] = useState(true);
+    const [autoplayDelay, setAutoplayDelay] = useState(5000);
 
     // Get latest released movies from TMDB with full details
     useEffect(() => {
@@ -21,32 +23,22 @@ const TMDBBanner = ({ onMovieClick }) => {
                 const data = await response.json();
                 
                 if (data.results && data.results.length > 0) {
-                    const backdrops = [];
-                    
-                    // Take first 5 movies with backdrop images and fetch full details
-                    for (const movie of data.results.slice(0, 10)) {
-                        if (movie.backdrop_path && movie.poster_path) {
-                            // Fetch more details from OMDB if possible
-                            const movieData = {
-                                tmdbID: movie.id.toString(),
-                                imdbID: "N/A",
-                                Title: movie.title,
-                                Year: new Date(movie.release_date).getFullYear().toString(),
-                                Type: "movie",
-                                Poster: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
-                                Plot: movie.overview || "N/A",
-                                imdbRating: movie.vote_average ? movie.vote_average.toFixed(1) : "N/A",
-                                ratingSource: "TMDB",
-                                backdrop: `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
-                            };
-                            
-                            backdrops.push(movieData);
-                            
-                            if (backdrops.length >= 5) break;
-                        }
-                    }
-                    
-                    setBackdropImages(backdrops);
+                    const cards = data.results
+                        .filter(movie => movie.poster_path) // card needs a poster
+                        .slice(0, 19) // show up to 19 as requested
+                        .map(movie => ({
+                            tmdbID: movie.id.toString(),
+                            imdbID: "N/A",
+                            Title: movie.title,
+                            Year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "N/A",
+                            Type: "movie",
+                            Poster: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+                            Plot: movie.overview || "N/A",
+                            imdbRating: movie.vote_average ? movie.vote_average.toFixed(1) : "N/A",
+                            ratingSource: "TMDB",
+                            backdrop: movie.backdrop_path ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}` : `https://image.tmdb.org/t/p/w780${movie.poster_path}`
+                        }));
+                    setBackdropImages(cards);
                 }
             } catch (error) {
                 console.error('Failed to fetch latest movies:', error);
@@ -54,6 +46,23 @@ const TMDBBanner = ({ onMovieClick }) => {
         };
 
         fetchLatestMovies();
+    }, []);
+
+    // Load autoplay preferences from localStorage
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const storedEnabled = localStorage.getItem('bannerAutoplayEnabled');
+        const storedDelay = localStorage.getItem('bannerAutoplayDelayMs');
+        if (storedEnabled !== null) {
+            setAutoplayEnabled(storedEnabled === 'true');
+        }
+        if (storedDelay !== null) {
+            const parsed = parseInt(storedDelay, 10);
+            if (!isNaN(parsed)) {
+                const clamped = Math.min(20000, Math.max(1000, parsed));
+                setAutoplayDelay(clamped);
+            }
+        }
     }, []);
 
     if (!backdropImages.length) return null;
@@ -67,24 +76,26 @@ const TMDBBanner = ({ onMovieClick }) => {
     return (
         <div className="relative w-full h-64 md:h-80 rounded-xl overflow-hidden mb-8 md:mb-10 shadow-lg">
             <Swiper
-                modules={[Pagination, Autoplay]}
-                pagination={{
-                    clickable: true,
-                }}
-                autoplay={{
-                    delay: 5000,
+                modules={[Autoplay]}
+                autoplay={autoplayEnabled ? {
+                    delay: autoplayDelay,
                     disableOnInteraction: false,
-                }}
+                } : false}
                 loop={backdropImages.length > 1}
                 className="w-full h-full"
                 onSwiper={(swiper) => {
                     swiperRef.current = swiper;
                 }}
+                onSlideChange={(swiper) => {
+                    // realIndex is stable when loop is enabled
+                    const idx = typeof swiper.realIndex === 'number' ? swiper.realIndex : swiper.activeIndex || 0;
+                    setCurrentIndex(idx);
+                }}
             >
                 {backdropImages.map((movie, index) => (
                     <SwiperSlide key={index}>
                         <div 
-                            className="relative w-full h-full cursor-pointer group"
+                            className="relative w-full h-full cursor-pointer"
                             onClick={() => handleBannerClick(movie)}
                         >
                             {/* Background Image */}
@@ -92,7 +103,7 @@ const TMDBBanner = ({ onMovieClick }) => {
                                 src={movie.backdrop}
                                 alt={`${movie.Title} backdrop`}
                                 fill
-                                className="object-cover transition-transform duration-700 group-hover:scale-105"
+                                className="object-cover"
                                 priority={index === 0}
                             />
                             
@@ -107,40 +118,40 @@ const TMDBBanner = ({ onMovieClick }) => {
                             {/* Content */}
                             <div className="absolute inset-0 flex items-center p-6 md:p-8">
                                 <div className="max-w-2xl">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-2 h-2 rounded-full animate-pulse" style={{backgroundColor: '#8BC34A'}}></div>
-                                        <span className="text-sm font-medium tracking-wider uppercase" style={{color: '#8BC34A'}}>Latest Releases</span>
+                                    <div className="flex items-center gap-2 text-white/80 text-sm md:text-base  mb-3">
+                                        {/* <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#fff' }}></div> */}
+                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                        </svg>
+                                        <span>Latest Release</span>
                                     </div>
-                                    <h2 className="text-2xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg">
+                                    <h2 className="text-xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg w-full max-w-[85%] overflow-hidden text-ellipsis md:max-w-full md:whitespace-normal md:overflow-visible md:text-clip">
                                         {movie.Title}
                                     </h2>
-                                    <p className="text-lg md:text-xl text-white/90 mb-4 drop-shadow-md">
+                                    <p className="text-lg md:text-xl text-white/90 mb-4 drop-shadow-md hidden md:block">
                                         ({movie.Year})
                                     </p>
-                                    <p className="text-sm md:text-base text-white/80 mb-4 drop-shadow-md line-clamp-3 max-w-lg">
-                                        {movie.Plot}
-                                    </p>
+                                    {movie.Plot && movie.Plot !== 'N/A' && (
+                                        <p className="text-sm md:text-base text-white/80 mb-4 drop-shadow-md line-clamp-3 max-w-lg">
+                                            {movie.Plot}
+                                        </p>
+                                    )}
                                     <div className="flex items-center gap-4 text-sm md:text-base text-white/80">
-                                        <div className="flex items-center gap-2">
-                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                            </svg>
-                                            <span>Now in theaters</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
-                                            </svg>
-                                            <span>{backdropImages.length} {backdropImages.length === 1 ? 'movie' : 'movies'}</span>
-                                        </div>
+                                        
                                         {movie.imdbRating !== "N/A" && (
-                                            <div className="flex items-center gap-1 bg-blue-500 text-white px-2 py-1 rounded">
+                                            <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white">
                                                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                                                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                                                 </svg>
                                                 <span>{movie.imdbRating}</span>
                                             </div>
                                         )}
+                                        <div className="flex items-center gap-2">
+                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+                                            </svg>
+                                            <span>{currentIndex + 1}/{backdropImages.length} {backdropImages.length === 1 ? 'movie' : 'movies'}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

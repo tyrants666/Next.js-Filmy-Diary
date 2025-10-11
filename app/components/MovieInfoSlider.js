@@ -130,7 +130,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
         <div className={`fixed inset-0 z-50 flex transition-all duration-200 ${
             isOpen ? '' : 'pointer-events-none'
         }`}>
-            {/* Backdrop */}
+            {/* Clickable Backdrop - closes on tap/click */}
             <div 
                 className={`absolute inset-0 transition-opacity duration-200 ${
                     isOpen ? 'bg-transparent backdrop-blur-[10px] md:backdrop-blur-none' : 'bg-transparent'
@@ -140,11 +140,6 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                     onClose();
                 }}
             />
-            
-            {/* Backdrop Blur Layer */}
-            <div className={`fixed top-0 right-0 h-full w-full md:w-[500px] lg:w-[370px] transition-opacity duration-200 ease-in-out ${
-                isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`} />
             
             {/* Slider Content */}
             <div className={`fixed bottom-0 md:top-0 right-0 h-[90vh] backdrop-blur-[45px] md:h-full w-full md:w-[500px] lg:w-[370px] shadow-xl shadow-black/60 transform transition-transform duration-500 overflow-hidden rounded-t-3xl md:rounded-none ${
