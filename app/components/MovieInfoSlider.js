@@ -142,7 +142,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
             />
             
             {/* Slider Content */}
-            <div className={`fixed bottom-0 md:top-0 right-0 h-[90vh] backdrop-blur-[45px] md:h-full w-full md:w-[500px] lg:w-[370px] shadow-xl shadow-black/60 transform transition-transform duration-500 overflow-hidden rounded-t-3xl md:rounded-none ${
+            <div className={`fixed bottom-0 md:top-0 right-0 h-[90vh] backdrop-blur-[45px] md:h-full w-full md:w-[370px] shadow-xl shadow-black/60 transform transition-transform duration-500 overflow-hidden rounded-t-3xl md:rounded-none ${
                 isOpen ? 'translate-y-0 md:translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'
             }`}>
                 {/* Close Button */}
@@ -189,15 +189,16 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
 
                     {/* Movie Details - 50% height */}
                     <div className="flex-1 backdrop-blur-[45px] h-1/2 p-6 overflow-y-auto">
+                    
                         {/* Title and Year */}
-                        <div className="mb-4">
+                        <div className="">
                             {/* Clickable Title */}
                             {movie?.imdbID && movie.imdbID !== "N/A" && movie.imdbID.startsWith('tt') ? (
                                 <a
                                     href={`https://www.imdb.com/title/${movie.imdbID}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 hover:text-gray-600 transition-colors inline-block cursor-pointer"
+                                    className="text-2xl font-bold text-gray-900 mb-2 hover:text-gray-600 transition-colors inline-block cursor-pointer"
                                 >
                                     {movie?.Title}
                                 </a>
@@ -208,20 +209,51 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                         : `https://www.themoviedb.org/movie/${movie.tmdbID}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 hover:text-gray-600 transition-colors inline-block cursor-pointer"
+                                    className="text-2xl font-bold text-gray-900 mb-2 hover:text-gray-600 transition-colors inline-block cursor-pointer"
                                 >
                                     {movie?.Title}
                                 </a>
                             ) : (
-                                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                                <h2 className="text-2xl font-bold text-gray-900 mb-2">
                                     {movie?.Title}
                                 </h2>
                             )}
-                            <div className="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
-                                <span className="bg-gray-100 px-2 py-1 rounded-full font-medium text-xs">
+                            
+                        </div>
+
+                        {/* Movie Description */}
+                        {movie?.Plot && movie.Plot !== "N/A" && (
+                            <div className="mb-4">
+                                <p className="text-sm text-gray-900 leading-relaxed line-clamp-4">
+                                    {movie.Plot}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Watch Date for watched movies */}
+                        {movie?.watchedDate && watched && (
+                            <div className="mb-3 text-xs  flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                <span>Watched on:</span>
+                                <span>
+                                    {(() => {
+                                        const watchDate = new Date(movie.watchedDate);
+                                        const day = watchDate.getDate().toString().padStart(2, '0');
+                                        const month = (watchDate.getMonth() + 1).toString().padStart(2, '0');
+                                        const year = watchDate.getFullYear();
+                                        return `${day}/${month}/${year}`;
+                                    })()}
+                                </span>
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-2 text-xs flex-wrap mb-3">
+                                <span className="bg-black/10 backdrop-blur-md border border-black/10 text-black px-2 py-1 rounded-full text-xs">
                                     {movie?.Year?.replace(/\D/g, '')}
                                 </span>
-                                <span className="bg-gray-100 px-2 py-1 rounded-full font-medium capitalize text-xs">
+                                <span className="bg-black/10 backdrop-blur-md border border-black/10 text-black px-2 py-1 rounded-full capitalize text-xs">
                                     {movie?.Type}
                                 </span>
                                 {/* Clickable Rating */}
@@ -232,7 +264,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                                 href={`https://www.imdb.com/title/${movie.imdbID}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className={`flex items-center gap-1 px-2 py-1 rounded-full text-white font-medium hover:opacity-80 transition-opacity cursor-pointer bg-yellow-500 text-xs`}
+                                                className={`flex items-center gap-1 px-2 py-1 rounded-full bg-black/10 backdrop-blur-md border border-black/10 text-black transition-opacity cursor-pointer hover:bg-yellow-500 hover:text-white text-xs`}
                                             >
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                                                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -247,7 +279,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                                     : `https://www.themoviedb.org/movie/${movie.tmdbID}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className={`flex items-center gap-1 px-2 py-1 rounded-full text-white font-medium hover:opacity-80 transition-opacity cursor-pointer bg-blue-500 text-xs`}
+                                                className={`flex items-center gap-1 px-2 py-1 rounded-full bg-black/10 backdrop-blur-md border border-black/10 text-black transition-opacity cursor-pointer hover:bg-blue-500 hover:text-white text-xs`}
                                             >
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                                                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -277,70 +309,6 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                     </>
                                 )}
                             </div>
-                        </div>
-
-                        {/* Movie Description */}
-                        {movie?.Plot && movie.Plot !== "N/A" && (
-                            <div className="mb-4">
-                                <h3 className="text-sm font-semibold text-gray-900 mb-2">Plot</h3>
-                                <p className="text-sm text-gray-900 leading-relaxed line-clamp-4">
-                                    {movie.Plot}
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Watch Date for watched movies */}
-                        {movie?.watchedDate && watched && (
-                            <div className="mb-3 text-xs text-gray-500 flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                </svg>
-                                <span>Watched on:</span>
-                                <span>
-                                    {(() => {
-                                        const watchDate = new Date(movie.watchedDate);
-                                        const day = watchDate.getDate().toString().padStart(2, '0');
-                                        const month = (watchDate.getMonth() + 1).toString().padStart(2, '0');
-                                        const year = watchDate.getFullYear();
-                                        return `${day}/${month}/${year}`;
-                                    })()}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* External Links */}
-                        <div className="mb-4">
-                            <div className="flex flex-wrap gap-2">
-                                {movie?.imdbID && movie.imdbID !== "N/A" && movie.imdbID.startsWith('tt') && (
-                                    <a
-                                        href={`https://www.imdb.com/title/${movie.imdbID}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-xs transition-colors font-medium"
-                                    >
-                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10zM12 6.5a1 1 0 00-1 1v9a1 1 0 002 0v-9a1 1 0 00-1-1z"/>
-                                        </svg>
-                                        IMDb
-                                    </a>
-                                )}
-                                {movie?.tmdbID && movie.tmdbID !== "N/A" && (
-                                    <a
-                                        href={movie.Type === 'series' 
-                                            ? `https://www.themoviedb.org/tv/${movie.tmdbID}`
-                                            : `https://www.themoviedb.org/movie/${movie.tmdbID}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs transition-colors font-medium"
-                                    >
-                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                        </svg>
-                                        TMDB
-                                    </a>
-                                )}
-                            </div>
-                        </div>
 
                         {/* Action Buttons - Show all buttons for search results */}
                         <div className="border-t pt-6">
@@ -351,7 +319,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                         <button
                                             onClick={() => setShowDatePicker(!showDatePicker)}
                                             disabled={loadingStates.watched}
-                                            className={`w-full flex items-center justify-center gap-3 px-4 py-3 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
+                                            className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
                                                 loadingStates.watched ? 'opacity-50 cursor-not-allowed' : ''
                                             }`}
                                         >
@@ -375,16 +343,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                                         max={todayStr || undefined}
                                                         className="w-full px-4 py-2 bg-white/50 backdrop-blur-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                                                     />
-                                                    {/* Display format hint */}
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        Selected: {selectedDate ? (() => {
-                                                            const date = new Date(selectedDate);
-                                                            const day = date.getDate().toString().padStart(2, '0');
-                                                            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                                                            const year = date.getFullYear();
-                                                            return `${day}/${month}/${year}`;
-                                                        })() : 'No date selected'}
-                                                    </div>
+
                                                 </div>
                                                 <button
                                                     onClick={async () => {
@@ -404,7 +363,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                                         }
                                                     }}
                                                     disabled={loadingStates.watched}
-                                                    className="w-full px-4 py-3 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium disabled:opacity-50"
+                                                    className="w-full p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium disabled:opacity-50"
                                                 >
                                                     {loadingStates.watched ? 'Updating...' : 'Update Date'}
                                                 </button>
@@ -419,7 +378,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                         <button
                                             onClick={() => setShowDatePicker(!showDatePicker)}
                                             disabled={loadingStates.watched}
-                                            className={`w-full flex items-center justify-center gap-3 px-4 py-3 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
+                                            className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
                                                 loadingStates.watched ? 'opacity-50 cursor-not-allowed' : ''
                                             }`}
                                         >
@@ -470,7 +429,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                                         }
                                                     }}
                                                     disabled={loadingStates.watched}
-                                                    className="w-full px-4 py-3 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium disabled:opacity-50"
+                                                    className="w-full p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium disabled:opacity-50"
                                                 >
                                                     {loadingStates.watched ? 'Adding...' : 'Add to Watched'}
                                                 </button>
@@ -484,7 +443,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                     <button
                                         onClick={() => handleAction('watched', () => onClickWatched && onClickWatched(null))}
                                         disabled={loadingStates.watched}
-                                        className={`w-full flex items-center justify-center gap-3 px-4 py-3 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
+                                        className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
                                             loadingStates.watched ? 'opacity-50 cursor-not-allowed' : ''
                                         }`}
                                     >
@@ -506,7 +465,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                     <button
                                         onClick={() => handleAction('watching', () => onClickWatching && onClickWatching())}
                                         disabled={loadingStates.watching}
-                                        className={`w-full flex items-center justify-center gap-3 px-4 py-3 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
+                                        className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
                                             loadingStates.watching ? 'opacity-50 cursor-not-allowed' : ''
                                         }`}
                                     >
@@ -528,7 +487,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                     <button
                                         onClick={() => handleAction('wishlist', () => onClickWishlist && onClickWishlist())}
                                         disabled={loadingStates.wishlist}
-                                        className={`w-full flex items-center justify-center gap-3 px-4 py-3 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
+                                        className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
                                             loadingStates.wishlist ? 'opacity-50 cursor-not-allowed' : ''
                                         }`}
                                     >
@@ -558,7 +517,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                             }
                                         })}
                                         disabled={loadingStates.remove}
-                                        className={`w-full flex items-center justify-center gap-3 px-4 py-3 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
+                                        className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
                                             loadingStates.remove ? 'opacity-50 cursor-not-allowed' : ''
                                         }`}
                                     >
