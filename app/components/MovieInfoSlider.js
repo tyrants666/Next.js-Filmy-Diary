@@ -157,7 +157,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
 
                 <div className="flex flex-col h-full">
                     {/* TMDB Backdrop - 50% height */}
-                    <div className="w-full relative h-1/2">
+                    <div className="w-full relative h-full">
                         <div className="w-full h-full relative">
                             {posterAlternatives.length > 0 && !imageError ? (
                                 <Image
@@ -182,13 +182,13 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                             )}
                             
                             {/* Gradient Overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                            {/* <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" /> */}
                             
                         </div>
                     </div>
 
                     {/* Movie Details - 50% height */}
-                    <div className="flex-1 backdrop-blur-[45px] h-1/2 p-6 overflow-y-auto">
+                    <div className="mt-auto backdrop-blur-[45px] p-6">
                     
                         {/* Title and Year */}
                         <div className="">
@@ -232,7 +232,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
 
                         {/* Watch Date for watched movies */}
                         {movie?.watchedDate && watched && (
-                            <div className="mb-3 text-xs  flex items-center gap-1">
+                            <div className="mb-3 text-xs  flex items-center gap-1 text-black">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
@@ -288,13 +288,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                                 <span className="text-xs opacity-75">TMDB</span>
                                             </a>
                                         ) : (
-                                            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-white font-medium text-xs ${
-                                                movie.ratingSource === "IMDB" 
-                                                    ? "bg-yellow-500" 
-                                                    : movie.ratingSource === "TMDB" 
-                                                        ? "bg-blue-500" 
-                                                        : "bg-gray-500"
-                                            }`}>
+                                                <div className={`flex items-center gap-1 px-2 py-1 rounded-full bg-black/10 backdrop-blur-md border border-black/10 text-black transition-opacity cursor-pointer hover:bg-blue-500 hover:text-white text-xs`}>
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                                                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                                                 </svg>
@@ -310,232 +304,236 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                 )}
                             </div>
 
-                        {/* Action Buttons - Show all buttons for search results */}
-                        <div className="border-t pt-6">
-                            <div className="space-y-3">
-                                {/* Edit Date Button - Only show if movie is in watched list */}
-                                {watched && (
-                                    <>
-                                        <button
-                                            onClick={() => setShowDatePicker(!showDatePicker)}
-                                            disabled={loadingStates.watched}
-                                            className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
-                                                loadingStates.watched ? 'opacity-50 cursor-not-allowed' : ''
-                                            }`}
-                                        >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                            </svg>
-                                            {showDatePicker ? 'Cancel' : 'Edit Date'}
-                                        </button>
-                                        
-                                        {/* Date Picker */}
-                                        {showDatePicker && (
-                                            <div className="p-4 bg-black/10 backdrop-blur-md rounded-lg space-y-3 border border-black/10">
-                                                <label className="block text-sm font-medium text-gray-900">
-                                                    Select Watched Date
-                                                </label>
-                                                <div className="relative">
-                                                    <input
-                                                        type="date"
-                                                        value={selectedDate}
-                                                        onChange={(e) => setSelectedDate(e.target.value)}
-                                                        max={todayStr || undefined}
-                                                        className="w-full px-4 py-2 bg-white/50 backdrop-blur-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                                                    />
+                         {/* Action Buttons - Show all buttons for search results */}
+                         <div className="border-t pt-6">
+                             <div className="space-y-3">
+                                 {/* Edit Date Button - Only show if movie is in watched list */}
+                                 {watched && (
+                                     <>
+                                         <button
+                                             onClick={() => setShowDatePicker(!showDatePicker)}
+                                             disabled={loadingStates.watched}
+                                             className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
+                                                 loadingStates.watched ? 'opacity-50 cursor-not-allowed' : ''
+                                             }`}
+                                         >
+                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                             </svg>
+                                             {showDatePicker ? 'Cancel' : 'Edit Date'}
+                                         </button>
+                                         
+                                         {/* Date Picker */}
+                                         {showDatePicker && (
+                                             <div className="p-4 bg-black/10 backdrop-blur-md rounded-lg space-y-3 border border-black/10">
+                                                 <label className="block text-sm font-medium text-gray-900">
+                                                     Select Watched Date
+                                                 </label>
+                                                 <div className="relative">
+                                                     <input
+                                                         type="date"
+                                                         value={selectedDate}
+                                                         onChange={(e) => setSelectedDate(e.target.value)}
+                                                         max={todayStr || undefined}
+                                                        className="w-full px-4 py-2 bg-black/10 backdrop-blur-sm border border-black/10 rounded-lg text-gray-900 focus:ring-0 focus:ring-transparent focus:border-transparent
+                                                                focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-transparent"
+                                                     />
+ 
+                                                 </div>
+                                                 <button
+                                                     onClick={async () => {
+                                                         setLoadingStates(prev => ({ ...prev, watched: true }));
+                                                         try {
+                                                             if (onUpdateWatchDate) {
+                                                                 await onUpdateWatchDate(new Date(selectedDate).toISOString());
+                                                             } else if (onClickWatched) {
+                                                                 await onClickWatched(new Date(selectedDate).toISOString());
+                                                             }
+                                                             setShowDatePicker(false);
+                                                             if (onActionComplete) onActionComplete();
+                                                         } catch (error) {
+                                                             console.error('Failed to update date:', error);
+                                                         } finally {
+                                                             setLoadingStates(prev => ({ ...prev, watched: false }));
+                                                         }
+                                                     }}
+                                                     disabled={loadingStates.watched}
+                                                     className="w-full p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium disabled:opacity-50"
+                                                 >
+                                                     {loadingStates.watched ? 'Updating...' : 'Update Date'}
+                                                 </button>
+                                             </div>
+                                         )}
+                                     </>
+                                 )}
 
-                                                </div>
-                                                <button
-                                                    onClick={async () => {
-                                                        setLoadingStates(prev => ({ ...prev, watched: true }));
-                                                        try {
-                                                            if (onUpdateWatchDate) {
-                                                                await onUpdateWatchDate(new Date(selectedDate).toISOString());
-                                                            } else if (onClickWatched) {
-                                                                await onClickWatched(new Date(selectedDate).toISOString());
-                                                            }
-                                                            setShowDatePicker(false);
-                                                            if (onActionComplete) onActionComplete();
-                                                        } catch (error) {
-                                                            console.error('Failed to update date:', error);
-                                                        } finally {
-                                                            setLoadingStates(prev => ({ ...prev, watched: false }));
-                                                        }
-                                                    }}
-                                                    disabled={loadingStates.watched}
-                                                    className="w-full p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium disabled:opacity-50"
-                                                >
-                                                    {loadingStates.watched ? 'Updating...' : 'Update Date'}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </>
-                                )}
+                                 {/* Watched Date Button - Show for search results (non-watched cards) */}
+                                 {!watched && onClickWatched && cardType === 'search' && (
+                                     <>
+                                         <button
+                                             onClick={() => setShowDatePicker(!showDatePicker)}
+                                             disabled={loadingStates.watched}
+                                             className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
+                                                 loadingStates.watched ? 'opacity-50 cursor-not-allowed' : ''
+                                             }`}
+                                         >
+                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"></polyline></svg>
+                                             {showDatePicker ? 'Cancel' : 'Watched'}
+                                         </button>
+                                         
+                                         {/* Date Picker for Search Results */}
+                                         {showDatePicker && (
+                                             <div className="p-4 bg-black/10 backdrop-blur-md rounded-lg space-y-3 border border-black/10">
+                                                 <label className="block text-sm font-medium text-gray-900">
+                                                     Select Watched Date
+                                                 </label>
+                                                 <div className="relative">
+                                                     <input
+                                                         type="date"
+                                                         value={selectedDate}
+                                                         onChange={(e) => setSelectedDate(e.target.value)}
+                                                         max={todayStr || undefined}
+                                                         className="w-full px-4 py-2 bg-white/50 backdrop-blur-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                                                     />
+                                                     {/* Display format hint */}
+                                                     <div className="text-xs text-gray-500 mt-1">
+                                                         Selected: {selectedDate ? (() => {
+                                                             const date = new Date(selectedDate);
+                                                             const day = date.getDate().toString().padStart(2, '0');
+                                                             const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                                                             const year = date.getFullYear();
+                                                             return `${day}/${month}/${year}`;
+                                                         })() : 'No date selected'}
+                                                     </div>
+                                                 </div>
+                                                 <button
+                                                     onClick={async () => {
+                                                         setLoadingStates(prev => ({ ...prev, watched: true }));
+                                                         try {
+                                                             if (onClickWatched) {
+                                                                 await onClickWatched(new Date(selectedDate).toISOString());
+                                                             }
+                                                             setShowDatePicker(false);
+                                                             if (onActionComplete) onActionComplete();
+                                                         } catch (error) {
+                                                             console.error('Failed to add to watched:', error);
+                                                         } finally {
+                                                             setLoadingStates(prev => ({ ...prev, watched: false }));
+                                                         }
+                                                     }}
+                                                     disabled={loadingStates.watched}
+                                                     className="w-full p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium disabled:opacity-50"
+                                                 >
+                                                     {loadingStates.watched ? 'Adding...' : 'Add to Watched'}
+                                                 </button>
+                                             </div>
+                                         )}
+                                     </>
+                                 )}
 
-                                {/* Watched Date Button - Show for search results (non-watched cards) */}
-                                {!watched && onClickWatched && cardType === 'search' && (
-                                    <>
-                                        <button
-                                            onClick={() => setShowDatePicker(!showDatePicker)}
-                                            disabled={loadingStates.watched}
-                                            className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
-                                                loadingStates.watched ? 'opacity-50 cursor-not-allowed' : ''
-                                            }`}
-                                        >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                            </svg>
-                                            {showDatePicker ? 'Cancel' : 'Watched'}
-                                        </button>
-                                        
-                                        {/* Date Picker for Search Results */}
-                                        {showDatePicker && (
-                                            <div className="p-4 bg-black/10 backdrop-blur-md rounded-lg space-y-3 border border-black/10">
-                                                <label className="block text-sm font-medium text-gray-900">
-                                                    Select Watched Date
-                                                </label>
-                                                <div className="relative">
-                                                    <input
-                                                        type="date"
-                                                        value={selectedDate}
-                                                        onChange={(e) => setSelectedDate(e.target.value)}
-                                                        max={todayStr || undefined}
-                                                        className="w-full px-4 py-2 bg-white/50 backdrop-blur-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                                                    />
-                                                    {/* Display format hint */}
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        Selected: {selectedDate ? (() => {
-                                                            const date = new Date(selectedDate);
-                                                            const day = date.getDate().toString().padStart(2, '0');
-                                                            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                                                            const year = date.getFullYear();
-                                                            return `${day}/${month}/${year}`;
-                                                        })() : 'No date selected'}
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={async () => {
-                                                        setLoadingStates(prev => ({ ...prev, watched: true }));
-                                                        try {
-                                                            if (onClickWatched) {
-                                                                await onClickWatched(new Date(selectedDate).toISOString());
-                                                            }
-                                                            setShowDatePicker(false);
-                                                            if (onActionComplete) onActionComplete();
-                                                        } catch (error) {
-                                                            console.error('Failed to add to watched:', error);
-                                                        } finally {
-                                                            setLoadingStates(prev => ({ ...prev, watched: false }));
-                                                        }
-                                                    }}
-                                                    disabled={loadingStates.watched}
-                                                    className="w-full p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium disabled:opacity-50"
-                                                >
-                                                    {loadingStates.watched ? 'Adding...' : 'Add to Watched'}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </>
-                                )}
+                                 {/* Hide other buttons when date picker is open */}
+                                 {!showDatePicker && (
+                                     <>
+                                         {/* Regular Watched Button - Show for non-search results */}
+                                         {!watched && onClickWatched && cardType !== 'search' && (
+                                             <button
+                                                 onClick={() => handleAction('watched', () => onClickWatched && onClickWatched(null))}
+                                                 disabled={loadingStates.watched}
+                                                 className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
+                                                     loadingStates.watched ? 'opacity-50 cursor-not-allowed' : ''
+                                                 }`}
+                                             >
+                                                 {loadingStates.watched ? (
+                                                     <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                                     </svg>
+                                                 ) : (
+                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <polyline points="20,6 9,17 4,12"></polyline>
+                                                     </svg>
+                                                 )}
+                                                 {loadingStates.watched ? 'Marking...' : 'Watched'}
+                                             </button>
+                                         )}
 
-                                {/* Regular Watched Button - Show for non-search results */}
-                                {!watched && onClickWatched && cardType !== 'search' && (
-                                    <button
-                                        onClick={() => handleAction('watched', () => onClickWatched && onClickWatched(null))}
-                                        disabled={loadingStates.watched}
-                                        className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
-                                            loadingStates.watched ? 'opacity-50 cursor-not-allowed' : ''
-                                        }`}
-                                    >
-                                        {loadingStates.watched ? (
-                                            <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <polyline points="20,6 9,17 4,12"></polyline>
-                                            </svg>
-                                        )}
-                                        {loadingStates.watched ? 'Marking...' : 'Watched'}
-                                    </button>
-                                )}
+                                         {/* Watching Button - Show for all cards */}
+                                         {onClickWatching && (
+                                             <button
+                                                 onClick={() => handleAction('watching', () => onClickWatching && onClickWatching())}
+                                                 disabled={loadingStates.watching}
+                                                 className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
+                                                     loadingStates.watching ? 'opacity-50 cursor-not-allowed' : ''
+                                                 }`}
+                                             >
+                                                 {loadingStates.watching ? (
+                                                     <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                                     </svg>
+                                                 ) : (
+                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <polygon points="5,3 19,12 5,21"></polygon>
+                                                     </svg>
+                                                 )}
+                                                 {loadingStates.watching ? 'Updating...' : 'Watching'}
+                                             </button>
+                                         )}
 
-                                {/* Watching Button - Show for all cards */}
-                                {onClickWatching && (
-                                    <button
-                                        onClick={() => handleAction('watching', () => onClickWatching && onClickWatching())}
-                                        disabled={loadingStates.watching}
-                                        className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
-                                            loadingStates.watching ? 'opacity-50 cursor-not-allowed' : ''
-                                        }`}
-                                    >
-                                        {loadingStates.watching ? (
-                                            <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <polygon points="5,3 19,12 5,21"></polygon>
-                                            </svg>
-                                        )}
-                                        {loadingStates.watching ? 'Updating...' : 'Watching'}
-                                    </button>
-                                )}
+                                         {/* Watchlist Button - Show for all cards */}
+                                         {onClickWishlist && (
+                                             <button
+                                                 onClick={() => handleAction('wishlist', () => onClickWishlist && onClickWishlist())}
+                                                 disabled={loadingStates.wishlist}
+                                                 className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
+                                                     loadingStates.wishlist ? 'opacity-50 cursor-not-allowed' : ''
+                                                 }`}
+                                             >
+                                                 {loadingStates.wishlist ? (
+                                                     <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                                     </svg>
+                                                 ) : (
+                                                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+                                                     </svg>
+                                                 )}
+                                                 {loadingStates.wishlist ? 'Updating...' : 'Watchlist'}
+                                             </button>
+                                         )}
 
-                                {/* Watchlist Button - Show for all cards */}
-                                {onClickWishlist && (
-                                    <button
-                                        onClick={() => handleAction('wishlist', () => onClickWishlist && onClickWishlist())}
-                                        disabled={loadingStates.wishlist}
-                                        className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
-                                            loadingStates.wishlist ? 'opacity-50 cursor-not-allowed' : ''
-                                        }`}
-                                    >
-                                        {loadingStates.wishlist ? (
-                                            <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
-                                            </svg>
-                                        )}
-                                        {loadingStates.wishlist ? 'Updating...' : 'Watchlist'}
-                                    </button>
-                                )}
-
-                                {/* Remove Button - Only show for movies already in a list */}
-                                {(watched || cardType === 'watching' || cardType === 'wishlist') && (
-                                    <button
-                                        onClick={() => handleAction('remove', async () => {
-                                            if (watched && onRemoveWatched) {
-                                                await onRemoveWatched();
-                                            } else if (cardType === 'watching' && onClickWatching) {
-                                                await onClickWatching();
-                                            } else if (cardType === 'wishlist' && onClickWishlist) {
-                                                await onClickWishlist();
-                                            }
-                                        })}
-                                        disabled={loadingStates.remove}
-                                        className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
-                                            loadingStates.remove ? 'opacity-50 cursor-not-allowed' : ''
-                                        }`}
-                                    >
-                                        {loadingStates.remove ? (
-                                            <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                                            </svg>
-                                        )}
-                                        {loadingStates.remove ? 'Removing...' : 'Remove'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                                         {/* Remove Button - Only show for movies already in a list */}
+                                         {(watched || cardType === 'watching' || cardType === 'wishlist') && (
+                                             <button
+                                                 onClick={() => handleAction('remove', async () => {
+                                                     if (watched && onRemoveWatched) {
+                                                         await onRemoveWatched();
+                                                     } else if (cardType === 'watching' && onClickWatching) {
+                                                         await onClickWatching();
+                                                     } else if (cardType === 'wishlist' && onClickWishlist) {
+                                                         await onClickWishlist();
+                                                     }
+                                                 })}
+                                                 disabled={loadingStates.remove}
+                                                 className={`w-full flex items-center justify-center gap-3 p-2 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-lg transition-all duration-300 font-medium ${
+                                                     loadingStates.remove ? 'opacity-50 cursor-not-allowed' : ''
+                                                 }`}
+                                             >
+                                                 {loadingStates.remove ? (
+                                                     <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                                     </svg>
+                                                 ) : (
+                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                         <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                     </svg>
+                                                 )}
+                                                 {loadingStates.remove ? 'Removing...' : 'Remove'}
+                                             </button>
+                                         )}
+                                     </>
+                                 )}
+                             </div>
+                         </div>
                     </div>
                 </div>
             </div>
