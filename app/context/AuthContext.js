@@ -321,8 +321,8 @@ export function AuthProvider({ children }) {
       
       console.log('Complete logout cleanup finished');
       
-      // Force a complete page reload to ensure clean state
-      window.location.replace('/login');
+      // Reload the page to show the logged-out state
+      window.location.reload();
       
     } catch (error) {
       console.error('Unexpected error during sign out:', error);
@@ -333,7 +333,38 @@ export function AuthProvider({ children }) {
         localStorage.clear();
         sessionStorage.clear();
       }
-      window.location.replace('/login');
+      window.location.reload();
+    }
+  };
+
+  // Google login function with redirect (separate page)
+  const signInWithGoogle = async () => {
+    try {
+      console.log('Starting Google login with redirect...');
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          // Force account selection
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline'
+          }
+        }
+      });
+      
+      if (error) {
+        console.error('OAuth error:', error);
+        throw error;
+      }
+      
+      // The browser will redirect to Google OAuth page
+      // No need to return anything as the page will redirect
+      
+    } catch (error) {
+      console.error('Error logging in with Google:', error.message);
+      throw error;
     }
   };
 
@@ -343,6 +374,7 @@ export function AuthProvider({ children }) {
     validateSession,
     withSessionValidation,
     signOut,
+    signInWithGoogle,
   }
 
   return (
