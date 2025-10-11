@@ -284,7 +284,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
 
                 {/* Rating Badge */}
                 {movie.imdbRating && movie.imdbRating !== "N/A" && (
-                    <div className={`absolute top-2 left-2 text-white px-2 py-1 rounded-lg shadow-lg flex items-center gap-1 text-xs font-bold ${
+                    <div className={`absolute opacity-100 top-2 left-2 text-white px-1 pe-2 py-1 rounded-lg shadow-lg flex items-center gap-1 text-xs font-bold ${
                         movie.ratingSource === "IMDB" 
                             ? "bg-yellow-500" 
                             : movie.ratingSource === "TMDB" 
@@ -295,33 +295,33 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                         </svg>
                         <span>{movie.imdbRating}</span>
-                        {movie.ratingSource && movie.ratingSource !== "N/A" && (
+                        {/* {movie.ratingSource && movie.ratingSource !== "N/A" && (
                             <span className="hidden md:inline text-[10px] opacity-75 ml-0.5">
                                 {movie.ratingSource === "IMDB" ? "IMDb" : movie.ratingSource}
                             </span>
-                        )}
+                        )} */}
                     </div>
                 )}
 
                 {/* Status indicator for watched movies - always visible */}
-                {isWatched && (
+                {/* {isWatched && (
                     <div className="absolute top-2 right-2 bg-green-600 text-white w-5 h-5 rounded-full shadow-2xl flex items-center justify-center">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                             <polyline points="20,6 9,17 4,12"></polyline>
                         </svg>
                         <div className="absolute inset-0 bg-white/20 rounded-full"></div>
                     </div>
-                )}
+                )} */}
 
                 {/* Wishlist indicator - always visible when in wishlist */}
-                {isWishlist && !isWatched && (
+                {/* {isWishlist && !isWatched && (
                     <div className="absolute top-2 right-2 bg-purple-600 text-white w-5 h-5 rounded-full shadow-2xl flex items-center justify-center">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
                         </svg>
                         <div className="absolute inset-0 bg-white/20 rounded-full"></div>
                     </div>
-                )}
+                )} */}
 
             </div>
 
