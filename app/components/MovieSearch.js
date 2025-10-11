@@ -746,7 +746,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                             )}
                             <button
                                 type="submit"
-                                className="p-2.5 bg-black/10 backdrop-blur-md hover:bg-black/20 border border-black/10 text-black rounded-full transition-colors flex items-center justify-center"
+                                className="p-2.5 bg-white backdrop-blur-md hover:bg-white/20 border border-black/10 text-black rounded-full transition-colors flex items-center justify-center"
                                 disabled={loadingMovie || !searchTerm.trim()}
                                 title="Search"
                             >
