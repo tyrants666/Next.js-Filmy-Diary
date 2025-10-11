@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useMovieCache } from '../context/MovieCacheContext';
 import MovieCard from './MovieCard';
 import ConfirmationModal from './ConfirmationModal';
 import LoginModal from './LoginModal';
@@ -11,6 +12,7 @@ import LoginModal from './LoginModal';
 export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSavedMovies, onSearchStateChange, user, onMovieClick }) {
     const { showSuccess, showError, showInfo } = useToast();
     const { validateSession } = useAuth();
+    const { cacheSearchResults } = useMovieCache();
 
     // Function to validate and fix poster URLs
     const validatePosterUrl = (url, source = "Unknown") => {
@@ -271,12 +273,28 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 if (page === 1) {
                     // Limit initial load to moviesPerPage (18 movies)
                     transformedMovies = transformedMovies.slice(0, moviesPerPage);
-                    setMovies(transformedMovies);
+                    
+                    // Cache search results with poster validation
+                    cacheSearchResults(transformedMovies).then(enhancedMovies => {
+                        setMovies(enhancedMovies);
+                    }).catch(error => {
+                        console.log('Some posters failed to validate:', error);
+                        setMovies(transformedMovies); // Fallback to original movies
+                    });
                 } else {
                     // Filter out any duplicates before appending
                     const existingIds = new Set(movies.map(m => m.imdbID));
                     const newMovies = transformedMovies.filter(movie => !existingIds.has(movie.imdbID));
-                    setMovies(prevMovies => [...prevMovies, ...newMovies]);
+                    
+                    // Cache new movies with poster validation
+                    if (newMovies.length > 0) {
+                        cacheSearchResults(newMovies).then(enhancedNewMovies => {
+                            setMovies(prevMovies => [...prevMovies, ...enhancedNewMovies]);
+                        }).catch(error => {
+                            console.log('Some posters failed to validate:', error);
+                            setMovies(prevMovies => [...prevMovies, ...newMovies]); // Fallback
+                        });
+                    }
                 }
                 
                 // Update total results count

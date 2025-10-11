@@ -2,14 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useMovieCache } from '../context/MovieCacheContext';
 
 const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatching, onClickWishlist, onRemoveWatched, onUpdateWatchDate, watched, wishlist, cardType = 'search', onActionComplete }) => {
+    
+    const { getPosterUrl } = useMovieCache();
     
     const [isVisible, setIsVisible] = useState(false);
     const [imageError, setImageError] = useState(false);
     const [currentPosterIndex, setCurrentPosterIndex] = useState(0);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState('');
+    const [cachedPosterUrl, setCachedPosterUrl] = useState(null);
+    const [isLoadingPoster, setIsLoadingPoster] = useState(false);
     const [loadingStates, setLoadingStates] = useState({
         watched: false,
         watching: false,
@@ -19,39 +24,49 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
     // Compute client-only today string once to avoid SSR/client mismatch
     const [todayStr, setTodayStr] = useState('');
 
-    // Generate alternative poster URLs for fallback
-    const getPosterAlternatives = () => {
-        const alternatives = [];
-        
-        if (movie?.Poster && movie.Poster !== "N/A") {
-            alternatives.push(movie.Poster);
+    // Load and cache poster when movie changes
+    useEffect(() => {
+        if (!movie) {
+            setCachedPosterUrl(null);
+            setImageError(false);
+            setCurrentPosterIndex(0);
+            setIsLoadingPoster(false);
+            return;
         }
-        
-        // If primary poster is TMDB, try different TMDB poster sizes
-        if (movie?.Poster && movie.Poster.includes('image.tmdb.org')) {
-            const posterPath = movie.Poster.split('/').pop();
-            const tmdbBaseUrl = 'https://image.tmdb.org/t/p';
-            alternatives.push(
-                `${tmdbBaseUrl}/w500/${posterPath}`,
-                `${tmdbBaseUrl}/w342/${posterPath}`,
-                `${tmdbBaseUrl}/w185/${posterPath}`,
-                `${tmdbBaseUrl}/original/${posterPath}`
-            );
-        }
-        
-        // If we have IMDB ID, try direct IMDB poster URLs as final fallback
-        if (movie?.imdbID && movie.imdbID.startsWith('tt')) {
-            alternatives.push(
-                `https://m.media-amazon.com/images/M/${movie.imdbID}.jpg`,
-                `https://ia.media-imdb.com/images/M/${movie.imdbID}._V1_SX300.jpg`,
-                `https://ia.media-imdb.com/images/M/${movie.imdbID}._V1_.jpg`
-            );
-        }
-        
-        return alternatives;
-    };
 
-    const posterAlternatives = movie ? getPosterAlternatives() : [];
+        // Check if movie already has cached poster URL
+        const movieData = movie.movies || movie;
+        if (movieData.cachedPosterUrl && movieData.posterTimestamp && 
+            Date.now() - movieData.posterTimestamp < 30 * 60 * 1000) { // 30 minutes
+            setCachedPosterUrl(movieData.cachedPosterUrl);
+            setImageError(false);
+            setCurrentPosterIndex(0);
+            setIsLoadingPoster(false);
+            return;
+        }
+
+        // If not cached, start loading and caching
+        setIsLoadingPoster(true);
+        setCachedPosterUrl(null);
+        setImageError(false);
+        setCurrentPosterIndex(0);
+
+        getPosterUrl(movie).then((url) => {
+            if (url) {
+                setCachedPosterUrl(url);
+            } else {
+                setImageError(true);
+            }
+        }).catch((error) => {
+            console.error('Error loading poster:', error);
+            setImageError(true);
+        }).finally(() => {
+            setIsLoadingPoster(false);
+        });
+    }, [movie, getPosterUrl]);
+
+    // Get poster alternatives for fallback (keeping the old logic as backup)
+    const posterAlternatives = movie ? [movie.Poster, movie.poster].filter(Boolean) : [];
 
     // Helper functions for loading states
     const setLoading = (action, loading) => {
@@ -156,10 +171,39 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                 </button>
 
                 <div className="flex flex-col h-full">
-                    {/* TMDB Backdrop - 50% height */}
+                    {/* Movie Poster */}
                     <div className="w-full relative h-full">
                         <div className="w-full h-full relative">
-                            {posterAlternatives.length > 0 && !imageError ? (
+                            {isLoadingPoster ? (
+                                <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                                    <div className="text-center">
+                                        <div className="w-16 h-16 mx-auto mb-4 bg-gray-300 rounded-lg flex items-center justify-center">
+                                            <svg className="w-8 h-8 text-gray-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                            </svg>
+                                        </div>
+                                        <p className="text-gray-600 font-medium">Loading Poster...</p>
+                                    </div>
+                                </div>
+                            ) : cachedPosterUrl && !imageError ? (
+                                <Image
+                                    src={cachedPosterUrl}
+                                    alt={movie?.Title || 'Movie Poster'}
+                                    fill
+                                    className="object-cover"
+                                    sizes="(max-width: 768px) 100vw, 40vw"
+                                    onError={() => {
+                                        // If cached poster fails, try fallback alternatives
+                                        if (currentPosterIndex < posterAlternatives.length - 1) {
+                                            setCurrentPosterIndex(currentPosterIndex + 1);
+                                            setCachedPosterUrl(posterAlternatives[currentPosterIndex + 1]);
+                                        } else {
+                                            setImageError(true);
+                                        }
+                                    }}
+                                    priority={isOpen} // Prioritize loading when slider is open
+                                />
+                            ) : posterAlternatives.length > 0 && currentPosterIndex < posterAlternatives.length ? (
                                 <Image
                                     src={posterAlternatives[currentPosterIndex]}
                                     alt={movie?.Title || 'Movie Poster'}

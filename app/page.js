@@ -234,6 +234,8 @@ export default function Home() {
             setLastFetchTime(Date.now());
             setIsInitialLoad(false);
             
+            // Poster validation is now handled automatically by MovieCacheContext.updateCache()
+            
             if (!shouldShowLoading) {
                 console.log('🔄 Background refresh completed');
             }
