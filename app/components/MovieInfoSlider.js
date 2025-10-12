@@ -168,7 +168,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
             />
             
             {/* Slider Content */}
-            <div className={`fixed bottom-0 md:top-0 right-0 h-[90vh] backdrop-blur-[45px] md:h-full w-full md:w-[370px] shadow-xl shadow-black/60 transform transition-transform duration-500 overflow-hidden rounded-t-3xl md:rounded-none ${
+            <div className={`fixed bottom-0 md:top-0 right-0 h-[90vh] backdrop-blur-[45px] md:h-full w-full md:w-[370px] shadow-xl shadow-black/60 transform transition-transform duration-500 rounded-t-3xl md:rounded-none ${
                 isOpen ? 'translate-y-0 md:translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'
             }`}>
                 {/* Close Button */}
@@ -183,8 +183,8 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
 
                 <div className="flex flex-col h-full">
                     {/* Movie Poster */}
-                    <div className="w-full relative h-full">
-                        <div className="w-full h-full relative">
+                    <div className="w-full relative h-full p-6 pb-0">
+                        <div className="w-full h-full relative overflow-hidden rounded-[10px]">
                             {isLoadingPoster ? (
                                 <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
                                     <div className="text-center">
