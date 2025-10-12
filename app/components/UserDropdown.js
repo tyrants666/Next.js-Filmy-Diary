@@ -3,12 +3,37 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
-import { IoSettings, IoLogOut, IoPerson } from 'react-icons/io5';
+import { supabase } from '../lib/supabaseClient';
+import { IoSettings, IoLogOut, IoPerson, IoDocumentText } from 'react-icons/io5';
 
 const UserDropdown = ({ user, isSigningOut, onSignOut }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [userRole, setUserRole] = useState(null);
     const dropdownRef = useRef(null);
     const router = useRouter();
+
+    // Fetch user role
+    useEffect(() => {
+        const fetchUserRole = async () => {
+            if (!user) return;
+            
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+
+                if (!error && profile) {
+                    setUserRole(profile.role);
+                }
+            } catch (error) {
+                console.error('Error fetching user role:', error);
+            }
+        };
+
+        fetchUserRole();
+    }, [user]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -32,6 +57,11 @@ const UserDropdown = ({ user, isSigningOut, onSignOut }) => {
     const handleSettingsClick = () => {
         setIsOpen(false);
         router.push('/settings');
+    };
+
+    const handleUserLogsClick = () => {
+        setIsOpen(false);
+        router.push('/user-logs');
     };
 
     return (
@@ -62,6 +92,17 @@ const UserDropdown = ({ user, isSigningOut, onSignOut }) => {
 
                     {/* Menu Items */}
                     <div className="py-1">
+                        {/* Show User logs only for superadmin */}
+                        {userRole === 'superadmin' && (
+                            <button
+                                onClick={handleUserLogsClick}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                                <IoDocumentText className="w-4 h-4" />
+                                User Logs
+                            </button>
+                        )}
+                        
                         <button
                             onClick={handleSettingsClick}
                             className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"

@@ -80,7 +80,7 @@ export default function WatchlistPage() {
                     watched_date,
                     updated_at,
                     created_at,
-                    movies (
+                    movies!user_movies_movie_id_fkey (
                         id,
                         movie_id,
                         title,

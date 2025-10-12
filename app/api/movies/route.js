@@ -20,7 +20,7 @@ export async function GET(request) {
             .select(`
         id,
         status,
-        movies (
+        movies!user_movies_movie_id_fkey (
           id,
           movie_id,
           title,
