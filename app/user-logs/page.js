@@ -231,13 +231,13 @@ export default function UserLogsPage() {
                 </div> */}
 
                 {/* Logs List */}
-                <div className="space-y-4">
+                <div className="space-y-2">
                     {logs.map((log, index) => {
                         const statusInfo = getStatusInfo(log.status);
                         const StatusIcon = statusInfo.icon;
                         
                         return (
-                            <div key={`${log.id}-${index}`} className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow">
+                            <div key={`${log.id}-${index}`} className="bg-white rounded-lg shadow-sm p-3 hover:shadow-md transition-shadow">
                                 {/* Mobile Layout */}
                                 <div className="block sm:hidden">
                                     {/* Top Row: Image + Info + Badge */}
