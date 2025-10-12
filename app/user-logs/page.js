@@ -300,18 +300,8 @@ export default function UserLogsPage() {
                                     <div className="flex flex-col gap-1 text-xs text-gray-500 border-t border-gray-100 pt-2">
                                         <div className="flex items-center gap-1">
                                             <IoTime className="w-3 h-3" />
-                                            <span>Added: {formatDate(log.created_at)}</span>
+                                            <span>Updated: {formatDate(log.updated_at)}</span>
                                         </div>
-                                        {log.updated_at !== log.created_at && (
-                                            <div className="flex items-center gap-1 ml-4">
-                                                <span>Updated: {formatDate(log.updated_at)}</span>
-                                            </div>
-                                        )}
-                                        {log.watched_date && (
-                                            <div className="flex items-center gap-1 ml-4">
-                                                <span>Watched: {formatDate(log.watched_date)}</span>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
 
@@ -380,18 +370,8 @@ export default function UserLogsPage() {
                                         <div className="flex items-center gap-4 text-sm text-gray-500">
                                             <div className="flex items-center gap-1">
                                                 <IoTime className="w-4 h-4" />
-                                                <span>Added: {formatDate(log.created_at)}</span>
+                                                <span>Updated: {formatDate(log.updated_at)}</span>
                                             </div>
-                                            {log.updated_at !== log.created_at && (
-                                                <div className="flex items-center gap-1">
-                                                    <span>Updated: {formatDate(log.updated_at)}</span>
-                                                </div>
-                                            )}
-                                            {log.watched_date && (
-                                                <div className="flex items-center gap-1">
-                                                    <span>Watched: {formatDate(log.watched_date)}</span>
-                                                </div>
-                                            )}
                                         </div>
                                     </div>
                                 </div>

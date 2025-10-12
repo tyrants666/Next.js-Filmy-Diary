@@ -339,6 +339,10 @@ export default function WatchingPage() {
                 isOpen={isSliderOpen}
                 onClose={() => setIsSliderOpen(false)}
                 movie={selectedMovie}
+                onActionComplete={() => {
+                    // Refresh the data after any action
+                    fetchWatchingMovies(true, false);
+                }}
                 onClickWatched={async (watchedDate) => {
                     if (selectedMovie) {
                         const movieItem = savedMovies.find(item => 

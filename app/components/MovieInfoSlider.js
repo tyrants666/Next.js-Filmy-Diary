@@ -87,6 +87,8 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
         try {
             await actionFunction();
             if (onActionComplete) onActionComplete();
+            // Close the modal after successful action
+            onClose();
         } catch (error) {
             console.error('Action failed:', error);
         } finally {

@@ -339,6 +339,10 @@ export default function WatchlistPage() {
                 isOpen={isSliderOpen}
                 onClose={() => setIsSliderOpen(false)}
                 movie={selectedMovie}
+                onActionComplete={() => {
+                    // Refresh the data after any action
+                    fetchWatchlistMovies(true, false);
+                }}
                 onClickWatched={async (watchedDate) => {
                     if (selectedMovie) {
                         const movieItem = savedMovies.find(item => 
