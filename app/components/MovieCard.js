@@ -21,6 +21,13 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
     const getPosterAlternatives = () => {
         const alternatives = [];
         
+        // Use cached poster URL first if available (for consistency with MovieInfoSlider)
+        const movieData = movie.movies || movie;
+        if (movieData.cachedPosterUrl && movieData.posterTimestamp && 
+            Date.now() - movieData.posterTimestamp < 30 * 60 * 1000) { // 30 minutes
+            alternatives.push(movieData.cachedPosterUrl);
+        }
+        
         // Primary poster (should be TMDB if available)
         if (movie.Poster && movie.Poster !== "N/A") {
             alternatives.push(movie.Poster);
@@ -63,7 +70,8 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
 
     useEffect(() => {
         setImageError(false); // Reset image error when movie changes
-    }, [movie.Poster]);
+        setCurrentPosterIndex(0); // Reset to first poster alternative
+    }, [movie.Poster, movie.cachedPosterUrl, movie.movies?.cachedPosterUrl]);
 
     const handleWatchedClick = async () => {
         setIsWatchedLoading(true);

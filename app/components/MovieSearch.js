@@ -277,9 +277,11 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                     // Cache search results with poster validation
                     cacheSearchResults(transformedMovies).then(enhancedMovies => {
                         setMovies(enhancedMovies);
+                        setLoadingMovie(false); // Hide loader only after movies are set
                     }).catch(error => {
                         console.log('Some posters failed to validate:', error);
                         setMovies(transformedMovies); // Fallback to original movies
+                        setLoadingMovie(false); // Hide loader only after movies are set
                     });
                 } else {
                     // Filter out any duplicates before appending
@@ -306,6 +308,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             } else {
                 setError('No movies found');
                 setHasMorePages(false);
+                setLoadingMovie(false); // Hide loader when no results found
             }
 
 
@@ -313,9 +316,9 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             setError('An error occurred. Please try again.');
             console.error(err); 
             setHasMorePages(false);
-        } finally {
-            setLoadingMovie(false);
+            setLoadingMovie(false); // Hide loader on error
         }
+        // Note: setLoadingMovie(false) is now called in the success path after movies are set
     };
 
     const handleSearch = async (e) => {

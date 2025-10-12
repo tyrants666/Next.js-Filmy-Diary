@@ -34,7 +34,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
             return;
         }
 
-        // Check if movie already has cached poster URL
+        // Check if movie already has cached poster URL (same logic as MovieCard)
         const movieData = movie.movies || movie;
         if (movieData.cachedPosterUrl && movieData.posterTimestamp && 
             Date.now() - movieData.posterTimestamp < 30 * 60 * 1000) { // 30 minutes
@@ -45,7 +45,16 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
             return;
         }
 
-        // If not cached, start loading and caching
+        // If not cached, try the primary poster URL first (same as MovieCard)
+        if (movie.Poster && movie.Poster !== "N/A") {
+            setCachedPosterUrl(movie.Poster);
+            setImageError(false);
+            setCurrentPosterIndex(0);
+            setIsLoadingPoster(false);
+            return;
+        }
+
+        // If no primary poster, start loading and caching
         setIsLoadingPoster(true);
         setCachedPosterUrl(null);
         setImageError(false);
@@ -202,6 +211,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                         }
                                     }}
                                     priority={isOpen} // Prioritize loading when slider is open
+                                    unoptimized // Use same optimization setting as MovieCard for cache consistency
                                 />
                             ) : posterAlternatives.length > 0 && currentPosterIndex < posterAlternatives.length ? (
                                 <Image
@@ -211,6 +221,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                     className="object-cover"
                                     sizes="(max-width: 768px) 100vw, 40vw"
                                     onError={handleImageError}
+                                    unoptimized // Use same optimization setting as MovieCard for cache consistency
                                 />
                             ) : (
                                 <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
