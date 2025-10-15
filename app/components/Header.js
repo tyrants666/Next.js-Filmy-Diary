@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { IoBookmark, IoPlayCircle, IoCheckmarkCircle } from 'react-icons/io5';
+import { IoBookmark, IoPlayCircle, IoCheckmarkCircle, IoCompass } from 'react-icons/io5';
 import UserDropdown from './UserDropdown';
 import GoogleLoginButton from './GoogleLoginButton';
 import SearchInput from './SearchInput';
@@ -39,6 +39,13 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
                     <>
                         {/* Navigation Icons */}
                         <div className="flex items-center">
+                            <button 
+                                onClick={() => router.push('/explore')}
+                                className="p-1.5 text-blue-600"
+                                title="Explore Movies"
+                            >
+                                <IoCompass className="w-5 h-5" />
+                            </button>
                             <button 
                                 onClick={() => router.push('/watchlist')}
                                 className="p-1.5 text-purple-600"

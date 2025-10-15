@@ -10,6 +10,7 @@ import MovieInfoSlider from './components/MovieInfoSlider';
 import Header from './components/Header';
 import TMDBBanner from './components/TMDBBanner';
 import GoogleLoginButton from './components/GoogleLoginButton';
+import PublicMovieSliders from './components/PublicMovieSliders';
 import { IoSettings, IoPlayCircle, IoBookmark, IoCheckmarkCircle, IoHome, IoList, IoEye } from 'react-icons/io5';
 import { useRouter } from 'next/navigation'
 import { useAuth } from './context/AuthContext'
@@ -1111,98 +1112,9 @@ export default function Home() {
                         </>
                     )}
                     
-                    {/* Show welcome message for non-authenticated users when not searching */}
+                    {/* Show movie sliders for non-authenticated users when not searching */}
                     {!user && !isSearchActive && (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                            {/* Cute movie character SVG */}
-                            <div className="mb-6">
-                                
-                                {/* <Image
-                                    src="/images/search-monster1.png"
-                                    alt="Search Monster"
-                                    width={250}
-                                    height={350}
-                                    className="mx-auto"
-                                    priority
-                                /> */}
-                            </div>
-                            
-                            <h3 className="text-xl font-semibold text-gray-600 mb-4">
-                                Welcome to Filmy Diary!
-                            </h3>
-                            
-                            {/* Getting Started Instructions */}
-                            <div className="bg-gray-50 rounded-lg p-4 max-w-md mb-3 text-sm">
-                                <h4 className="font-medium text-gray-700 mb-3">How to get started:</h4>
-                                <div className="space-y-2 text-left">
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></span>
-                                        <span className="text-gray-600">Search for your favorite movies and TV series</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></span>
-                                        <span className="text-gray-600">Sign in with Google to save them</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* Movie Lists Instructions */}
-                            <div className="bg-gray-50 rounded-lg p-4 max-w-md mb-3 text-sm">
-                                <h4 className="font-medium text-gray-700 mb-3">How to use your movie lists:</h4>
-                                <div className="space-y-2 text-left">
-                                    <div className="flex items-center gap-2">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-purple-600 flex-shrink-0">
-                                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
-                                        </svg>
-                                        <span className="text-gray-600">Add movies to <strong>Watchlist</strong> for later</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-red-500 flex-shrink-0">
-                                            <polygon points="5,3 19,12 5,21"></polygon>
-                                        </svg>
-                                        <span className="text-gray-600">Move to <strong>Currently Watching</strong> when you start</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-green-600 flex-shrink-0">
-                                            <polyline points="20,6 9,17 4,12"></polyline>
-                                        </svg>
-                                        <span className="text-gray-600">Mark as <strong>Watched</strong> when finished</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <GoogleLoginButton />
-                            
-                            {/* Upcoming Features */}
-                            <div className="bg-blue-50 rounded-lg p-4 max-w-md mt-[100px] text-sm border border-blue-100">
-                                <h4 className="font-medium text-blue-800 mb-3 flex items-center gap-2">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600">
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
-                                    </svg>
-                                    Coming Soon:
-                                </h4>
-                                <div className="space-y-2 text-left">
-                                    <div className="flex items-center gap-2">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-500 flex-shrink-0">
-                                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                                            <circle cx="9" cy="7" r="4"></circle>
-                                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                        </svg>
-                                        <span className="text-blue-700">Follow friends to see what they&apos;re watching</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-500 flex-shrink-0">
-                                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                                            <polyline points="16,6 12,2 8,6"></polyline>
-                                            <line x1="12" y1="2" x2="12" y2="15"></line>
-                                        </svg>
-                                        <span className="text-blue-700">Share your favorite movie lists with others</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <PublicMovieSliders onMovieClick={handleMovieClick} />
                     )}
                 </main>
 
