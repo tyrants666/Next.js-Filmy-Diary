@@ -450,18 +450,9 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                                          value={selectedDate}
                                                          onChange={(e) => setSelectedDate(e.target.value)}
                                                          max={todayStr || undefined}
-                                                         className="w-full px-4 py-2 bg-white/50 backdrop-blur-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                                                        className="w-full px-4 py-2 bg-black/10 backdrop-blur-sm border border-black/10 rounded-lg text-gray-900 focus:ring-0 focus:ring-transparent focus:border-transparent
+                                                                focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-transparent"
                                                      />
-                                                     {/* Display format hint */}
-                                                     <div className="text-xs text-gray-500 mt-1">
-                                                         Selected: {selectedDate ? (() => {
-                                                             const date = new Date(selectedDate);
-                                                             const day = date.getDate().toString().padStart(2, '0');
-                                                             const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                                                             const year = date.getFullYear();
-                                                             return `${day}/${month}/${year}`;
-                                                         })() : 'No date selected'}
-                                                     </div>
                                                  </div>
                                                  <button
                                                      onClick={async () => {
