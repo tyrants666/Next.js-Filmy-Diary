@@ -201,7 +201,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                     src={cachedPosterUrl}
                                     alt={movie?.Title || 'Movie Poster'}
                                     fill
-                                    className="object-cover"
+                                    className="object-cover object-top md:object-center"
                                     sizes="(max-width: 768px) 100vw, 40vw"
                                     onError={() => {
                                         // If cached poster fails, try fallback alternatives
