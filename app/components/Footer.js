@@ -51,7 +51,8 @@ export default function Footer() {
                             Made with ❤️ by
                         </p>
                         <a 
-                            href="https://www.instagram.com/akashxolotl" 
+                            href="" 
+                            // href="https://www.instagram.com/akashxolotl" 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
