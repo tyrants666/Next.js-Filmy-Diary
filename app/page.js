@@ -3,12 +3,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from "next/image";
 
-import MovieSearch from './components/MovieSearch';
 import MovieCard from './components/MovieCard';
+import MovieSearch from './components/MovieSearch';
+import MovieSlider from './components/MovieSlider';
+import MovieInfoSlider from './components/MovieInfoSlider';
+import Header from './components/Header';
+import TMDBBanner from './components/TMDBBanner';
 import GoogleLoginButton from './components/GoogleLoginButton';
+import PublicMovieSliders from './components/PublicMovieSliders';
+import { IoSettings, IoPlayCircle, IoBookmark, IoCheckmarkCircle, IoHome, IoList, IoEye } from 'react-icons/io5';
 import { useRouter } from 'next/navigation'
 import { useAuth } from './context/AuthContext'
 import { useToast } from './context/ToastContext'
+import { useMovieCache } from './context/MovieCacheContext'
 import { supabase } from './lib/supabaseClient';
 
 export default function Home() {
@@ -19,8 +26,11 @@ export default function Home() {
     const [lastFetchTime, setLastFetchTime] = useState(null);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [isSearchActive, setIsSearchActive] = useState(false);
+    const [selectedMovie, setSelectedMovie] = useState(null);
+    const [isSliderOpen, setIsSliderOpen] = useState(false);
     const { user, loading, signOut, validateSession } = useAuth()
     const { showSuccess, showError } = useToast()
+    const { clearCache } = useMovieCache()
     const router = useRouter()
 
     // Handle search state changes from MovieSearch component
@@ -28,7 +38,109 @@ export default function Home() {
         setIsSearchActive(isActive);
     };
 
-    // Cache configuration - like big companies do
+    // Handle movie click to open info slider
+    const handleMovieClick = (movie) => {
+        setSelectedMovie(movie);
+        setIsSliderOpen(true);
+    };
+
+    // Centralized functions for adding movies to different lists
+    const addToWatched = async (movieData, watchedDate = null) => {
+        try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (!sessionData.session) {
+                showError('You need to be logged in to add movies');
+                return;
+            }
+
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: sessionData.session.user.id,
+                    userEmail: sessionData.session.user.email,
+                    movieData,
+                    status: 'watched',
+                    watchedDate
+                })
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || 'Failed to add movie');
+            }
+
+            showSuccess(`"${movieData.Title}" added to watched movies`);
+            await fetchSavedMovies(true, false);
+        } catch (error) {
+            console.error('Error adding to watched:', error);
+            showError('Failed to add movie to watched list');
+        }
+    };
+
+    const addToWatching = async (movieData) => {
+        try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (!sessionData.session) {
+                showError('You need to be logged in to add movies');
+                return;
+            }
+
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: sessionData.session.user.id,
+                    userEmail: sessionData.session.user.email,
+                    movieData,
+                    status: 'currently_watching'
+                })
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || 'Failed to add movie');
+            }
+
+            showSuccess(`"${movieData.Title}" added to currently watching`);
+            await fetchSavedMovies(true, false);
+        } catch (error) {
+            console.error('Error adding to watching:', error);
+            showError('Failed to add movie to watching list');
+        }
+    };
+
+    const addToWatchlist = async (movieData) => {
+        try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (!sessionData.session) {
+                showError('You need to be logged in to add movies');
+                return;
+            }
+
+            const response = await fetch('/api/movies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: sessionData.session.user.id,
+                    userEmail: sessionData.session.user.email,
+                    movieData,
+                    status: 'wishlist'
+                })
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || 'Failed to add movie');
+            }
+
+            showSuccess(`"${movieData.Title}" added to watchlist`);
+            await fetchSavedMovies(true, false);
+        } catch (error) {
+            console.error('Error adding to watchlist:', error);
+            showError('Failed to add movie to watchlist');
+        }
+    };
     const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
     const STALE_WHILE_REVALIDATE_DURATION = 10 * 60 * 1000; // 10 minutes stale-while-revalidate
 
@@ -70,7 +182,7 @@ export default function Home() {
                     watched_date,
                     updated_at,
                     created_at,
-                    movies (
+                    movies!user_movies_movie_id_fkey (
                         id,
                         movie_id,
                         title,
@@ -78,7 +190,8 @@ export default function Home() {
                         year,
                         rating,
                         rating_source,
-                        type
+                        type,
+                        description
                     )
                 `)
                 .eq('user_id', user.id)
@@ -121,6 +234,8 @@ export default function Home() {
             setSavedMovies(combinedData);
             setLastFetchTime(Date.now());
             setIsInitialLoad(false);
+            
+            // Poster validation is now handled automatically by MovieCacheContext.updateCache()
             
             if (!shouldShowLoading) {
                 console.log('🔄 Background refresh completed');
@@ -254,6 +369,10 @@ export default function Home() {
             // Only update UI after successful API operation
             // Refresh data from database to get correct structure
             await fetchSavedMovies(true, false);
+            
+            // Clear global cache for both watching and watched to force refresh
+            clearCache('watching');
+            clearCache('watched');
 
             showSuccess(`"${movieData.Title}" moved to watched list!`);
             console.log('Successfully moved watching to watched');
@@ -533,6 +652,10 @@ export default function Home() {
             // Counter is now handled by the API - no need to manually update it here
             // Only update UI after successful API operation
             await fetchSavedMovies(true, false);
+            
+            // Clear global cache for both watching and watchlist to force refresh
+            clearCache('watching');
+            clearCache('watchlist');
 
             showSuccess(`"${movieData.Title}" moved to watchlist!`);
             console.log('Successfully moved watching to wishlist');
@@ -579,6 +702,10 @@ export default function Home() {
             // Counter is now handled by the API - no need to manually update it here
             // Only update UI after successful API operation
             await fetchSavedMovies(true, false);
+            
+            // Clear global cache for both watchlist and watching to force refresh
+            clearCache('watchlist');
+            clearCache('watching');
 
             showSuccess(`"${movieData.Title}" moved to currently watching!`);
             console.log('Successfully moved wishlist to watching');
@@ -625,6 +752,10 @@ export default function Home() {
             // Counter is now handled by the API - no need to manually update it here
             // Only update UI after successful API operation
             await fetchSavedMovies(true, false);
+            
+            // Clear global cache for both watched and watchlist to force refresh
+            clearCache('watched');
+            clearCache('watchlist');
 
             showSuccess(`"${movieData.Title}" moved to watchlist!`);
             console.log('Successfully moved watched to wishlist');
@@ -671,6 +802,10 @@ export default function Home() {
             // Counter is now handled by the API - no need to manually update it here
             // Only update UI after successful API operation
             await fetchSavedMovies(true, false);
+            
+            // Clear global cache for both watched and watching to force refresh
+            clearCache('watched');
+            clearCache('watching');
 
             showSuccess(`"${movieData.Title}" moved to currently watching!`);
             console.log('Successfully moved watched to watching');
@@ -695,6 +830,7 @@ export default function Home() {
             Type: savedMovie.movies.type || "movie", // Use the type from database, fallback to "movie"
             imdbRating: savedMovie.movies.rating || "N/A",
             ratingSource: savedMovie.movies.rating_source || "N/A",
+            Plot: savedMovie.movies.description || "N/A",
             watchedDate: savedMovie.watched_date || null
         };
     };
@@ -783,83 +919,25 @@ export default function Home() {
     // Remove the authentication check - allow all users to see the page
 
     return (
-        <div className="min-h-screen flex flex-col bg-white">
+        <div className="min-h-screen flex flex-col bg-white overflow-x-hidden">
 
-            <div className='container mx-auto text-black'>
-                <header className="py-4 m-4 mb-0 rounded-xl text-center flex justify-between items-center">
-                    <Image
-                        src="/images/logo.png"
-                        alt="Filmy Diary Logo"
-                        width={100}
-                        height={100}
-                        priority
-                    />
-                    <div className="flex items-center gap-2 sm:gap-4">
-                        {user ? (
-                            // Authenticated user header
-                            <>
-                                <span className="hidden sm:block">{user.user_metadata?.name?.split(' ')[0] || user.email}</span>
-                                <button 
-                                    onClick={() => router.push('/settings')}
-                                    className="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-black transition-colors"
-                                    title="Settings"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    </svg>
-                                </button>
-                                <button 
-                                    onClick={async () => {
-                                        if (isSigningOut) return; // Prevent double clicks
-                                        
-                                        setIsSigningOut(true);
-                                        try {
-                                            await signOut();
-                                        } catch (error) {
-                                            console.error('Sign out button error:', error);
-                                            // Force redirect even if signOut fails
-                                            window.location.reload();
-                                        } finally {
-                                            setIsSigningOut(false);
-                                        }
-                                    }} 
-                                    disabled={isSigningOut}
-                                    className={`p-2 rounded-lg transition-colors ${
-                                        isSigningOut 
-                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                                            : 'bg-gray-200 hover:bg-gray-300 text-black'
-                                    }`}
-                                    title={isSigningOut ? 'Signing Out...' : 'Sign Out'}
-                                >
-                                    {isSigningOut ? (
-                                        <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                        </svg>
-                                    ) : (
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                                        </svg>
-                                    )}
-                                </button>
-                            </>
-                        ) : (
-                            // Non-authenticated user header - Google Login button
-                            <GoogleLoginButton />
-                        )}
-                    </div>
-                </header>
-                <main className="flex-grow p-4">
-                    {/* Search section - Always visible */}
+            <div className='container mx-auto text-black px-4'>
+                <Header 
+                    currentPage="home" 
+                    showSearch={false}
+                />
+                
+                {/* Search Component - Show on both desktop and mobile */}
                     <MovieSearch 
                         savedMovies={savedMovies} 
                         fetchSavedMovies={() => fetchSavedMovies(true, false)}
                         setSavedMovies={setSavedMovies}
                         onSearchStateChange={handleSearchStateChange}
                         user={user}
+                        onMovieClick={handleMovieClick}
                     />
                     
-                    {/* ======================================== Saved movies section ======================================== */}
+                <main className="flex-grow pb-4">
                     {/* ======================================== Saved movies section ======================================== */}
                     
                     {user && (
@@ -869,118 +947,125 @@ export default function Home() {
                             ) : (savedMovies && savedMovies.length > 0) ? (
                         <div className="mt-8">
                             
-                            {/* Currently watching movies - First */}
+                            {/* TMDB Banner - Always show regardless of currently watching movies */}
+                            <TMDBBanner onMovieClick={handleMovieClick} />
+                            
+                            {/* Currently watching movies */}
                             {savedMovies.some(item => item.status === 'currently_watching') && (
-                                <div className="mb-10">
-                                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-red-500">
-                                            <polygon points="5,3 19,12 5,21"></polygon>
-                                        </svg>
-                                        Currently Watching
-                                    </h3>
-                                    <div className="flex flex-wrap gap-2 sm:gap-3">
-                                        {savedMovies
-                                            .filter(item => item.status === 'currently_watching')
-                                            .sort((a, b) => {
-                                                // Sort by updated_at (latest first) - this updates when status changes
-                                                const dateA = new Date(a.updated_at || a.created_at || 0);
-                                                const dateB = new Date(b.updated_at || b.created_at || 0);
-                                                return dateB - dateA;
-                                            })
-                                            .map(item => (
-                                                <MovieCard
-                                                    key={item.id}
-                                                    movie={transformSavedMovieToCardFormat(item)}
-                                                    onHover={() => null}
-                                                    onLeave={() => null}
-                                                    onClickWatched={(watchedDate) => moveWatchingToWatched(item.movies.id, transformSavedMovieToCardFormat(item), watchedDate)}
-                                                    onClickWatching={() => removeWatchingStatus(item.movies.id)}
-                                                    onClickWishlist={() => moveWatchingToWishlist(item.movies.id, transformSavedMovieToCardFormat(item))}
-                                                    onRemoveWatched={() => null}
-                                                    watched={false}
-                                                    cardType="watching"
-                                                />
-                                            ))
-                                        }
-                                    </div>
-                                </div>
+                                <MovieSlider
+                                    title="Currently Watching"
+                                    icon={<IoPlayCircle className="w-5 h-5 text-red-500" />}
+                                    movies={savedMovies
+                                        .filter(item => item.status === 'currently_watching')
+                                        .sort((a, b) => {
+                                            const dateA = new Date(a.updated_at || a.created_at || 0);
+                                            const dateB = new Date(b.updated_at || b.created_at || 0);
+                                            return dateB - dateA;
+                                        })
+                                        .slice(0, 25)
+                                        .map(item => ({
+                                            ...transformSavedMovieToCardFormat(item),
+                                            id: item.id,
+                                            watched: false,
+                                            wishlist: false
+                                        }))
+                                    }
+                                    seeAllLink={(savedMovies.filter(item => item.status === 'currently_watching').length > 2) ? "/watching" : undefined}
+                                    onMovieClick={handleMovieClick}
+                                    onClickWatched={(movie, watchedDate) => {
+                                        const item = savedMovies.find(saved => saved.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID));
+                                        if (item) moveWatchingToWatched(item.movies.id, movie, watchedDate);
+                                    }}
+                                    onClickWatching={(movie) => {
+                                        const item = savedMovies.find(saved => saved.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID));
+                                        if (item) removeWatchingStatus(item.movies.id);
+                                    }}
+                                    onClickWishlist={(movie) => {
+                                        const item = savedMovies.find(saved => saved.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID));
+                                        if (item) moveWatchingToWishlist(item.movies.id, movie);
+                                    }}
+                                    cardType="watching"
+                                />
                             )}
 
                             {/* Watchlist movies - Second */}
                             {savedMovies.some(item => item.status === 'wishlist') && (
-                                <div className="mb-10">
-                                    <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-purple-600">
-                                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
-                                        </svg>
-                                        Watchlist
-                                    
-                                    </h3>
-                                    <div className="flex flex-wrap gap-2 sm:gap-3">
-                                        {savedMovies
-                                            .filter(item => item.status === 'wishlist')
-                                            .sort((a, b) => {
-                                                // Sort by updated_at (latest first) - this updates when status changes
-                                                const dateA = new Date(a.updated_at || a.created_at || 0);
-                                                const dateB = new Date(b.updated_at || b.created_at || 0);
-                                                return dateB - dateA;
-                                            })
-                                            .map(item => (
-                                                <MovieCard
-                                                    key={item.id}
-                                                    movie={transformSavedMovieToCardFormat(item)}
-                                                    onHover={() => null}
-                                                    onLeave={() => null}
-                                                    onClickWatched={(watchedDate) => moveWishlistToWatched(item.movies.id, transformSavedMovieToCardFormat(item), watchedDate)}
-                                                    onClickWatching={() => moveWishlistToWatching(item.movies.id, transformSavedMovieToCardFormat(item))}
-                                                    onClickWishlist={() => toggleWishlistStatus(transformSavedMovieToCardFormat(item))}
-                                                    onRemoveWatched={() => null}
-                                                    watched={false}
-                                                    wishlist={true}
-                                                    cardType="wishlist"
-                                                />
-                                            ))
-                                        }
-                                    </div>
-                                </div>
+                                <MovieSlider
+                                    title="Watchlist"
+                                    icon={<IoBookmark className="w-5 h-5 text-purple-600" />}
+                                    movies={savedMovies
+                                        .filter(item => item.status === 'wishlist')
+                                        .sort((a, b) => {
+                                            const dateA = new Date(a.updated_at || a.created_at || 0);
+                                            const dateB = new Date(b.updated_at || b.created_at || 0);
+                                            return dateB - dateA;
+                                        })
+                                        .slice(0, 25)
+                                        .map(item => ({
+                                            ...transformSavedMovieToCardFormat(item),
+                                            id: item.id,
+                                            watched: false,
+                                            wishlist: true
+                                        }))
+                                    }
+                                    seeAllLink="/watchlist"
+                                    onMovieClick={handleMovieClick}
+                                    onClickWatched={(movie, watchedDate) => {
+                                        const item = savedMovies.find(saved => saved.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID));
+                                        if (item) moveWishlistToWatched(item.movies.id, movie, watchedDate);
+                                    }}
+                                    onClickWatching={(movie) => {
+                                        const item = savedMovies.find(saved => saved.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID));
+                                        if (item) moveWishlistToWatching(item.movies.id, movie);
+                                    }}
+                                    onClickWishlist={(movie) => {
+                                        const item = savedMovies.find(saved => saved.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID));
+                                        if (item) toggleWishlistStatus(movie);
+                                    }}
+                                    cardType="wishlist"
+                                />
                             )}
 
                             {/* Watched movies - Third */}
                             {savedMovies.some(item => item.status === 'watched') && (
-                                <div className="mb-10">
-                                     <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
-                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" className="text-green-600 font-bold">
-                                             <polyline points="20,6 9,17 4,12"></polyline>
-                                         </svg>
-                                         Watched
-                                     </h3>
-                                    <div className="flex flex-wrap gap-2 sm:gap-3">
-                                        {savedMovies
-                                            .filter(item => item.status === 'watched')
-                                            .sort((a, b) => {
-                                                // Sort by watched_date (latest first)
-                                                const dateA = new Date(a.watched_date || 0);
-                                                const dateB = new Date(b.watched_date || 0);
-                                                return dateB - dateA;
-                                            })
-                                            .map(item => (
-                                                <MovieCard
-                                                    key={item.id}
-                                                    movie={transformSavedMovieToCardFormat(item)}
-                                                    onHover={() => null}
-                                                    onLeave={() => null}
-                                                    onClickWatched={() => null}
-                                                    onClickWatching={() => moveWatchedToWatching(item.movies.id, transformSavedMovieToCardFormat(item))}
-                                                    onClickWishlist={() => moveWatchedToWishlist(item.movies.id, transformSavedMovieToCardFormat(item))}
-                                                    onRemoveWatched={() => removeWatchedStatus(item.movies.id)}
-                                                    onUpdateWatchDate={(newWatchedDate) => updateWatchDate(item.movies.id, newWatchedDate)}
-                                                    watched={true}
-                                                    cardType="watched"
-                                                />
-                                            ))
-                                        }
-                                    </div>
-                                </div>
+                                <MovieSlider
+                                    title="Watched"
+                                    icon={<IoCheckmarkCircle className="w-5 h-5 text-green-600" />}
+                                    movies={savedMovies
+                                        .filter(item => item.status === 'watched')
+                                        .sort((a, b) => {
+                                            const dateA = new Date(a.watched_date || 0);
+                                            const dateB = new Date(b.watched_date || 0);
+                                            return dateB - dateA;
+                                        })
+                                        .slice(0, 25)
+                                        .map(item => ({
+                                            ...transformSavedMovieToCardFormat(item),
+                                            id: item.id,
+                                            watched: true,
+                                            wishlist: false
+                                        }))
+                                    }
+                                    seeAllLink="/watched"
+                                    onMovieClick={handleMovieClick}
+                                    onClickWatching={(movie) => {
+                                        const item = savedMovies.find(saved => saved.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID));
+                                        if (item) moveWatchedToWatching(item.movies.id, movie);
+                                    }}
+                                    onClickWishlist={(movie) => {
+                                        const item = savedMovies.find(saved => saved.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID));
+                                        if (item) moveWatchedToWishlist(item.movies.id, movie);
+                                    }}
+                                    onRemoveWatched={(movie) => {
+                                        const item = savedMovies.find(saved => saved.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID));
+                                        if (item) removeWatchedStatus(item.movies.id);
+                                    }}
+                                    onUpdateWatchDate={(movie, newWatchedDate) => {
+                                        const item = savedMovies.find(saved => saved.movies.movie_id === (movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID));
+                                        if (item) updateWatchDate(item.movies.id, newWatchedDate);
+                                    }}
+                                    cardType="watched"
+                                />
                             )}
                             </div>
                             ) : !isSearchActive ? (
@@ -1027,110 +1112,93 @@ export default function Home() {
                         </>
                     )}
                     
-                    {/* Show welcome message for non-authenticated users when not searching */}
+                    {/* Show movie sliders for non-authenticated users when not searching */}
                     {!user && !isSearchActive && (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                            {/* Cute movie character SVG */}
-                            <div className="mb-6">
-                                
-                                {/* <Image
-                                    src="/images/search-monster1.png"
-                                    alt="Search Monster"
-                                    width={250}
-                                    height={350}
-                                    className="mx-auto"
-                                    priority
-                                /> */}
-                            </div>
-                            
-                            <h3 className="text-xl font-semibold text-gray-600 mb-4">
-                                Welcome to Filmy Diary!
-                            </h3>
-                            
-                            {/* Getting Started Instructions */}
-                            <div className="bg-gray-50 rounded-lg p-4 max-w-md mb-3 text-sm">
-                                <h4 className="font-medium text-gray-700 mb-3">How to get started:</h4>
-                                <div className="space-y-2 text-left">
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></span>
-                                        <span className="text-gray-600">Search for your favorite movies and TV series</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></span>
-                                        <span className="text-gray-600">Sign in with Google to save them</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* Movie Lists Instructions */}
-                            <div className="bg-gray-50 rounded-lg p-4 max-w-md mb-3 text-sm">
-                                <h4 className="font-medium text-gray-700 mb-3">How to use your movie lists:</h4>
-                                <div className="space-y-2 text-left">
-                                    <div className="flex items-center gap-2">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-purple-600 flex-shrink-0">
-                                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
-                                        </svg>
-                                        <span className="text-gray-600">Add movies to <strong>Watchlist</strong> for later</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-red-500 flex-shrink-0">
-                                            <polygon points="5,3 19,12 5,21"></polygon>
-                                        </svg>
-                                        <span className="text-gray-600">Move to <strong>Currently Watching</strong> when you start</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-green-600 flex-shrink-0">
-                                            <polyline points="20,6 9,17 4,12"></polyline>
-                                        </svg>
-                                        <span className="text-gray-600">Mark as <strong>Watched</strong> when finished</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <GoogleLoginButton />
-                            
-                            {/* Upcoming Features */}
-                            <div className="bg-blue-50 rounded-lg p-4 max-w-md mt-[100px] text-sm border border-blue-100">
-                                <h4 className="font-medium text-blue-800 mb-3 flex items-center gap-2">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600">
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
-                                    </svg>
-                                    Coming Soon:
-                                </h4>
-                                <div className="space-y-2 text-left">
-                                    <div className="flex items-center gap-2">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-500 flex-shrink-0">
-                                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                                            <circle cx="9" cy="7" r="4"></circle>
-                                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                        </svg>
-                                        <span className="text-blue-700">Follow friends to see what they're watching</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-500 flex-shrink-0">
-                                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                                            <polyline points="16,6 12,2 8,6"></polyline>
-                                            <line x1="12" y1="2" x2="12" y2="15"></line>
-                                        </svg>
-                                        <span className="text-blue-700">Share your favorite movie lists with others</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <PublicMovieSliders onMovieClick={handleMovieClick} />
                     )}
                 </main>
-            </div>
 
-            <div className='text-center w-full flex justify-center pt-6' style={{ marginBottom: '-8px' }}>
-                <Image 
-                    src="/images/pokemon.gif" 
-                    alt="Pokemon" 
-                    width={100} 
-                    height={100} 
-                    priority
-                />
+            {/* Movie Info Slider */}
+            <MovieInfoSlider
+                isOpen={isSliderOpen}
+                onClose={() => setIsSliderOpen(false)}
+                movie={selectedMovie}
+                onClickWatched={async (watchedDate) => {
+                    if (selectedMovie) {
+                        const item = savedMovies.find(saved => saved.movies.movie_id === (selectedMovie.imdbID !== "N/A" ? selectedMovie.imdbID : selectedMovie.tmdbID));
+                        if (item) {
+                            if (item.status === 'wishlist') {
+                                await moveWishlistToWatched(item.movies.id, selectedMovie, watchedDate);
+                            } else if (item.status === 'currently_watching') {
+                                await moveWatchingToWatched(item.movies.id, selectedMovie, watchedDate);
+                            }
+                        } else {
+                            // Movie is not in savedMovies, add it to watched
+                            await addToWatched(selectedMovie, watchedDate);
+                        }
+                    }
+                }}
+                onUpdateWatchDate={async (newWatchedDate) => {
+                    if (selectedMovie) {
+                        const item = savedMovies.find(saved => saved.movies.movie_id === (selectedMovie.imdbID !== "N/A" ? selectedMovie.imdbID : selectedMovie.tmdbID));
+                        if (item && item.status === 'watched') {
+                            await updateWatchDate(item.movies.id, newWatchedDate);
+                        }
+                    }
+                }}
+                onClickWatching={async () => {
+                    if (selectedMovie) {
+                        const item = savedMovies.find(saved => saved.movies.movie_id === (selectedMovie.imdbID !== "N/A" ? selectedMovie.imdbID : selectedMovie.tmdbID));
+                        if (item) {
+                            if (item.status === 'wishlist') {
+                                await moveWishlistToWatching(item.movies.id, selectedMovie);
+                            } else if (item.status === 'watched') {
+                                await moveWatchedToWatching(item.movies.id, selectedMovie);
+                            } else if (item.status === 'currently_watching') {
+                                await removeWatchingStatus(item.movies.id);
+                            }
+                        } else {
+                            // Movie is not in savedMovies, add it to watching
+                            await addToWatching(selectedMovie);
+                        }
+                    }
+                }}
+                onClickWishlist={async () => {
+                    if (selectedMovie) {
+                        const item = savedMovies.find(saved => saved.movies.movie_id === (selectedMovie.imdbID !== "N/A" ? selectedMovie.imdbID : selectedMovie.tmdbID));
+                        if (item) {
+                            if (item.status === 'wishlist') {
+                                await toggleWishlistStatus(selectedMovie);
+                            } else if (item.status === 'watched') {
+                                await moveWatchedToWishlist(item.movies.id, selectedMovie);
+                            } else if (item.status === 'currently_watching') {
+                                await moveWatchingToWishlist(item.movies.id, selectedMovie);
+                            }
+                        } else {
+                            // Movie is not in savedMovies, add it to wishlist
+                            await addToWatchlist(selectedMovie);
+                        }
+                    }
+                }}
+                onRemoveWatched={async () => {
+                    if (selectedMovie) {
+                        const item = savedMovies.find(saved => saved.movies.movie_id === (selectedMovie.imdbID !== "N/A" ? selectedMovie.imdbID : selectedMovie.tmdbID));
+                        if (item && item.status === 'watched') {
+                            await removeWatchedStatus(item.movies.id);
+                        }
+                    }
+                }}
+                onActionComplete={() => {
+                    // Close the slider immediately after action is completed
+                    setIsSliderOpen(false);
+                }}
+                watched={selectedMovie ? savedMovies.some(saved => saved.movies.movie_id === (selectedMovie.imdbID !== "N/A" ? selectedMovie.imdbID : selectedMovie.tmdbID) && saved.status === 'watched') : false}
+                wishlist={selectedMovie ? savedMovies.some(saved => saved.movies.movie_id === (selectedMovie.imdbID !== "N/A" ? selectedMovie.imdbID : selectedMovie.tmdbID) && saved.status === 'wishlist') : false}
+                cardType={selectedMovie ? (() => {
+                    const item = savedMovies.find(saved => saved.movies.movie_id === (selectedMovie.imdbID !== "N/A" ? selectedMovie.imdbID : selectedMovie.tmdbID));
+                    return item ? (item.status === 'currently_watching' ? 'watching' : item.status) : 'search';
+                })() : 'search'}
+            />
             </div>
         </div>
     );

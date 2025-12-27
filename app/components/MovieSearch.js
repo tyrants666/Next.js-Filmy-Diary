@@ -4,13 +4,15 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useMovieCache } from '../context/MovieCacheContext';
 import MovieCard from './MovieCard';
 import ConfirmationModal from './ConfirmationModal';
 import LoginModal from './LoginModal';
 
-export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSavedMovies, onSearchStateChange, user }) {
+export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSavedMovies, onSearchStateChange, user, onMovieClick }) {
     const { showSuccess, showError, showInfo } = useToast();
     const { validateSession } = useAuth();
+    const { cacheSearchResults } = useMovieCache();
 
     // Function to validate and fix poster URLs
     const validatePosterUrl = (url, source = "Unknown") => {
@@ -51,9 +53,27 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
     const [hasMorePages, setHasMorePages] = useState(false);
     const [moviesPerPage, setMoviesPerPage] = useState(18);
     const [watchedMovies, setWatchedMovies] = useState(new Set());
-
-    // Create a Set of watched movie IDs for O(1) lookup
     const [wishlistMovies, setWishlistMovies] = useState(new Set());
+
+    // Update local state when savedMovies changes
+    useEffect(() => {
+        if (savedMovies && Array.isArray(savedMovies)) {
+            const watchedSet = new Set();
+            const wishlistSet = new Set();
+            
+            savedMovies.forEach(item => {
+                const movieId = item.movies.movie_id;
+                if (item.status === 'watched') {
+                    watchedSet.add(movieId);
+                } else if (item.status === 'wishlist') {
+                    wishlistSet.add(movieId);
+                }
+            });
+            
+            setWatchedMovies(watchedSet);
+            setWishlistMovies(wishlistSet);
+        }
+    }, [savedMovies]);
 
     // Modal state for confirmation
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -143,6 +163,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                         Poster: validatePosterUrl(tmdbPosterUrl, "TMDB"),
                         Year: year,
                         Type: type, // Now can be "movie" or "series"
+                        Plot: item.overview || "N/A", // Add plot/overview from TMDB
                         imdbRating: "N/A", // Default rating
                         tmdbRating: item.vote_average ? item.vote_average.toFixed(1) : "N/A", // TMDB rating as fallback
                         ratingSource: "N/A", // Track which source provided the rating
@@ -252,12 +273,30 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 if (page === 1) {
                     // Limit initial load to moviesPerPage (18 movies)
                     transformedMovies = transformedMovies.slice(0, moviesPerPage);
-                    setMovies(transformedMovies);
+                    
+                    // Cache search results with poster validation
+                    cacheSearchResults(transformedMovies).then(enhancedMovies => {
+                        setMovies(enhancedMovies);
+                        setLoadingMovie(false); // Hide loader only after movies are set
+                    }).catch(error => {
+                        console.log('Some posters failed to validate:', error);
+                        setMovies(transformedMovies); // Fallback to original movies
+                        setLoadingMovie(false); // Hide loader only after movies are set
+                    });
                 } else {
                     // Filter out any duplicates before appending
                     const existingIds = new Set(movies.map(m => m.imdbID));
                     const newMovies = transformedMovies.filter(movie => !existingIds.has(movie.imdbID));
-                    setMovies(prevMovies => [...prevMovies, ...newMovies]);
+                    
+                    // Cache new movies with poster validation
+                    if (newMovies.length > 0) {
+                        cacheSearchResults(newMovies).then(enhancedNewMovies => {
+                            setMovies(prevMovies => [...prevMovies, ...enhancedNewMovies]);
+                        }).catch(error => {
+                            console.log('Some posters failed to validate:', error);
+                            setMovies(prevMovies => [...prevMovies, ...newMovies]); // Fallback
+                        });
+                    }
                 }
                 
                 // Update total results count
@@ -269,6 +308,7 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             } else {
                 setError('No movies found');
                 setHasMorePages(false);
+                setLoadingMovie(false); // Hide loader when no results found
             }
 
 
@@ -276,9 +316,9 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
             setError('An error occurred. Please try again.');
             console.error(err); 
             setHasMorePages(false);
-        } finally {
-            setLoadingMovie(false);
+            setLoadingMovie(false); // Hide loader on error
         }
+        // Note: setLoadingMovie(false) is now called in the success path after movies are set
     };
 
     const handleSearch = async (e) => {
@@ -364,19 +404,29 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                 return;
             }
 
+            // Debug: Log the data being sent to API
+            const requestData = {
+                userId: session.user.id,
+                userEmail: session.user.email,
+                movieData: movie,
+                status: status,
+                watchedDate: watchedDate
+            };
+            
+            console.log('MovieSearch - Sending to API:', {
+                userId: requestData.userId,
+                userEmail: requestData.userEmail,
+                movieTitle: requestData.movieData.Title,
+                status: requestData.status
+            });
+
             // Use the API endpoint for all statuses including watching (now that we use user_movies table)
             const response = await fetch('/api/movies', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        userId: session.user.id,
-                        userEmail: session.user.email,
-                        movieData: movie,
-                        status: status,
-                        watchedDate: watchedDate
-                    })
+                    body: JSON.stringify(requestData)
                 });
 
                 if (!response.ok) {
@@ -679,51 +729,63 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
 
     return (
         <div>
-            <form onSubmit={handleSearch} className="mb-4 flex space-x-2">
-                <div className="relative w-full">
-                    <input
-                        type="text"
-                        placeholder="Search for movies and TV series..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-gray-100 outline-none p-2 px-4 pr-10 border border-gray-300 rounded-lg w-full placeholder-gray-500 text-black"
-                    />
-                    {searchTerm && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setSearchTerm('');
-                                setMovies([]);
-                                setError(null);
-                                setCurrentPage(1);
-                                setTotalResults(0);
-                                setHasMorePages(false);
-                            }}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                            title="Clear search"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+            <form onSubmit={handleSearch} className="mb-4">
+                <div className="relative w-full max-w-2xl mx-auto">
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.3-4.3"></path>
                             </svg>
-                        </button>
-                    )}
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search for movies and TV series..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-12 pr-20 py-3 bg-gray-50 border border-gray-200 rounded-full outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500 text-black transition-all duration-200 hover:bg-gray-100 focus:bg-white"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
+                            {searchTerm && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setMovies([]);
+                                        setError(null);
+                                        setCurrentPage(1);
+                                        setTotalResults(0);
+                                        setHasMorePages(false);
+                                    }}
+                                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-200"
+                                    title="Clear search"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            )}
+                            <button
+                                type="submit"
+                                className="p-2.5 bg-white backdrop-blur-md hover:bg-white/20 border border-black/10 text-black rounded-full transition-colors flex items-center justify-center"
+                                disabled={loadingMovie || !searchTerm.trim()}
+                                title="Search"
+                            >
+                                {loadingMovie ? (
+                                    <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                ) : (
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <path d="m21 21-4.3-4.3"></path>
+                                    </svg>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                {/* <select
-                    value={moviesPerPage}
-                    onChange={handleMoviesPerPageChange}
-                    className="bg-white/[.08] outline-none p-2 px-4 border-none rounded-lg text-gray-300"
-                >
-                    <option value="9">9 per page</option>
-                    <option value="18">18 per page</option>
-                    <option value="30">30 per page</option>
-                    <option value="50">50 per page</option>
-                    <option value="100">100 per page</option>
-                </select> */}
-                <button type="submit" className="bg-gray-200 hover:bg-gray-300 text-black py-2 px-4 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                        className="text-black"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path>
-                    </svg>
-                </button>
             </form>
 
             {loadingMovie && currentPage === 1 && (
@@ -768,10 +830,11 @@ export default function MovieSearch({ savedMovies = [], fetchSavedMovies, setSav
                                 onClickWatched={(watchedDate) => handleAddToWatched(movie, watchedDate)}
                                 onClickWatching={() => handleAddToWatching(movie)}
                                 onClickWishlist={() => handleAddToWatchlist(movie)}
-                                onRemoveWatched={() => removeWatchedStatus(movie)}
-                                watched={watchedMovies.has(movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)}
-                                wishlist={wishlistMovies.has(movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)}
-                                cardType="search"
+                                    onRemoveWatched={() => removeWatchedStatus(movie)}
+                                    watched={watchedMovies.has(movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)}
+                                    wishlist={wishlistMovies.has(movie.imdbID !== "N/A" ? movie.imdbID : movie.tmdbID)}
+                                    cardType="search"
+                                    onClick={() => onMovieClick && onMovieClick(movie)}
                             />
                         ))}
                     </div>

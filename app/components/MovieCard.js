@@ -1,26 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
-const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, onRemoveWatched, onClickWishlist, onUpdateWatchDate, watched, wishlist, cardType = 'search' }) => {
-    // Add custom styles for date input icon
-    useEffect(() => {
-        const style = document.createElement('style');
-        style.textContent = `
-            .date-input-custom::-webkit-calendar-picker-indicator {
-                filter: invert(1) brightness(1.2);
-                cursor: pointer;
-                opacity: 0.8;
-            }
-            .date-input-custom::-webkit-calendar-picker-indicator:hover {
-                opacity: 1;
-            }
-        `;
-        document.head.appendChild(style);
-        
-        return () => {
-            document.head.removeChild(style);
-        };
-    }, []);
+const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, onRemoveWatched, onClickWishlist, onUpdateWatchDate, watched, wishlist, cardType = 'search', onClick, imagePriority = false }) => {
+    // Removed dynamic style injection to prevent flickering
     const [isWatched, setIsWatched] = useState(false);
     const [isWatchedLoading, setIsWatchedLoading] = useState(false);
     const [isRemoveWatchedLoading, setIsRemoveWatchedLoading] = useState(false);
@@ -32,10 +14,19 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
     const [operationError, setOperationError] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState('');
+    // Track the last poster index we handled an error for to avoid duplicate state churn
+    const lastFailedIndexRef = useRef(-1);
     
     // Generate alternative poster URLs for fallback (TMDB priority)
     const getPosterAlternatives = () => {
         const alternatives = [];
+        
+        // Use cached poster URL first if available (for consistency with MovieInfoSlider)
+        const movieData = movie.movies || movie;
+        if (movieData.cachedPosterUrl && movieData.posterTimestamp && 
+            Date.now() - movieData.posterTimestamp < 30 * 60 * 1000) { // 30 minutes
+            alternatives.push(movieData.cachedPosterUrl);
+        }
         
         // Primary poster (should be TMDB if available)
         if (movie.Poster && movie.Poster !== "N/A") {
@@ -79,7 +70,8 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
 
     useEffect(() => {
         setImageError(false); // Reset image error when movie changes
-    }, [movie.Poster]);
+        setCurrentPosterIndex(0); // Reset to first poster alternative
+    }, [movie.Poster, movie.cachedPosterUrl, movie.movies?.cachedPosterUrl]);
 
     const handleWatchedClick = async () => {
         setIsWatchedLoading(true);
@@ -241,32 +233,33 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
         }
     };
 
-    const handleImageError = (e) => {
-        const failedUrl = posterAlternatives[currentPosterIndex];
-        console.error(`Failed to load poster for "${movie.Title}":`, failedUrl, e);
-        
-        // Try next alternative poster if available
+    const handleImageError = () => {
+        // Prevent multiple increments for the same failing index (Next/Image may fire more than once)
+        if (lastFailedIndexRef.current === currentPosterIndex) return;
+        lastFailedIndexRef.current = currentPosterIndex;
+
         if (currentPosterIndex < posterAlternatives.length - 1) {
-            console.log(`Trying alternative poster ${currentPosterIndex + 1} for "${movie.Title}"`);
-            setCurrentPosterIndex(currentPosterIndex + 1);
-            setImageError(false); // Reset error to try the next poster
+            setCurrentPosterIndex((idx) => idx + 1);
+            setImageError(false);
         } else {
-            console.log(`All poster alternatives failed for "${movie.Title}"`);
+            // Downgrade to warn to avoid red error overlay noise in dev
+            console.warn(`All poster alternatives failed for "${movie.Title}"`);
             setImageError(true);
         }
     };
 
     return (
-        <div className={`gap-2 bg-gray-50 shadow-lg hover:shadow-xl flex flex-col rounded-xl relative group min-w-0 shrink-0 grow-0
-        basis-[31.7%] sm:basis-[18.4%] lg:basis-[13.24%] xl:basis-[11.65%] 2xl:basis-[10.4%] max-w-[180px] !select-none transition-all duration-200 ${
+        <div className={`movie-card ${cardType === 'search' ? '' : 'h-full'} gap-2 bg-gray-50 shadow-lg hover:shadow-xl flex flex-col rounded-xl relative min-w-0 shrink-0 grow-0
+        basis-[31.7%] sm:basis-[18.4%] lg:basis-[13.24%] xl:basis-[11.65%] 2xl:basis-[10.3%] max-w-[180px] !select-none transition-all duration-200 ${
             operationError ? 'border-2 border-red-500' : 'border border-gray-200'
         }`}
+        style={{ willChange: 'transform' }}
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
         >
-            <a
-                // href="#"
-                className="relative flex align-center !aspect-[1.37/2]"
+            <div
+                className="relative flex align-center !aspect-[1.37/2] cursor-pointer"
+                onClick={() => onClick && onClick(movie)}
             >
                 { posterAlternatives.length > 0 && !imageError ? (
                     <span className="relative h-full w-full flex items-center">
@@ -276,14 +269,16 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                             fill
                             className="object-cover !select-none rounded-xl"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            priority={true}
+                            priority={false}
+                            loading={undefined}
+                            decoding="async"
                             onError={handleImageError}
-                            placeholder="blur"
-                            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
+                            placeholder="empty"
+                            unoptimized
                         />
                     </span>
                 ) : (
-                    <span className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl relative h-full w-full flex items-center justify-center">
+                    <span className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl relative h-full w-full flex items-center justify-center will-change-transform">
                         <div className="text-center">
                             <div className="w-12 h-12 mx-auto mb-2 bg-gray-300 rounded-lg flex items-center justify-center">
                                 <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,7 +292,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
 
                 {/* Rating Badge */}
                 {movie.imdbRating && movie.imdbRating !== "N/A" && (
-                    <div className={`absolute top-2 left-2 text-white px-2 py-1 rounded-lg shadow-lg flex items-center gap-1 text-xs font-bold ${
+                    <div className={`absolute opacity-100 top-2 left-2 text-white px-1 pe-2 py-1 rounded-lg shadow-lg flex items-center gap-1 text-xs font-bold ${
                         movie.ratingSource === "IMDB" 
                             ? "bg-yellow-500" 
                             : movie.ratingSource === "TMDB" 
@@ -308,451 +303,35 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                         </svg>
                         <span>{movie.imdbRating}</span>
-                        {movie.ratingSource && movie.ratingSource !== "N/A" && (
+                        {/* {movie.ratingSource && movie.ratingSource !== "N/A" && (
                             <span className="hidden md:inline text-[10px] opacity-75 ml-0.5">
                                 {movie.ratingSource === "IMDB" ? "IMDb" : movie.ratingSource}
                             </span>
-                        )}
+                        )} */}
                     </div>
                 )}
 
                 {/* Status indicator for watched movies - always visible */}
-                {isWatched && (
+                {/* {isWatched && (
                     <div className="absolute top-2 right-2 bg-green-600 text-white w-5 h-5 rounded-full shadow-2xl flex items-center justify-center">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                             <polyline points="20,6 9,17 4,12"></polyline>
                         </svg>
                         <div className="absolute inset-0 bg-white/20 rounded-full"></div>
                     </div>
-                )}
+                )} */}
 
                 {/* Wishlist indicator - always visible when in wishlist */}
-                {isWishlist && !isWatched && (
+                {/* {isWishlist && !isWatched && (
                     <div className="absolute top-2 right-2 bg-purple-600 text-white w-5 h-5 rounded-full shadow-2xl flex items-center justify-center">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
                         </svg>
                         <div className="absolute inset-0 bg-white/20 rounded-full"></div>
                     </div>
-                )}
+                )} */}
 
-                {/* Hover overlay with action buttons */}
-                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                    <div className="flex flex-col gap-2 px-3">
-                                        {cardType === 'search' && !isWatched && (
-                            <>
-                                {!showDatePicker && (
-                                    <>
-                                        <button
-                                            onClick={handleWatchedClick}
-                                            disabled={isWatchedLoading}
-                                            className="bg-slate-700/90 hover:bg-slate-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                        >
-                                            {isWatchedLoading ? (
-                                                <>
-                                                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                                    </svg>
-                                                    Adding...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                        <polyline points="20,6 9,17 4,12"></polyline>
-                                                    </svg>
-                                                    Watched
-                                                </>
-                                            )}
-                                        </button>
-                                        <button
-                                            onClick={handleCalendarClick}
-                                            disabled={isWatchedLoading}
-                                            className="bg-slate-700/90 hover:bg-slate-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                        >
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                                            </svg>
-                                            Watch Date
-                                        </button>
-                                        <button
-                                            onClick={handleWatchingClick}
-                                            disabled={isWatchingLoading}
-                                            className="bg-indigo-700/90 hover:bg-indigo-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                        >
-                                            {isWatchingLoading ? (
-                                                <>
-                                                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                                    </svg>
-                                                    Adding...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <polygon points="5,3 19,12 5,21"></polygon>
-                                                    </svg>
-                                                    Watching
-                                                </>
-                                            )}
-                                        </button>
-                                        <button
-                                            onClick={handleWishlistClick}
-                                            disabled={isWishlistLoading}
-                                            className={`${isWishlist ? 'bg-purple-600/90 hover:bg-purple-500/90' : 'bg-purple-700/90 hover:bg-purple-600/90'} text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20`}
-                                        >
-                                            {isWishlistLoading ? (
-                                                <>
-                                                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                                    </svg>
-                                                    {isWishlist ? 'Removing...' : 'Adding...'}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill={isWishlist ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-                                                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
-                                                    </svg>
-                                                    {isWishlist ? 'In Watchlist' : 'Watchlist'}
-                                                </>
-                                            )}
-                                        </button>
-                                    </>
-                                )}
-                                
-                                {/* Inline date picker */}
-                                {showDatePicker && (
-                                    <div className="flex flex-col gap-1">
-                                        <input
-                                            type="date"
-                                            value={selectedDate}
-                                            onChange={(e) => setSelectedDate(e.target.value)}
-                                            className="w-full p-1 px-2 border border-white/30 rounded-lg text-white bg-transparent backdrop-blur-sm focus:outline-none focus:border-white/50 focus:bg-white/5 hover:border-white/40 transition-all duration-200 date-input-custom"
-                                            style={{ 
-                                                fontSize: '12px',
-                                                colorScheme: 'dark'
-                                            }}
-                                            max={new Date().toISOString().split('T')[0]}
-                                            autoFocus
-                                        />
-                                        <div className="flex gap-1 justify-center">
-                                            <button
-                                                onClick={handleDateSubmit}
-                                                disabled={isWatchedLoading}
-                                                className="bg-transparent hover:bg-white/10 text-green-400 hover:text-green-300 p-1 rounded disabled:opacity-50 transition-colors flex items-center justify-center"
-                                                title="Accept"
-                                            >
-                                                <svg className="hidden sm:block" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                    <polyline points="20,6 9,17 4,12"></polyline>
-                                                </svg>
-                                            </button>
-                                            <button
-                                                onClick={handleDateCancel}
-                                                disabled={isWatchedLoading}
-                                                className="bg-transparent hover:bg-white/10 text-red-400 hover:text-red-300 p-1 rounded disabled:opacity-50 transition-colors flex items-center justify-center"
-                                                title="Cancel"
-                                            >
-                                                <svg className="hidden sm:block" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                        
-                        {cardType === 'search' && isWatched && !showDatePicker && (
-                            <button
-                                onClick={handleRemoveWatched}
-                                disabled={isRemoveWatchedLoading}
-                                                className="bg-red-700/90 hover:bg-red-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                            >
-                                {isRemoveWatchedLoading ? (
-                                    <>
-                                        <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                        </svg>
-                                        Removing...
-                                    </>
-                                ) : (
-                                    <>
-                                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                    </svg>
-                                        Remove
-                                    </>
-                                )}
-                            </button>
-                        )}
-
-                        {cardType === 'watching' && (
-                            <>
-                                <button
-                                    onClick={handleWatchedClick}
-                                    disabled={isWatchedLoading}
-                                    className="bg-slate-700/90 hover:bg-slate-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    {isWatchedLoading ? (
-                                        <>
-                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                            </svg>
-                                            Moving...
-                                        </>
-                                    ) : (
-                                        <>
-                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <polyline points="20,6 9,17 4,12"></polyline>
-                                    </svg>
-                                            Watched
-                                        </>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={handleWishlistClick}
-                                    disabled={isWishlistLoading}
-                                    className="bg-purple-700/90 hover:bg-purple-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    {isWishlistLoading ? (
-                                        <>
-                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                            </svg>
-                                            Moving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
-                                            </svg>
-                                            Watchlist
-                                        </>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={handleRemoveWatching}
-                                    disabled={isWatchingLoading}
-                                                className="bg-red-700/90 hover:bg-red-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    {isWatchingLoading ? (
-                                        <>
-                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                            </svg>
-                                            Removing...
-                                        </>
-                                    ) : (
-                                        <>
-                                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                    </svg>
-                                            Remove
-                                        </>
-                                    )}
-                                </button>
-                            </>
-                        )}
-
-                        {cardType === 'watched' && !showDatePicker && (
-                            <>
-                                <button
-                                    onClick={handleEditDateClick}
-                                    disabled={isWatchedLoading}
-                                    className="bg-blue-700/90 hover:bg-blue-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                                    </svg>
-                                    Edit Date
-                                </button>
-                                <button
-                                    onClick={handleWatchingClick}
-                                    disabled={isWatchingLoading}
-                                    className="bg-indigo-700/90 hover:bg-indigo-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    {isWatchingLoading ? (
-                                        <>
-                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                            </svg>
-                                            Moving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <polygon points="5,3 19,12 5,21"></polygon>
-                                            </svg>
-                                            Watching
-                                        </>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={handleWishlistClick}
-                                    disabled={isWishlistLoading}
-                                    className="bg-purple-700/90 hover:bg-purple-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    {isWishlistLoading ? (
-                                        <>
-                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                            </svg>
-                                            Moving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
-                                            </svg>
-                                            Watchlist
-                                        </>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={handleRemoveWatched}
-                                    disabled={isRemoveWatchedLoading}
-                                    className="bg-red-700/90 hover:bg-red-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    {isRemoveWatchedLoading ? (
-                                        <>
-                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                            </svg>
-                                            Removing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                                            </svg>
-                                            Remove
-                                        </>
-                                    )}
-                                </button>
-                            </>
-                        )}
-
-                        {/* Date picker for watched cards */}
-                        {cardType === 'watched' && showDatePicker && (
-                            <div className="flex flex-col gap-1">
-                                <input
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={(e) => setSelectedDate(e.target.value)}
-                                    className="w-full p-1 px-2 border border-white/30 rounded-lg text-white bg-transparent backdrop-blur-sm focus:outline-none focus:border-white/50 focus:bg-white/5 hover:border-white/40 transition-all duration-200 date-input-custom"
-                                    style={{ 
-                                        fontSize: '12px',
-                                        colorScheme: 'dark'
-                                    }}
-                                    max={new Date().toISOString().split('T')[0]}
-                                    autoFocus
-                                />
-                                <div className="flex gap-1 justify-center">
-                                    <button
-                                        onClick={handleEditDateSubmit}
-                                        disabled={isWatchedLoading}
-                                        className="bg-transparent hover:bg-white/10 text-green-400 hover:text-green-300 p-1 rounded disabled:opacity-50 transition-colors flex items-center justify-center"
-                                        title="Update Date"
-                                    >
-                                        <svg className="hidden sm:block" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                            <polyline points="20,6 9,17 4,12"></polyline>
-                                        </svg>
-                                    </button>
-                                    <button
-                                        onClick={handleDateCancel}
-                                        disabled={isWatchedLoading}
-                                        className="bg-transparent hover:bg-white/10 text-red-400 hover:text-red-300 p-1 rounded disabled:opacity-50 transition-colors flex items-center justify-center"
-                                        title="Cancel"
-                                    >
-                                        <svg className="hidden sm:block" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {cardType === 'wishlist' && (
-                            <>
-                                <button
-                                    onClick={handleWatchedClick}
-                                    disabled={isWatchedLoading}
-                                    className="bg-slate-700/90 hover:bg-slate-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    {isWatchedLoading ? (
-                                        <>
-                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                            </svg>
-                                            Moving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                <polyline points="20,6 9,17 4,12"></polyline>
-                                            </svg>
-                                            Watched
-                                        </>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={handleWatchingClick}
-                                    disabled={isWatchingLoading}
-                                    className="bg-indigo-700/90 hover:bg-indigo-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    {isWatchingLoading ? (
-                                        <>
-                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                            </svg>
-                                            Moving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <polygon points="5,3 19,12 5,21"></polygon>
-                                            </svg>
-                                            Watching
-                                        </>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={handleWishlistClick}
-                                    disabled={isWishlistLoading}
-                                    className="bg-red-700/90 hover:bg-red-600/90 text-white px-3 py-1.5 rounded-lg shadow-xl transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 font-medium text-xs backdrop-blur-sm border border-white/20"
-                                >
-                                    {isWishlistLoading ? (
-                                        <>
-                                            <svg className="hidden sm:block animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                            </svg>
-                                            Removing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg className="hidden sm:block" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                                            </svg>
-                                            Remove
-                                        </>
-                                    )}
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </a>
+            </div>
 
             <div className="px-2 pb-2 flex w-full flex-col h-full">
                 <div className="flex text-xs text-gray-700 font-medium justify-between mb-1">
@@ -769,7 +348,7 @@ const MovieCard = ({ movie, onHover, onLeave, onClickWatched, onClickWatching, o
                                     : `https://www.themoviedb.org/movie/${movie.tmdbID}`
                                 : `https://www.google.com/search?q=${encodeURIComponent(movie.Title + " " + (movie.Type || "movie"))}`
                     } 
-                    className="flex w-full text-[.82rem] sm:text-sm font-semibold !line-clamp-2 tracking-wider text-gray-900 hover:text-blue-600 transition-colors flex-grow" 
+                    className="flex w-full text-[.82rem] sm:text-sm font-semibold !line-clamp-2 tracking-wider text-gray-900 hover:text-blue-600 transition-colors flex-grow max-h-[2.5rem] items-start" 
                     target="_blank" 
                     rel="noopener noreferrer"
                 >

@@ -20,12 +20,13 @@ export async function GET(request) {
             .select(`
         id,
         status,
-        movies (
+        movies!user_movies_movie_id_fkey (
           id,
           movie_id,
           title,
           poster,
-          year
+          year,
+          description
         )
       `)
             .eq('user_id', userId)
@@ -48,15 +49,6 @@ export async function POST(request) {
         if (!userId || !movieData || !status) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
         }
-
-        // Debug: Log the incoming movieData to check Type field
-        console.log('API received movieData:', {
-            Title: movieData.Title,
-            Type: movieData.Type,
-            imdbID: movieData.imdbID,
-            tmdbID: movieData.tmdbID
-        });
-
         // Determine the correct movie ID to use (prefer imdbID, fallback to tmdbID)
         const movieIdToUse = movieData.imdbID !== "N/A" ? movieData.imdbID : movieData.tmdbID;
         
@@ -75,20 +67,30 @@ export async function POST(request) {
 
         if (existingMovie) {
             movieId = existingMovie.id
-            console.log('Movie already exists, using existing ID:', movieId)
             
-            // Update the existing movie's type if it's different (in case it was saved incorrectly before)
+            // Update the existing movie's type and description if different (in case it was saved incorrectly before)
+            const updateData = {
+                type: movieData.Type || 'movie',
+                description: (movieData.Plot && movieData.Plot !== "N/A") ? movieData.Plot : null
+            };
+
+            // If rating info is provided (e.g., from TMDB banner), persist it too
+            const providedRating = movieData?.imdbRating || movieData?.rating;
+            const providedSource = movieData?.ratingSource;
+            if (providedRating && providedRating !== 'N/A') {
+                updateData.rating = providedRating;
+                if (providedSource && providedSource !== 'N/A') {
+                    updateData.rating_source = providedSource;
+                }
+            }
+            
             const { error: updateError } = await supabase
                 .from('movies')
-                .update({
-                    type: movieData.Type || 'movie'
-                })
+                .update(updateData)
                 .eq('id', movieId);
                 
             if (updateError) {
-                console.error('Error updating movie type:', updateError);
-            } else {
-                console.log('Updated existing movie type to:', movieData.Type || 'movie');
+                console.error('Error updating movie:', updateError);
             }
         } else {
             // Add new movie to movies table
@@ -99,10 +101,11 @@ export async function POST(request) {
                 year: movieData.Year,
                 rating: movieData.imdbRating || movieData.rating,
                 rating_source: movieData.ratingSource || 'IMDB',
-                type: movieData.Type || 'movie'
+                type: movieData.Type || 'movie',
+                description: (movieData.Plot && movieData.Plot !== "N/A") ? movieData.Plot : null
             };
             
-            console.log('Inserting movie with data:', insertData);
+            // Insert new movie
             
             const { data: newMovie, error: movieError } = await supabase
                 .from('movies')
@@ -151,12 +154,7 @@ export async function POST(request) {
         const isNewMovie = !existingUserMovie;
         const isStatusChange = existingUserMovie && existingUserMovie.status !== status;
 
-        console.log('Movie operation:', {
-            isNewMovie,
-            isStatusChange,
-            existingStatus: existingUserMovie?.status,
-            newStatus: status
-        });
+        // Process user movie relationship
 
         // Upsert to user_movies (this will update status if movie already exists for user)
         const { data: userMovie, error: userMovieError } = await supabase
@@ -172,7 +170,6 @@ export async function POST(request) {
         // Update saved_movies count in profiles table only if this is a new movie
         // Status changes (e.g., watching -> watched) should NOT change the counter
         if (isNewMovie) {
-            console.log('Incrementing counter for new movie');
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('saved_movies')
@@ -191,8 +188,6 @@ export async function POST(request) {
                     console.error('Error updating saved_movies count:', updateError);
                 }
             }
-        } else if (isStatusChange) {
-            console.log('Status change detected - counter remains unchanged');
         }
 
         return NextResponse.json({ success: true, data: userMovie })

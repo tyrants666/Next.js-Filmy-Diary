@@ -5,7 +5,10 @@ const nextConfig = {
             'image.tmdb.org', 
             'm.media-amazon.com', 
             'ia.media-imdb.com',
-            'imdb-api.com'
+            'imdb-api.com',
+            'assets.fanart.tv',
+            'image.tmdb.org',
+            'img.omdbapi.com'
         ],
         dangerouslyAllowSVG: false,
         contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
