@@ -551,13 +551,11 @@ export default function FriendProfilePage() {
                                 <button
                                     onClick={handleRemoveFriend}
                                     disabled={removingFriend}
-                                    className="px-2.5 py-1 bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-600 text-xs font-medium rounded-full flex items-center gap-1 transition-colors disabled:opacity-50 group"
-                                    title="Click to remove friend"
+                                    className="px-2.5 py-1 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium rounded-full flex items-center gap-1 transition-colors disabled:opacity-50"
+                                    title="Remove friend"
                                 >
-                                    <IoCheckmark className="w-3.5 h-3.5 group-hover:hidden" />
-                                    <IoPersonRemove className="w-3.5 h-3.5 hidden group-hover:block" />
-                                    <span className="group-hover:hidden">Friends</span>
-                                    <span className="hidden group-hover:block">{removingFriend ? '...' : 'Remove'}</span>
+                                    <IoPersonRemove className="w-3.5 h-3.5" />
+                                    <span>{removingFriend ? 'Removing...' : 'Remove Friend'}</span>
                                 </button>
                             ) : friendshipStatus === 'request_sent' ? (
                                 <span className="px-2.5 py-1 bg-gray-100 text-gray-500 text-xs font-medium rounded-full flex items-center gap-1">
@@ -626,13 +624,11 @@ export default function FriendProfilePage() {
                                         <button
                                             onClick={handleRemoveFriend}
                                             disabled={removingFriend}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-600 text-sm font-medium rounded-full transition-colors disabled:opacity-50 group"
-                                            title="Click to remove friend"
+                                            className="ms-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 text-sm font-medium rounded-full transition-colors disabled:opacity-50"
+                                            title="Remove friend"
                                         >
-                                            <IoCheckmark className="w-4 h-4 group-hover:hidden" />
-                                            <IoPersonRemove className="w-4 h-4 hidden group-hover:block" />
-                                            <span className="group-hover:hidden">Friends</span>
-                                            <span className="hidden group-hover:block">{removingFriend ? '...' : 'Remove'}</span>
+                                            <IoPersonRemove className="w-4 h-4" />
+                                            <span>{removingFriend ? 'Removing...' : 'Remove Friend'}</span>
                                         </button>
                                     ) : friendshipStatus === 'request_sent' ? (
                                         <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-gray-500 text-sm font-medium rounded-full">
