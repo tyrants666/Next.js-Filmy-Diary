@@ -114,6 +114,10 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
                 setNotifications(prev => prev.map(n => 
                     n.id === notification.id ? { ...n, read: true, status: 'accepted', type: 'friend_accepted' } : n
                 ));
+                // Emit custom event so other components (like community page) can refresh their data
+                window.dispatchEvent(new CustomEvent('friendRequestAccepted', { 
+                    detail: { friendId: notification.senderId, friendName: notification.from } 
+                }));
             } else {
                 const data = await response.json();
                 showError(data.error || 'Failed to accept request');

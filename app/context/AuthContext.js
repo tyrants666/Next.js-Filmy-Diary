@@ -96,12 +96,16 @@ export function AuthProvider({ children }) {
               const lastName = (session.user.user_metadata?.name?.split(' ').length > 1
                   ? session.user.user_metadata?.name?.split(' ').slice(1).join(' ')
                   : '');
+              
+              // Generate username from email (strip domain) and make lowercase
+              const emailUsername = session.user.email?.split('@')[0]?.toLowerCase() || '';
                   
               const { error: insertError } = await supabase
                 .from('profiles')
                 .insert({
                   id: session.user.id,
                   user_email: session.user.email,
+                  username: emailUsername, // Username from email domain
                   first_name: firstName,
                   last_name: lastName,
                   avatar_url: session.user.user_metadata?.picture || session.user.user_metadata?.avatar_url,

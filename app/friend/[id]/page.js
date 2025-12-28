@@ -22,7 +22,8 @@ import {
     IoChevronDown,
     IoChevronUp,
     IoTime,
-    IoHourglass
+    IoHourglass,
+    IoPersonRemove
 } from 'react-icons/io5';
 
 export default function FriendProfilePage() {
@@ -44,6 +45,9 @@ export default function FriendProfilePage() {
         watching: true,
         wishlist: true
     });
+    const [canViewMovies, setCanViewMovies] = useState(false);
+    const [userRole, setUserRole] = useState(null);
+    const [checkingAccess, setCheckingAccess] = useState(true);
 
     // Transform saved movie data to match MovieCard expected format
     const transformMovieToCardFormat = (savedMovie) => {
@@ -86,20 +90,26 @@ export default function FriendProfilePage() {
 
     // Fetch friend's movies
     const fetchMovies = useCallback(async () => {
+        if (!user) return;
+        
         try {
             setLoadingMovies(true);
-            const response = await fetch(`/api/users/movies?userId=${friendId}&status=all`);
+            // Pass requesterId for server-side access control
+            const response = await fetch(`/api/users/movies?userId=${friendId}&requesterId=${user.id}&status=all`);
             const data = await response.json();
 
             if (response.ok) {
                 setMovies(data.movies || { watched: [], watching: [], wishlist: [] });
+            } else if (data.accessDenied) {
+                // Access denied by server - user is not friends/superadmin
+                setCanViewMovies(false);
             }
         } catch (error) {
             console.error('Error fetching movies:', error);
         } finally {
             setLoadingMovies(false);
         }
-    }, [friendId]);
+    }, [friendId, user]);
 
     // Handle movie click
     const handleMovieClick = (movie) => {
@@ -118,11 +128,53 @@ export default function FriendProfilePage() {
     const [friendshipStatus, setFriendshipStatus] = useState('none'); // 'none', 'friends', 'request_sent', 'request_received'
     const [sendingRequest, setSendingRequest] = useState(false);
 
-    // Check friendship status
-    const checkFriendshipStatus = useCallback(async () => {
-        if (!user || !friendId || user.id === friendId) return;
+    // Check user role (superadmin check)
+    const checkUserRole = useCallback(async () => {
+        if (!user) return null;
         
         try {
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+            
+            if (!error && profile) {
+                setUserRole(profile.role);
+                return profile.role;
+            }
+        } catch (error) {
+            console.error('Error checking user role:', error);
+        }
+        return null;
+    }, [user]);
+
+    // Check friendship status and determine if user can view movies
+    const checkFriendshipStatus = useCallback(async () => {
+        if (!user || !friendId) {
+            setCheckingAccess(false);
+            return;
+        }
+        
+        // If viewing own profile, always allow
+        if (user.id === friendId) {
+            setCanViewMovies(true);
+            setFriendshipStatus('self');
+            setCheckingAccess(false);
+            return;
+        }
+        
+        try {
+            // Check user role first
+            const role = await checkUserRole();
+            
+            // Superadmin can view all profiles
+            if (role === 'superadmin') {
+                setCanViewMovies(true);
+                setCheckingAccess(false);
+            }
+            
+            // Check friendship status
             const response = await fetch('/api/friends', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -135,11 +187,21 @@ export default function FriendProfilePage() {
             if (response.ok) {
                 const data = await response.json();
                 setFriendshipStatus(data.status);
+                
+                // Can view if friends or superadmin
+                if (data.status === 'friends' || role === 'superadmin') {
+                    setCanViewMovies(true);
+                } else {
+                    setCanViewMovies(false);
+                }
             }
         } catch (error) {
             console.error('Error checking friendship status:', error);
+            setCanViewMovies(false);
+        } finally {
+            setCheckingAccess(false);
         }
-    }, [user, friendId]);
+    }, [user, friendId, checkUserRole]);
 
     // Handle add friend
     const handleAddFriend = async () => {
@@ -169,6 +231,43 @@ export default function FriendProfilePage() {
             showError('Failed to send friend request');
         } finally {
             setSendingRequest(false);
+        }
+    };
+
+    // Handle remove friend
+    const [removingFriend, setRemovingFriend] = useState(false);
+    
+    const handleRemoveFriend = async () => {
+        if (!user) return;
+        
+        // Confirm before removing
+        if (!window.confirm(`Are you sure you want to remove ${profile?.first_name || 'this user'} from your friends?`)) {
+            return;
+        }
+        
+        setRemovingFriend(true);
+        try {
+            const response = await fetch(`/api/friends?userId=${user.id}&friendId=${friendId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                showSuccess(`${profile?.first_name || 'User'} has been removed from your friends`);
+                setFriendshipStatus('none');
+                setCanViewMovies(false);
+                // Emit event to refresh friends list on community page
+                window.dispatchEvent(new CustomEvent('friendRemoved', { 
+                    detail: { friendId } 
+                }));
+            } else {
+                const data = await response.json();
+                showError(data.error || 'Failed to remove friend');
+            }
+        } catch (error) {
+            console.error('Error removing friend:', error);
+            showError('Failed to remove friend');
+        } finally {
+            setRemovingFriend(false);
         }
     };
 
@@ -292,10 +391,18 @@ export default function FriendProfilePage() {
     useEffect(() => {
         if (friendId && !authLoading) {
             fetchProfile();
-            fetchMovies();
             checkFriendshipStatus();
         }
-    }, [friendId, authLoading, fetchProfile, fetchMovies, checkFriendshipStatus]);
+    }, [friendId, authLoading, fetchProfile, checkFriendshipStatus]);
+
+    // Fetch movies only when user can view them
+    useEffect(() => {
+        if (canViewMovies && friendId) {
+            fetchMovies();
+        } else if (!checkingAccess && !canViewMovies) {
+            setLoadingMovies(false);
+        }
+    }, [canViewMovies, friendId, fetchMovies, checkingAccess]);
 
     if (authLoading || loading) {
         return (
@@ -441,10 +548,17 @@ export default function FriendProfilePage() {
                         </div>
                         {user.id !== friendId && (
                             friendshipStatus === 'friends' ? (
-                                <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
-                                    <IoCheckmark className="w-3.5 h-3.5" />
-                                    Friends
-                                </span>
+                                <button
+                                    onClick={handleRemoveFriend}
+                                    disabled={removingFriend}
+                                    className="px-2.5 py-1 bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-600 text-xs font-medium rounded-full flex items-center gap-1 transition-colors disabled:opacity-50 group"
+                                    title="Click to remove friend"
+                                >
+                                    <IoCheckmark className="w-3.5 h-3.5 group-hover:hidden" />
+                                    <IoPersonRemove className="w-3.5 h-3.5 hidden group-hover:block" />
+                                    <span className="group-hover:hidden">Friends</span>
+                                    <span className="hidden group-hover:block">{removingFriend ? '...' : 'Remove'}</span>
+                                </button>
                             ) : friendshipStatus === 'request_sent' ? (
                                 <span className="px-2.5 py-1 bg-gray-100 text-gray-500 text-xs font-medium rounded-full flex items-center gap-1">
                                     <IoHourglass className="w-3.5 h-3.5" />
@@ -466,19 +580,19 @@ export default function FriendProfilePage() {
                     {/* Mobile: Stats grid below */}
                     <div className="grid grid-cols-4 gap-2 mt-4 md:hidden">
                         <div className="flex flex-col items-center p-2 bg-green-50 rounded-lg">
-                            <p className="text-base font-bold text-gray-800">{stats.watched}</p>
+                            <p className="text-base font-bold text-gray-800">{canViewMovies ? stats.watched : '--'}</p>
                             <p className="text-[10px] text-gray-500">Watched</p>
                         </div>
                         <div className="flex flex-col items-center p-2 bg-red-50 rounded-lg">
-                            <p className="text-base font-bold text-gray-800">{stats.watching}</p>
+                            <p className="text-base font-bold text-gray-800">{canViewMovies ? stats.watching : '--'}</p>
                             <p className="text-[10px] text-gray-500">Watching</p>
                         </div>
                         <div className="flex flex-col items-center p-2 bg-purple-50 rounded-lg">
-                            <p className="text-base font-bold text-gray-800">{stats.wishlist}</p>
+                            <p className="text-base font-bold text-gray-800">{canViewMovies ? stats.wishlist : '--'}</p>
                             <p className="text-[10px] text-gray-500">Watchlist</p>
                         </div>
                         <div className="flex flex-col items-center p-2 bg-gray-100 rounded-lg">
-                            <p className="text-base font-bold text-gray-800">{stats.total}</p>
+                            <p className="text-base font-bold text-gray-800">{canViewMovies ? stats.total : '--'}</p>
                             <p className="text-[10px] text-gray-500">Total</p>
                         </div>
                     </div>
@@ -509,10 +623,17 @@ export default function FriendProfilePage() {
                                 <h1 className="text-3xl font-bold text-gray-900">{displayName}</h1>
                                 {user.id !== friendId && (
                                     friendshipStatus === 'friends' ? (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
-                                            <IoCheckmark className="w-4 h-4" />
-                                            Friends
-                                        </span>
+                                        <button
+                                            onClick={handleRemoveFriend}
+                                            disabled={removingFriend}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-600 text-sm font-medium rounded-full transition-colors disabled:opacity-50 group"
+                                            title="Click to remove friend"
+                                        >
+                                            <IoCheckmark className="w-4 h-4 group-hover:hidden" />
+                                            <IoPersonRemove className="w-4 h-4 hidden group-hover:block" />
+                                            <span className="group-hover:hidden">Friends</span>
+                                            <span className="hidden group-hover:block">{removingFriend ? '...' : 'Remove'}</span>
+                                        </button>
                                     ) : friendshipStatus === 'request_sent' ? (
                                         <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-gray-500 text-sm font-medium rounded-full">
                                             <IoHourglass className="w-4 h-4" />
@@ -553,28 +674,28 @@ export default function FriendProfilePage() {
                                 <div className="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-xl">
                                     <IoCheckmarkCircle className="w-5 h-5 text-green-600" />
                                     <div>
-                                        <p className="text-xl font-bold text-gray-800">{stats.watched}</p>
+                                        <p className="text-xl font-bold text-gray-800">{canViewMovies ? stats.watched : '--'}</p>
                                         <p className="text-xs text-gray-500">Watched</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-xl">
                                     <IoPlayCircle className="w-5 h-5 text-red-500" />
                                     <div>
-                                        <p className="text-xl font-bold text-gray-800">{stats.watching}</p>
+                                        <p className="text-xl font-bold text-gray-800">{canViewMovies ? stats.watching : '--'}</p>
                                         <p className="text-xs text-gray-500">Watching</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-xl">
                                     <IoBookmark className="w-5 h-5 text-purple-600" />
                                     <div>
-                                        <p className="text-xl font-bold text-gray-800">{stats.wishlist}</p>
+                                        <p className="text-xl font-bold text-gray-800">{canViewMovies ? stats.wishlist : '--'}</p>
                                         <p className="text-xs text-gray-500">Watchlist</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-xl">
                                     <IoFilm className="w-5 h-5 text-[#414141]" />
                                     <div>
-                                        <p className="text-xl font-bold text-gray-800">{stats.total}</p>
+                                        <p className="text-xl font-bold text-gray-800">{canViewMovies ? stats.total : '--'}</p>
                                         <p className="text-xs text-gray-500">Total</p>
                                     </div>
                                 </div>
@@ -584,7 +705,38 @@ export default function FriendProfilePage() {
                 </div>
 
                 {/* Movies Sections */}
-                {loadingMovies ? (
+                {checkingAccess ? (
+                    <div className="flex flex-col items-center justify-center py-12">
+                        <div className="w-16 h-16 border-4 border-gray-200 border-t-[#414141] rounded-full animate-spin mb-4"></div>
+                        <p className="text-gray-600">Checking access...</p>
+                    </div>
+                ) : !canViewMovies ? (
+                    <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center">
+                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <IoFilm className="w-10 h-10 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">Movie Lists are Private</h3>
+                        <p className="text-gray-500 mb-4">
+                            You need to be friends with {profile?.first_name || 'this user'} to view their movie collections.
+                        </p>
+                        {friendshipStatus === 'none' && (
+                            <button
+                                onClick={handleAddFriend}
+                                disabled={sendingRequest}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-[#414141] hover:bg-[#2d2d2d] text-white font-medium rounded-full transition-colors disabled:opacity-50"
+                            >
+                                <IoPersonAdd className="w-4 h-4" />
+                                {sendingRequest ? 'Sending...' : 'Send Friend Request'}
+                            </button>
+                        )}
+                        {friendshipStatus === 'request_sent' && (
+                            <p className="text-sm text-gray-500">Friend request sent. Waiting for response...</p>
+                        )}
+                        {friendshipStatus === 'request_received' && (
+                            <p className="text-sm text-blue-600">This user has sent you a friend request. Check your notifications!</p>
+                        )}
+                    </div>
+                ) : loadingMovies ? (
                     <div className="flex flex-col items-center justify-center py-12">
                         <div className="w-16 h-16 border-4 border-gray-200 border-t-[#414141] rounded-full animate-spin mb-4"></div>
                         <p className="text-gray-600">Loading movies...</p>

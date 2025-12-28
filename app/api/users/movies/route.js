@@ -6,15 +6,60 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Helper function to check if requester can view target user's movies
+async function canViewUserMovies(requesterId, targetUserId) {
+    // If viewing own movies, always allow
+    if (requesterId === targetUserId) {
+        return true;
+    }
+
+    // Check if requester is superadmin
+    const { data: requesterProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', requesterId)
+        .single();
+
+    if (!profileError && requesterProfile?.role === 'superadmin') {
+        return true;
+    }
+
+    // Check if they are friends
+    const { data: friendship, error: friendError } = await supabase
+        .from('friends')
+        .select('id')
+        .eq('user_id', requesterId)
+        .eq('friend_id', targetUserId)
+        .single();
+
+    if (!friendError && friendship) {
+        return true;
+    }
+
+    return false;
+}
+
 // GET - Fetch a user's movies for their public profile
 export async function GET(request) {
     try {
         const { searchParams } = new URL(request.url);
-        const userId = searchParams.get('userId');
+        const userId = searchParams.get('userId'); // Target user whose movies we want
+        const requesterId = searchParams.get('requesterId'); // Current logged-in user
         const status = searchParams.get('status'); // 'watched', 'currently_watching', 'wishlist', or 'all'
 
         if (!userId) {
             return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+        }
+
+        // Security check: Verify requester has permission to view these movies
+        if (requesterId) {
+            const hasAccess = await canViewUserMovies(requesterId, userId);
+            if (!hasAccess) {
+                return NextResponse.json({ 
+                    error: 'Access denied. You must be friends with this user to view their movies.',
+                    accessDenied: true 
+                }, { status: 403 });
+            }
         }
 
         let query = supabase

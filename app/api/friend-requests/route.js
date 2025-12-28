@@ -97,12 +97,31 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Friend request already exists' }, { status: 400 });
         }
 
-        // Create new friend request
+        // Fetch sender and receiver emails from profiles
+        const { data: senderProfile, error: senderError } = await supabase
+            .from('profiles')
+            .select('user_email')
+            .eq('id', senderId)
+            .single();
+
+        const { data: receiverProfile, error: receiverError } = await supabase
+            .from('profiles')
+            .select('user_email')
+            .eq('id', receiverId)
+            .single();
+
+        if (senderError || receiverError) {
+            console.error('Error fetching profiles:', senderError || receiverError);
+        }
+
+        // Create new friend request with emails
         const { data: newRequest, error: insertError } = await supabase
             .from('friend_requests')
             .insert({
                 sender_id: senderId,
                 receiver_id: receiverId,
+                sender_email: senderProfile?.user_email || null,
+                receiver_email: receiverProfile?.user_email || null,
                 status: 'pending'
             })
             .select()

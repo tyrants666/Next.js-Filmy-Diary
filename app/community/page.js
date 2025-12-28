@@ -338,6 +338,34 @@ export default function CommunityPage() {
         }
     }, [user, loading, fetchTopUsers, fetchSuggestedUsers, fetchFriends, fetchSentRequests]);
 
+    // Listen for friend request accepted event to refresh friends list immediately
+    useEffect(() => {
+        const handleFriendAccepted = (event) => {
+            console.log('Friend request accepted, refreshing friends list:', event.detail);
+            fetchFriends();
+            // Update friend status for the accepted user
+            if (event.detail?.friendId) {
+                setFriendStatuses(prev => ({ ...prev, [event.detail.friendId]: 'friends' }));
+            }
+        };
+
+        const handleFriendRemoved = (event) => {
+            console.log('Friend removed, refreshing friends list:', event.detail);
+            fetchFriends();
+            // Update friend status for the removed user
+            if (event.detail?.friendId) {
+                setFriendStatuses(prev => ({ ...prev, [event.detail.friendId]: 'none' }));
+            }
+        };
+
+        window.addEventListener('friendRequestAccepted', handleFriendAccepted);
+        window.addEventListener('friendRemoved', handleFriendRemoved);
+        return () => {
+            window.removeEventListener('friendRequestAccepted', handleFriendAccepted);
+            window.removeEventListener('friendRemoved', handleFriendRemoved);
+        };
+    }, [fetchFriends]);
+
     if (loading) {
         return (
             <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
