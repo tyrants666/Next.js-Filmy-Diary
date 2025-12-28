@@ -85,17 +85,25 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Already friends' }, { status: 400 });
         }
 
-        // Check if a request already exists (in either direction)
-        const { data: existingRequest, error: requestError } = await supabase
+        // Check if there's a pending request in either direction
+        const { data: pendingRequest } = await supabase
             .from('friend_requests')
-            .select('id, status')
+            .select('id, status, sender_id')
             .or(`and(sender_id.eq.${senderId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${senderId})`)
             .eq('status', 'pending')
             .single();
 
-        if (existingRequest) {
+        if (pendingRequest) {
             return NextResponse.json({ error: 'Friend request already exists' }, { status: 400 });
         }
+
+        // Check if there's an old request from this sender to this receiver (rejected, unfriended, etc.)
+        const { data: existingRequest } = await supabase
+            .from('friend_requests')
+            .select('id, status')
+            .eq('sender_id', senderId)
+            .eq('receiver_id', receiverId)
+            .single();
 
         // Fetch sender and receiver emails from profiles
         const { data: senderProfile, error: senderError } = await supabase
@@ -114,22 +122,43 @@ export async function POST(request) {
             console.error('Error fetching profiles:', senderError || receiverError);
         }
 
-        // Create new friend request with emails
-        const { data: newRequest, error: insertError } = await supabase
-            .from('friend_requests')
-            .insert({
-                sender_id: senderId,
-                receiver_id: receiverId,
-                sender_email: senderProfile?.user_email || null,
-                receiver_email: receiverProfile?.user_email || null,
-                status: 'pending'
-            })
-            .select()
-            .single();
+        let result;
 
-        if (insertError) throw insertError;
+        if (existingRequest) {
+            // Update existing request to pending (re-send request after unfriend/reject)
+            const { data: updatedRequest, error: updateError } = await supabase
+                .from('friend_requests')
+                .update({
+                    status: 'pending',
+                    sender_email: senderProfile?.user_email || null,
+                    receiver_email: receiverProfile?.user_email || null,
+                    created_at: new Date().toISOString() // Reset the timestamp
+                })
+                .eq('id', existingRequest.id)
+                .select()
+                .single();
 
-        return NextResponse.json({ request: newRequest, message: 'Friend request sent successfully' });
+            if (updateError) throw updateError;
+            result = updatedRequest;
+        } else {
+            // Create new friend request with emails
+            const { data: newRequest, error: insertError } = await supabase
+                .from('friend_requests')
+                .insert({
+                    sender_id: senderId,
+                    receiver_id: receiverId,
+                    sender_email: senderProfile?.user_email || null,
+                    receiver_email: receiverProfile?.user_email || null,
+                    status: 'pending'
+                })
+                .select()
+                .single();
+
+            if (insertError) throw insertError;
+            result = newRequest;
+        }
+
+        return NextResponse.json({ request: result, message: 'Friend request sent successfully' });
 
     } catch (error) {
         console.error('Error sending friend request:', error);
