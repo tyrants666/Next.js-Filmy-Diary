@@ -11,6 +11,7 @@ import Header from './components/Header';
 import TMDBBanner from './components/TMDBBanner';
 import GoogleLoginButton from './components/GoogleLoginButton';
 import PublicMovieSliders from './components/PublicMovieSliders';
+import CommunityWelcomeModal from './components/CommunityWelcomeModal';
 import { IoSettings, IoPlayCircle, IoBookmark, IoCheckmarkCircle, IoHome, IoList, IoEye } from 'react-icons/io5';
 import { useRouter } from 'next/navigation'
 import { useAuth } from './context/AuthContext'
@@ -1303,6 +1304,9 @@ export default function Home() {
                     return item ? (item.status === 'currently_watching' ? 'watching' : item.status) : 'search';
                 })() : 'search'}
             />
+
+            {/* Community Welcome Modal - Shows once for new users */}
+            {user && <CommunityWelcomeModal userId={user.id} />}
             </div>
         </div>
     );
