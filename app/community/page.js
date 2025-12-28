@@ -7,7 +7,7 @@ import Image from 'next/image';
 import Header from '../components/Header';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { IoPeople, IoSearch, IoPersonAdd, IoTrophy, IoSparkles, IoChevronForward, IoClose, IoCheckmark, IoTime } from 'react-icons/io5';
+import { IoPeople, IoSearch, IoPersonAdd, IoTrophy, IoSparkles, IoChevronForward, IoClose, IoCheckmark, IoTime, IoNewspaper } from 'react-icons/io5';
 
 // User Card Component
 const UserCard = ({ user, onAddFriend, friendStatus = 'none', showStats = false, rank = null, isLoading = false, isCurrentUser = false }) => {
@@ -25,9 +25,9 @@ const UserCard = ({ user, onAddFriend, friendStatus = 'none', showStats = false,
         // If this is the current user's own card
         if (isCurrentUser) {
             return (
-                <span className="mt-3 px-4 py-1.5 bg-amber-50 text-amber-600 text-xs font-medium rounded-full flex items-center gap-1">
-                    <span className="text-base">🎬</span>
-                    That&apos;s me!
+                <span className="mt-3 px-3 py-1.5 bg-amber-50 text-amber-600 text-xs font-medium rounded-full flex items-center gap-1 whitespace-nowrap">
+                    <span className="text-sm">🙋</span>
+                    Me!
                 </span>
             );
         }
@@ -421,10 +421,19 @@ export default function CommunityPage() {
                     <div className="flex-1 min-w-0">
                         {/* Page Header */}
                         <div className="mb-6">
-                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
-                                <IoPeople className="w-8 h-8 text-[#414141]" />
-                                Community
-                            </h1>
+                            <div className="flex items-center justify-between">
+                                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
+                                    <IoPeople className="w-8 h-8 text-[#414141]" />
+                                    Community
+                                </h1>
+                                <Link 
+                                    href="/friends-log"
+                                    className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 rounded-full hover:bg-orange-100 transition-colors text-sm font-medium"
+                                >
+                                    <IoTime className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Friends Activity</span>
+                                </Link>
+                            </div>
                             <p className="text-gray-600 mt-2">Connect with fellow movie enthusiasts</p>
                         </div>
 

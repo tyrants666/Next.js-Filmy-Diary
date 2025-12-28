@@ -209,7 +209,7 @@ export default function FriendsLogPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100/30">
-            <div className="container mx-auto px-4 pt-4">
+            <div className="container mx-auto px-4">
                 <Header />
             </div>
             
@@ -282,8 +282,9 @@ export default function FriendsLogPage() {
                                                         {getUserName(friendProfile, null)}
                                                     </span>
                                                 </Link>
-                                                <span className="text-gray-400 text-sm">•</span>
-                                                <span className="text-xs text-gray-500">{formatDate(log.updated_at)}</span>
+                                                {/* Time - only show on desktop */}
+                                                <span className="hidden sm:inline text-gray-400 text-sm">•</span>
+                                                <span className="hidden sm:inline text-xs text-gray-500">{formatDate(log.updated_at)}</span>
                                             </div>
 
                                             {/* Movie title and action */}
@@ -301,12 +302,23 @@ export default function FriendsLogPage() {
                                             </span>
                                         </div>
 
-                                        {/* Status Badge */}
-                                        <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full ${statusInfo.bg} flex-shrink-0`}>
+                                        {/* Status Badge - Desktop */}
+                                        <div className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full ${statusInfo.bg} flex-shrink-0`}>
                                             <StatusIcon className={`w-3.5 h-3.5 ${statusInfo.color}`} />
                                             <span className={`text-xs font-medium ${statusInfo.color}`}>
                                                 {statusInfo.label}
                                             </span>
+                                        </div>
+                                        
+                                        {/* Status Badge - Mobile (with time below) */}
+                                        <div className="sm:hidden flex flex-col items-center gap-0.5 flex-shrink-0">
+                                            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${statusInfo.bg}`}>
+                                                <StatusIcon className={`w-3 h-3 ${statusInfo.color}`} />
+                                                <span className={`text-[10px] font-medium ${statusInfo.color}`}>
+                                                    {statusInfo.label}
+                                                </span>
+                                            </div>
+                                            <span className="text-[11px] text-gray-500">{formatDate(log.updated_at)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -358,21 +370,37 @@ export default function FriendsLogPage() {
                                                 </p>
                                             </div>
                                             
-                                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                            <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500">
                                                 <span className="truncate">
                                                     @{otherUser?.username || otherUser?.user_email?.split('@')[0] || 'user'}
                                                 </span>
                                                 <span>•</span>
                                                 <span>{formatDate(log.created_at)}</span>
                                             </div>
+                                            
+                                            {/* Mobile: Just show username */}
+                                            <div className="sm:hidden text-xs text-gray-500 truncate">
+                                                @{otherUser?.username || otherUser?.user_email?.split('@')[0] || 'user'}
+                                            </div>
                                         </div>
 
-                                        {/* Status Badge */}
-                                        <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full ${statusInfo.bg} flex-shrink-0`}>
+                                        {/* Status Badge - Desktop */}
+                                        <div className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full ${statusInfo.bg} flex-shrink-0`}>
                                             <StatusIcon className={`w-3.5 h-3.5 ${statusInfo.color}`} />
                                             <span className={`text-xs font-medium ${statusInfo.color}`}>
                                                 {statusInfo.label}
                                             </span>
+                                        </div>
+                                        
+                                        {/* Status Badge - Mobile (with time below) */}
+                                        <div className="sm:hidden flex flex-col items-center gap-0.5 flex-shrink-0">
+                                            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${statusInfo.bg}`}>
+                                                <StatusIcon className={`w-3 h-3 ${statusInfo.color}`} />
+                                                <span className={`text-[10px] font-medium ${statusInfo.color}`}>
+                                                    {statusInfo.label}
+                                                </span>
+                                            </div>
+                                            <span className="text-[11px] text-gray-500">{formatDate(log.created_at)}</span>
                                         </div>
                                     </div>
                                 </div>

@@ -69,10 +69,10 @@ const UserDropdown = ({ user, isSigningOut, onSignOut }) => {
             {/* User Icon Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="p-1.5 text-gray-500 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1 text-gray-500 hover:text-gray-600 transition-colors"
                 title={user?.user_metadata?.name?.split(' ')[0] || user?.email}
             >
-                <IoPerson className="w-6 h-6" />
+                <IoPerson className="w-[22px] h-[22px]" />
             </button>
 
             {/* Dropdown Menu - Styled like notification dropdown */}

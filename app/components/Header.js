@@ -43,25 +43,56 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
         
         try {
             setLoadingNotifications(true);
-            const response = await fetch(`/api/friend-requests?userId=${user.id}`);
-            const data = await response.json();
             
-            if (response.ok) {
-                // Transform friend requests into notifications
-                const notifs = (data.requests || []).map(req => ({
-                    id: req.id,
-                    type: req.status === 'pending' ? 'friend_request' : 'friend_accepted',
-                    from: req.sender?.first_name && req.sender?.last_name 
-                        ? `${req.sender.first_name} ${req.sender.last_name}` 
-                        : req.sender?.username || 'Someone',
-                    senderId: req.sender_id,
-                    avatar: req.sender?.avatar_url,
-                    time: getTimeAgo(req.created_at),
-                    read: req.status !== 'pending',
-                    status: req.status
-                }));
-                setNotifications(notifs);
+            // Fetch received requests (pending ones you need to respond to)
+            const receivedResponse = await fetch(`/api/friend-requests?userId=${user.id}`);
+            const receivedData = await receivedResponse.json();
+            
+            // Fetch sent requests (to see if they were accepted)
+            const sentResponse = await fetch(`/api/friend-requests?userId=${user.id}&type=sent`);
+            const sentData = await sentResponse.json();
+            
+            let allNotifs = [];
+            
+            if (receivedResponse.ok) {
+                // Transform received requests into notifications
+                const receivedNotifs = (receivedData.requests || [])
+                    .filter(req => req.status === 'pending') // Only show pending requests
+                    .map(req => ({
+                        id: req.id,
+                        type: 'friend_request',
+                        from: req.sender?.first_name && req.sender?.last_name 
+                            ? `${req.sender.first_name} ${req.sender.last_name}` 
+                            : req.sender?.username || 'Someone',
+                        senderId: req.sender_id,
+                        avatar: req.sender?.avatar_url,
+                        time: getTimeAgo(req.created_at),
+                        read: false,
+                        status: req.status
+                    }));
+                allNotifs = [...allNotifs, ...receivedNotifs];
             }
+            
+            if (sentResponse.ok) {
+                // Transform accepted sent requests into notifications (someone accepted your request!)
+                const acceptedNotifs = (sentData.requests || [])
+                    .filter(req => req.status === 'accepted')
+                    .map(req => ({
+                        id: `accepted-${req.id}`,
+                        type: 'friend_accepted',
+                        from: req.receiver?.first_name && req.receiver?.last_name 
+                            ? `${req.receiver.first_name} ${req.receiver.last_name}` 
+                            : req.receiver?.username || 'Someone',
+                        receiverId: req.receiver_id,
+                        avatar: req.receiver?.avatar_url,
+                        time: getTimeAgo(req.created_at),
+                        read: localStorage.getItem(`notif_read_accepted-${req.id}`) === 'true',
+                        status: req.status
+                    }));
+                allNotifs = [...allNotifs, ...acceptedNotifs];
+            }
+            
+            setNotifications(allNotifs);
         } catch (error) {
             console.error('Error fetching notifications:', error);
         } finally {
@@ -79,7 +110,7 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
         }
     }, [user, fetchNotifications]);
 
-    const unreadCount = notifications.filter(n => !n.read && n.status === 'pending').length;
+    const unreadCount = notifications.filter(n => !n.read).length;
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -191,60 +222,60 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
                     // Authenticated user header
                     <>
                         {/* Navigation Icons */}
-                        <div className="flex items-center gap-0.5">
+                        <div className="flex items-center sm:gap-1">
                             <button 
                                 onClick={() => router.push('/explore')}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                className="p-1 text-blue-600 hover:opacity-80 transition-opacity"
                                 title="Explore Movies"
                             >
-                                <IoCompass className="w-6 h-6" />
+                                <IoCompass className="w-[22px] h-[22px]" />
                             </button>
                             <button 
                                 onClick={() => router.push('/watchlist')}
-                                className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                className="p-1 text-purple-600 hover:opacity-80 transition-opacity"
                                 title="Watchlist"
                             >
-                                <IoBookmark className="w-6 h-6" />
+                                <IoBookmark className="w-[22px] h-[22px]" />
                             </button>
                             <button 
                                 onClick={() => router.push('/watching')}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-1 text-red-600 hover:opacity-80 transition-opacity"
                                 title="Currently Watching"
                             >
-                                <IoPlayCircle className="w-6 h-6" />
+                                <IoPlayCircle className="w-[22px] h-[22px]" />
                             </button>
                             <button 
                                 onClick={() => router.push('/watched')}
-                                className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                className="p-1 text-green-600 hover:opacity-80 transition-opacity"
                                 title="Watched Movies"
                             >
-                                <IoCheckmarkCircle className="w-6 h-6" />
+                                <IoCheckmarkCircle className="w-[22px] h-[22px]" />
                             </button>
                             <button 
                                 onClick={() => router.push('/community')}
-                                className="p-1.5 text-[#414141] hover:bg-gray-100 rounded-lg transition-colors"
+                                className="p-1 text-[#414141] hover:opacity-80 transition-opacity"
                                 title="Community"
                             >
-                                <IoPeople className="w-6 h-6" />
+                                <IoPeople className="w-[22px] h-[22px]" />
                             </button>
 
                             {/* Friends Activity */}
                             <button 
                                 onClick={() => router.push('/friends-log')}
-                                className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
+                                className="p-1 text-orange-500 hover:opacity-80 transition-opacity"
                                 title="Friends Activity"
                             >
-                                <IoTime className="w-6 h-6" />
+                                <IoTime className="w-[22px] h-[22px]" />
                             </button>
                             
                             {/* Notification Bell */}
                             <div className="relative" ref={notificationRef}>
                                 <button 
                                     onClick={() => setShowNotifications(!showNotifications)}
-                                    className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors relative"
+                                    className="p-1 text-gray-600 hover:text-gray-800 transition-colors relative"
                                     title="Notifications"
                                 >
-                                    <IoNotifications className="w-6 h-6" />
+                                    <IoNotifications className="w-[22px] h-[22px]" />
                                     {unreadCount > 0 && (
                                         <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
                                             {unreadCount}
@@ -278,7 +309,7 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
                                                 notifications.map((notification) => (
                                                     <div 
                                                         key={notification.id}
-                                                        className={`px-3 py-2 border-b border-gray-50 hover:bg-gray-50 transition-colors ${notification.status === 'pending' ? 'bg-gray-100/50' : ''}`}
+                                                        className={`px-3 py-2 border-b border-gray-50 hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50/50' : ''}`}
                                                     >
                                                         <div className="flex items-start gap-2">
                                                             {notification.avatar ? (
@@ -297,14 +328,18 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
                                                             <div className="flex-1 min-w-0 text-left">
                                                                 <p className="text-xs text-gray-800 text-left">
                                                                     <span className="font-medium">{notification.from}</span>
-                                                                    {notification.type === 'friend_request' && notification.status === 'pending' && ' sent a request'}
-                                                                    {notification.status === 'accepted' && ' is now your friend'}
+                                                                    {notification.type === 'friend_request' && ' sent a request'}
+                                                                    {notification.type === 'friend_accepted' && ' accepted your request 🎉'}
                                                                 </p>
                                                                 <p className="text-[10px] text-gray-400 text-left">{notification.time}</p>
                                                             </div>
                                                             <button 
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
+                                                                    // Mark as read if it's an accepted notification
+                                                                    if (notification.type === 'friend_accepted') {
+                                                                        localStorage.setItem(`notif_read_${notification.id}`, 'true');
+                                                                    }
                                                                     clearNotification(notification.id);
                                                                 }}
                                                                 className="p-0.5 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-600 flex-shrink-0"
@@ -312,7 +347,7 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
                                                                 <IoClose className="w-3.5 h-3.5" />
                                                             </button>
                                                         </div>
-                                                        {notification.type === 'friend_request' && notification.status === 'pending' && (
+                                                        {notification.type === 'friend_request' && (
                                                             <div className="flex gap-2 mt-1.5 ml-9">
                                                                 <button 
                                                                     onClick={(e) => {
