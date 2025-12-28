@@ -3,28 +3,83 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { IoBookmark, IoPlayCircle, IoCheckmarkCircle, IoCompass, IoPeople, IoNotifications, IoPersonAdd, IoClose } from 'react-icons/io5';
 import UserDropdown from './UserDropdown';
 import GoogleLoginButton from './GoogleLoginButton';
 import SearchInput from './SearchInput';
 import { useAuth } from '../context/AuthContext';
-
-// Dummy notifications data (to be replaced with real data later)
-const DUMMY_NOTIFICATIONS = [
-    { id: '1', type: 'friend_request', from: 'Rahul Sharma', avatar: null, time: '2 hours ago', read: false },
-    { id: '2', type: 'friend_request', from: 'Priya Patel', avatar: null, time: '5 hours ago', read: false },
-    { id: '3', type: 'friend_accepted', from: 'Amit Kumar', avatar: null, time: '1 day ago', read: true },
-];
+import { useToast } from '../context/ToastContext';
 
 const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) => {
     const { user, signOut, isSigningOut } = useAuth();
+    const { showSuccess, showError } = useToast();
     const router = useRouter();
     const [showNotifications, setShowNotifications] = useState(false);
-    const [notifications, setNotifications] = useState(DUMMY_NOTIFICATIONS);
+    const [notifications, setNotifications] = useState([]);
+    const [loadingNotifications, setLoadingNotifications] = useState(false);
+    const [processingRequest, setProcessingRequest] = useState(null);
     const notificationRef = useRef(null);
 
-    const unreadCount = notifications.filter(n => !n.read).length;
+    // Calculate time ago
+    const getTimeAgo = (dateString) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        return date.toLocaleDateString();
+    };
+
+    // Fetch friend requests as notifications
+    const fetchNotifications = useCallback(async () => {
+        if (!user) return;
+        
+        try {
+            setLoadingNotifications(true);
+            const response = await fetch(`/api/friend-requests?userId=${user.id}`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Transform friend requests into notifications
+                const notifs = (data.requests || []).map(req => ({
+                    id: req.id,
+                    type: req.status === 'pending' ? 'friend_request' : 'friend_accepted',
+                    from: req.sender?.first_name && req.sender?.last_name 
+                        ? `${req.sender.first_name} ${req.sender.last_name}` 
+                        : req.sender?.username || 'Someone',
+                    senderId: req.sender_id,
+                    avatar: req.sender?.avatar_url,
+                    time: getTimeAgo(req.created_at),
+                    read: req.status !== 'pending',
+                    status: req.status
+                }));
+                setNotifications(notifs);
+            }
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        } finally {
+            setLoadingNotifications(false);
+        }
+    }, [user]);
+
+    // Fetch notifications on mount and when user changes
+    useEffect(() => {
+        if (user) {
+            fetchNotifications();
+            // Poll for new notifications every 30 seconds
+            const interval = setInterval(fetchNotifications, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [user, fetchNotifications]);
+
+    const unreadCount = notifications.filter(n => !n.read && n.status === 'pending').length;
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -37,8 +92,69 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const markAsRead = (id) => {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    // Handle accept friend request
+    const handleAcceptRequest = async (notification) => {
+        if (!user) return;
+        
+        setProcessingRequest(notification.id);
+        try {
+            const response = await fetch('/api/friend-requests', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    requestId: notification.id,
+                    action: 'accept',
+                    userId: user.id
+                })
+            });
+            
+            if (response.ok) {
+                showSuccess(`You are now friends with ${notification.from}!`);
+                // Update local state
+                setNotifications(prev => prev.map(n => 
+                    n.id === notification.id ? { ...n, read: true, status: 'accepted', type: 'friend_accepted' } : n
+                ));
+            } else {
+                const data = await response.json();
+                showError(data.error || 'Failed to accept request');
+            }
+        } catch (error) {
+            console.error('Error accepting request:', error);
+            showError('Failed to accept request');
+        } finally {
+            setProcessingRequest(null);
+        }
+    };
+
+    // Handle decline friend request
+    const handleDeclineRequest = async (notification) => {
+        if (!user) return;
+        
+        setProcessingRequest(notification.id);
+        try {
+            const response = await fetch('/api/friend-requests', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    requestId: notification.id,
+                    action: 'reject',
+                    userId: user.id
+                })
+            });
+            
+            if (response.ok) {
+                // Remove from notifications
+                setNotifications(prev => prev.filter(n => n.id !== notification.id));
+            } else {
+                const data = await response.json();
+                showError(data.error || 'Failed to decline request');
+            }
+        } catch (error) {
+            console.error('Error declining request:', error);
+            showError('Failed to decline request');
+        } finally {
+            setProcessingRequest(null);
+        }
     };
 
     const clearNotification = (id) => {
@@ -132,22 +248,43 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
                                             )}
                                         </div>
                                         <div className="max-h-72 overflow-y-auto">
-                                            {notifications.length > 0 ? (
+                                            {loadingNotifications ? (
+                                                <div className="p-4 space-y-3">
+                                                    {[...Array(3)].map((_, i) => (
+                                                        <div key={i} className="flex items-start gap-2">
+                                                            <div className="w-7 h-7 rounded-full bg-gray-200 animate-pulse"></div>
+                                                            <div className="flex-1 space-y-1">
+                                                                <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                                                                <div className="h-2 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : notifications.length > 0 ? (
                                                 notifications.map((notification) => (
                                                     <div 
                                                         key={notification.id}
-                                                        className={`px-3 py-2 border-b border-gray-50 hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-gray-100/50' : ''}`}
-                                                        onClick={() => markAsRead(notification.id)}
+                                                        className={`px-3 py-2 border-b border-gray-50 hover:bg-gray-50 transition-colors ${notification.status === 'pending' ? 'bg-gray-100/50' : ''}`}
                                                     >
                                                         <div className="flex items-start gap-2">
-                                                            <div className="w-7 h-7 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-medium flex-shrink-0 mt-0.5">
-                                                                {notification.from?.[0] || '?'}
-                                                            </div>
+                                                            {notification.avatar ? (
+                                                                <Image
+                                                                    src={notification.avatar}
+                                                                    alt={notification.from}
+                                                                    width={28}
+                                                                    height={28}
+                                                                    className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-7 h-7 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-medium flex-shrink-0 mt-0.5">
+                                                                    {notification.from?.[0] || '?'}
+                                                                </div>
+                                                            )}
                                                             <div className="flex-1 min-w-0 text-left">
                                                                 <p className="text-xs text-gray-800 text-left">
                                                                     <span className="font-medium">{notification.from}</span>
-                                                                    {notification.type === 'friend_request' && ' sent a request'}
-                                                                    {notification.type === 'friend_accepted' && ' accepted request'}
+                                                                    {notification.type === 'friend_request' && notification.status === 'pending' && ' sent a request'}
+                                                                    {notification.status === 'accepted' && ' is now your friend'}
                                                                 </p>
                                                                 <p className="text-[10px] text-gray-400 text-left">{notification.time}</p>
                                                             </div>
@@ -161,12 +298,26 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
                                                                 <IoClose className="w-3.5 h-3.5" />
                                                             </button>
                                                         </div>
-                                                        {notification.type === 'friend_request' && !notification.read && (
+                                                        {notification.type === 'friend_request' && notification.status === 'pending' && (
                                                             <div className="flex gap-2 mt-1.5 ml-9">
-                                                                <button className="px-2.5 py-0.5 bg-[#52a9ff] hover:bg-[#3d9aef] text-white text-[10px] rounded-full font-medium transition-colors">
-                                                                    Accept
+                                                                <button 
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleAcceptRequest(notification);
+                                                                    }}
+                                                                    disabled={processingRequest === notification.id}
+                                                                    className="px-2.5 py-0.5 bg-[#52a9ff] hover:bg-[#3d9aef] text-white text-[10px] rounded-full font-medium transition-colors disabled:opacity-50"
+                                                                >
+                                                                    {processingRequest === notification.id ? '...' : 'Accept'}
                                                                 </button>
-                                                                <button className="px-2.5 py-0.5 bg-gray-200 hover:bg-gray-300 text-gray-600 text-[10px] rounded-full font-medium transition-colors">
+                                                                <button 
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleDeclineRequest(notification);
+                                                                    }}
+                                                                    disabled={processingRequest === notification.id}
+                                                                    className="px-2.5 py-0.5 bg-gray-200 hover:bg-gray-300 text-gray-600 text-[10px] rounded-full font-medium transition-colors disabled:opacity-50"
+                                                                >
                                                                     Decline
                                                                 </button>
                                                             </div>

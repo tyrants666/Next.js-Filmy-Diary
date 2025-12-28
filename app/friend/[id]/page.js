@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { 
     IoArrowBack, 
     IoCheckmarkCircle, 
+    IoCheckmark,
     IoPlayCircle, 
     IoBookmark, 
     IoFilm,
@@ -20,7 +21,8 @@ import {
     IoPersonAdd,
     IoChevronDown,
     IoChevronUp,
-    IoTime
+    IoTime,
+    IoHourglass
 } from 'react-icons/io5';
 
 export default function FriendProfilePage() {
@@ -113,10 +115,61 @@ export default function FriendProfilePage() {
         }));
     };
 
+    const [friendshipStatus, setFriendshipStatus] = useState('none'); // 'none', 'friends', 'request_sent', 'request_received'
+    const [sendingRequest, setSendingRequest] = useState(false);
+
+    // Check friendship status
+    const checkFriendshipStatus = useCallback(async () => {
+        if (!user || !friendId || user.id === friendId) return;
+        
+        try {
+            const response = await fetch('/api/friends', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.id,
+                    targetUserId: friendId
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                setFriendshipStatus(data.status);
+            }
+        } catch (error) {
+            console.error('Error checking friendship status:', error);
+        }
+    }, [user, friendId]);
+
     // Handle add friend
-    const handleAddFriend = () => {
-        showSuccess(`Friend request sent to ${profile?.first_name || 'user'}!`);
-        // TODO: Implement actual friend request logic
+    const handleAddFriend = async () => {
+        if (!user) return;
+        
+        setSendingRequest(true);
+        try {
+            const response = await fetch('/api/friend-requests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    senderId: user.id,
+                    receiverId: friendId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showSuccess(`Friend request sent to ${profile?.first_name || profile?.username || 'user'}!`);
+                setFriendshipStatus('request_sent');
+            } else {
+                showError(data.error || 'Failed to send friend request');
+            }
+        } catch (error) {
+            console.error('Error sending friend request:', error);
+            showError('Failed to send friend request');
+        } finally {
+            setSendingRequest(false);
+        }
     };
 
     // Add movie to watched list
@@ -240,8 +293,9 @@ export default function FriendProfilePage() {
         if (friendId && !authLoading) {
             fetchProfile();
             fetchMovies();
+            checkFriendshipStatus();
         }
-    }, [friendId, authLoading, fetchProfile, fetchMovies]);
+    }, [friendId, authLoading, fetchProfile, fetchMovies, checkFriendshipStatus]);
 
     if (authLoading || loading) {
         return (
@@ -375,7 +429,7 @@ export default function FriendProfilePage() {
                         )}
                         <div className="flex-1 min-w-0">
                             <h1 className="text-lg font-bold text-gray-900 truncate">{displayName}</h1>
-                            <p className="text-sm text-gray-500 truncate">@{profile.user_email?.split('@')[0] || 'user'}</p>
+                            <p className="text-sm text-gray-500 truncate">@{profile.username || profile.user_email?.split('@')[0] || 'user'}</p>
                             <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
                                 {lastActive && (
                                     <span className={`flex items-center gap-0.5 ${lastActive === 'Active now' ? 'text-green-500' : ''}`}>
@@ -386,13 +440,26 @@ export default function FriendProfilePage() {
                             </div>
                         </div>
                         {user.id !== friendId && (
-                            <button
-                                onClick={handleAddFriend}
-                                className="px-2.5 py-1 border-2 border-[#414141] text-[#414141] hover:bg-[#414141] hover:text-white text-xs font-medium rounded-full transition-colors flex-shrink-0 flex items-center gap-1"
-                            >
-                                <IoPersonAdd className="w-3.5 h-3.5" />
-                                Add
-                            </button>
+                            friendshipStatus === 'friends' ? (
+                                <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
+                                    <IoCheckmark className="w-3.5 h-3.5" />
+                                    Friends
+                                </span>
+                            ) : friendshipStatus === 'request_sent' ? (
+                                <span className="px-2.5 py-1 bg-gray-100 text-gray-500 text-xs font-medium rounded-full flex items-center gap-1">
+                                    <IoHourglass className="w-3.5 h-3.5" />
+                                    Pending
+                                </span>
+                            ) : (
+                                <button
+                                    onClick={handleAddFriend}
+                                    disabled={sendingRequest}
+                                    className="px-2.5 py-1 border-2 border-[#414141] text-[#414141] hover:bg-[#414141] hover:text-white text-xs font-medium rounded-full transition-colors flex-shrink-0 flex items-center gap-1 disabled:opacity-50"
+                                >
+                                    <IoPersonAdd className="w-3.5 h-3.5" />
+                                    {sendingRequest ? '...' : 'Add'}
+                                </button>
+                            )
                         )}
                     </div>
 
@@ -441,16 +508,29 @@ export default function FriendProfilePage() {
                             <div className="flex items-center gap-3 mb-1">
                                 <h1 className="text-3xl font-bold text-gray-900">{displayName}</h1>
                                 {user.id !== friendId && (
-                                    <button
-                                        onClick={handleAddFriend}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 border-2 border-[#414141] text-[#414141] hover:bg-[#414141] hover:text-white text-sm font-medium rounded-full transition-colors"
-                                    >
-                                        <IoPersonAdd className="w-4 h-4" />
-                                        Add
-                                    </button>
+                                    friendshipStatus === 'friends' ? (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
+                                            <IoCheckmark className="w-4 h-4" />
+                                            Friends
+                                        </span>
+                                    ) : friendshipStatus === 'request_sent' ? (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-gray-500 text-sm font-medium rounded-full">
+                                            <IoHourglass className="w-4 h-4" />
+                                            Pending
+                                        </span>
+                                    ) : (
+                                        <button
+                                            onClick={handleAddFriend}
+                                            disabled={sendingRequest}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 border-2 border-[#414141] text-[#414141] hover:bg-[#414141] hover:text-white text-sm font-medium rounded-full transition-colors disabled:opacity-50"
+                                        >
+                                            <IoPersonAdd className="w-4 h-4" />
+                                            {sendingRequest ? '...' : 'Add'}
+                                        </button>
+                                    )
                                 )}
                             </div>
-                            <p className="text-gray-500 mb-2">@{profile.user_email?.split('@')[0] || 'user'}</p>
+                            <p className="text-gray-500 mb-2">@{profile.username || profile.user_email?.split('@')[0] || 'user'}</p>
                             
                             {/* Last Active & Join Date */}
                             <div className="flex items-center gap-4 mb-4 text-sm text-gray-400">

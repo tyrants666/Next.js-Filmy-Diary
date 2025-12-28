@@ -19,7 +19,7 @@ export async function GET(request) {
             // Get top users based on saved_movies count
             const { data: topUsers, error } = await supabase
                 .from('profiles')
-                .select('id, first_name, last_name, user_email, avatar_url, saved_movies')
+                .select('id, first_name, last_name, username, user_email, avatar_url, saved_movies')
                 .order('saved_movies', { ascending: false })
                 .limit(12);
 
@@ -32,7 +32,7 @@ export async function GET(request) {
             // Get all users except the current user for suggestions
             let query = supabase
                 .from('profiles')
-                .select('id, first_name, last_name, user_email, avatar_url, saved_movies')
+                .select('id, first_name, last_name, username, user_email, avatar_url, saved_movies')
                 .order('created_at', { ascending: false });
 
             if (userId) {
@@ -47,7 +47,7 @@ export async function GET(request) {
         }
 
         if (type === 'search') {
-            // Search users by name or email
+            // Search users by name, email, or username
             if (!searchQuery || searchQuery.trim().length < 2) {
                 return NextResponse.json({ users: [] });
             }
@@ -56,8 +56,8 @@ export async function GET(request) {
             
             const { data: searchResults, error } = await supabase
                 .from('profiles')
-                .select('id, first_name, last_name, user_email, avatar_url, saved_movies')
-                .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,user_email.ilike.%${searchTerm}%`)
+                .select('id, first_name, last_name, username, user_email, avatar_url, saved_movies')
+                .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,user_email.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
                 .neq('id', userId)
                 .limit(20);
 
@@ -74,7 +74,7 @@ export async function GET(request) {
 
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
-                .select('id, first_name, last_name, user_email, avatar_url, saved_movies, created_at, last_login')
+                .select('id, first_name, last_name, username, user_email, avatar_url, saved_movies, created_at, last_login')
                 .eq('id', profileId)
                 .single();
 

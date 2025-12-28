@@ -7,27 +7,57 @@ import Image from 'next/image';
 import Header from '../components/Header';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { IoPeople, IoSearch, IoPersonAdd, IoTrophy, IoSparkles, IoChevronForward, IoClose } from 'react-icons/io5';
-
-// Dummy friends data (to be replaced with real data later)
-const DUMMY_FRIENDS = [
-    { id: '1', first_name: 'Rahul', last_name: 'Sharma', user_email: 'rahul@example.com', avatar_url: null },
-    { id: '2', first_name: 'Priya', last_name: 'Patel', user_email: 'priya@example.com', avatar_url: null },
-    { id: '3', first_name: 'Amit', last_name: 'Kumar', user_email: 'amit@example.com', avatar_url: null },
-    { id: '4', first_name: 'Sneha', last_name: 'Gupta', user_email: 'sneha@example.com', avatar_url: null },
-    { id: '5', first_name: 'Vikram', last_name: 'Singh', user_email: 'vikram@example.com', avatar_url: null },
-    { id: '6', first_name: 'Anjali', last_name: 'Verma', user_email: 'anjali@example.com', avatar_url: null },
-    { id: '7', first_name: 'Karan', last_name: 'Malhotra', user_email: 'karan@example.com', avatar_url: null },
-    { id: '8', first_name: 'Neha', last_name: 'Agarwal', user_email: 'neha@example.com', avatar_url: null },
-];
+import { IoPeople, IoSearch, IoPersonAdd, IoTrophy, IoSparkles, IoChevronForward, IoClose, IoCheckmark, IoTime } from 'react-icons/io5';
 
 // User Card Component
-const UserCard = ({ user, onAddFriend, isFriend = false, showStats = false, rank = null }) => {
+const UserCard = ({ user, onAddFriend, friendStatus = 'none', showStats = false, rank = null, isLoading = false }) => {
     const router = useRouter();
     const initials = `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || user.user_email?.[0]?.toUpperCase() || '?';
     
     const handleClick = () => {
         router.push(`/friend/${user.id}`);
+    };
+
+    // Determine button display based on friend status
+    const renderActionButton = () => {
+        if (friendStatus === 'friends') {
+            return (
+                <span className="mt-3 px-4 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
+                    <IoCheckmark className="w-3.5 h-3.5" />
+                    Friends
+                </span>
+            );
+        }
+        if (friendStatus === 'request_sent') {
+            return (
+                <span className="mt-3 px-4 py-1.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full flex items-center gap-1">
+                    <IoTime className="w-3.5 h-3.5" />
+                    Pending
+                </span>
+            );
+        }
+        if (friendStatus === 'request_received') {
+            return (
+                <span className="mt-3 px-4 py-1.5 bg-blue-100 text-blue-600 text-xs font-medium rounded-full flex items-center gap-1">
+                    <IoPersonAdd className="w-3.5 h-3.5" />
+                    Respond
+                </span>
+            );
+        }
+        // Default: Show Add button
+        return (
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onAddFriend?.(user);
+                }}
+                disabled={isLoading}
+                className="mt-3 px-4 py-1.5 border-2 border-[#414141] text-[#414141] hover:bg-[#414141] hover:text-white text-xs font-medium rounded-full transition-colors flex items-center gap-1 disabled:opacity-50"
+            >
+                <IoPersonAdd className="w-3.5 h-3.5" />
+                Add+
+            </button>
+        );
     };
 
     return (
@@ -60,9 +90,9 @@ const UserCard = ({ user, onAddFriend, isFriend = false, showStats = false, rank
                     : 'Filmy User'}
             </h3>
             
-            {/* Email/Username */}
+            {/* Username (from profile) or Email fallback */}
             <p className="text-xs text-gray-500 truncate w-full text-center mt-0.5">
-                {user.user_email?.split('@')[0] || 'user'}
+                @{user.username || user.user_email?.split('@')[0] || 'user'}
             </p>
             
             {/* Movie Stats for Top Users */}
@@ -73,19 +103,8 @@ const UserCard = ({ user, onAddFriend, isFriend = false, showStats = false, rank
                 </div>
             )}
             
-            {/* Add Friend Button - Solid color */}
-            {!isFriend && (
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onAddFriend?.(user);
-                    }}
-                    className="mt-3 px-4 py-1.5 border-2 border-[#414141] text-[#414141] hover:bg-[#414141] hover:text-white text-xs font-medium rounded-full transition-colors flex items-center gap-1"
-                >
-                    <IoPersonAdd className="w-3.5 h-3.5" />
-                    Add+
-                </button>
-            )}
+            {/* Action Button */}
+            {renderActionButton()}
         </div>
     );
 };
@@ -93,6 +112,9 @@ const UserCard = ({ user, onAddFriend, isFriend = false, showStats = false, rank
 // Friend List Item Component (for sidebar)
 const FriendListItem = ({ friend, onClick }) => {
     const initials = `${friend.first_name?.[0] || ''}${friend.last_name?.[0] || ''}`.toUpperCase() || '?';
+    const displayName = friend.first_name || friend.last_name 
+        ? `${friend.first_name || ''} ${friend.last_name || ''}`.trim()
+        : friend.username || 'Filmy User';
     
     return (
         <div 
@@ -102,7 +124,7 @@ const FriendListItem = ({ friend, onClick }) => {
             {friend.avatar_url ? (
                 <Image
                     src={friend.avatar_url}
-                    alt={friend.first_name || 'Friend'}
+                    alt={displayName}
                     width={36}
                     height={36}
                     className="w-9 h-9 rounded-full object-cover"
@@ -112,11 +134,12 @@ const FriendListItem = ({ friend, onClick }) => {
                     {initials}
                 </div>
             )}
-            <span className="text-sm text-gray-700 font-medium truncate">
-                {friend.first_name || friend.last_name 
-                    ? `${friend.first_name || ''} ${friend.last_name || ''}`.trim()
-                    : 'Filmy User'}
-            </span>
+            <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-700 font-medium truncate">{displayName}</p>
+                {friend.username && (
+                    <p className="text-xs text-gray-400 truncate">@{friend.username}</p>
+                )}
+            </div>
         </div>
     );
 };
@@ -129,12 +152,66 @@ export default function CommunityPage() {
     const [topUsers, setTopUsers] = useState([]);
     const [suggestedUsers, setSuggestedUsers] = useState([]);
     const [searchResults, setSearchResults] = useState([]);
-    const [friends, setFriends] = useState(DUMMY_FRIENDS);
+    const [friends, setFriends] = useState([]);
+    const [friendStatuses, setFriendStatuses] = useState({}); // Map of userId -> status
+    const [sentRequests, setSentRequests] = useState([]); // IDs of users we sent requests to
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [loadingTopUsers, setLoadingTopUsers] = useState(true);
     const [loadingSuggested, setLoadingSuggested] = useState(true);
+    const [loadingFriends, setLoadingFriends] = useState(true);
     const [showMobileFriends, setShowMobileFriends] = useState(false);
+    const [sendingRequest, setSendingRequest] = useState(null); // Track which user request is being sent to
+
+    // Fetch friends list
+    const fetchFriends = useCallback(async () => {
+        if (!user) return;
+        
+        try {
+            setLoadingFriends(true);
+            const response = await fetch(`/api/friends?userId=${user.id}`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                setFriends(data.friends || []);
+                // Build friend status map
+                const statusMap = {};
+                (data.friends || []).forEach(f => {
+                    statusMap[f.id] = 'friends';
+                });
+                setFriendStatuses(prev => ({ ...prev, ...statusMap }));
+            }
+        } catch (error) {
+            console.error('Error fetching friends:', error);
+        } finally {
+            setLoadingFriends(false);
+        }
+    }, [user]);
+
+    // Fetch sent friend requests
+    const fetchSentRequests = useCallback(async () => {
+        if (!user) return;
+        
+        try {
+            const response = await fetch(`/api/friend-requests?userId=${user.id}&type=sent`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                const sentIds = (data.requests || [])
+                    .filter(r => r.status === 'pending')
+                    .map(r => r.receiver_id);
+                setSentRequests(sentIds);
+                // Update status map
+                const statusMap = {};
+                sentIds.forEach(id => {
+                    statusMap[id] = 'request_sent';
+                });
+                setFriendStatuses(prev => ({ ...prev, ...statusMap }));
+            }
+        } catch (error) {
+            console.error('Error fetching sent requests:', error);
+        }
+    }, [user]);
 
     // Fetch top users
     const fetchTopUsers = useCallback(async () => {
@@ -208,10 +285,37 @@ export default function CommunityPage() {
         return () => clearTimeout(timer);
     }, [searchQuery, searchUsers]);
 
-    // Handle add friend (placeholder for now)
-    const handleAddFriend = (targetUser) => {
-        showSuccess(`Friend request sent to ${targetUser.first_name || targetUser.user_email}!`);
-        // TODO: Implement actual friend request logic
+    // Handle add friend - Send actual friend request
+    const handleAddFriend = async (targetUser) => {
+        if (!user) return;
+        
+        setSendingRequest(targetUser.id);
+        try {
+            const response = await fetch('/api/friend-requests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    senderId: user.id,
+                    receiverId: targetUser.id
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showSuccess(`Friend request sent to ${targetUser.first_name || targetUser.username || 'user'}!`);
+                // Update local state
+                setSentRequests(prev => [...prev, targetUser.id]);
+                setFriendStatuses(prev => ({ ...prev, [targetUser.id]: 'request_sent' }));
+            } else {
+                showError(data.error || 'Failed to send friend request');
+            }
+        } catch (error) {
+            console.error('Error sending friend request:', error);
+            showError('Failed to send friend request');
+        } finally {
+            setSendingRequest(null);
+        }
     };
 
     // Navigate to friend profile
@@ -219,13 +323,20 @@ export default function CommunityPage() {
         router.push(`/friend/${friend.id}`);
     };
 
+    // Get friend status for a user
+    const getFriendStatus = (userId) => {
+        return friendStatuses[userId] || 'none';
+    };
+
     // Fetch data on mount
     useEffect(() => {
         if (user && !loading) {
             fetchTopUsers();
             fetchSuggestedUsers();
+            fetchFriends();
+            fetchSentRequests();
         }
-    }, [user, loading, fetchTopUsers, fetchSuggestedUsers]);
+    }, [user, loading, fetchTopUsers, fetchSuggestedUsers, fetchFriends, fetchSentRequests]);
 
     if (loading) {
         return (
@@ -323,7 +434,9 @@ export default function CommunityPage() {
                                                 key={topUser.id}
                                                 user={topUser} 
                                                 onAddFriend={handleAddFriend}
+                                                friendStatus={getFriendStatus(topUser.id)}
                                                 showStats={true}
+                                                isLoading={sendingRequest === topUser.id}
                                             />
                                         ))}
                                     </div>
@@ -358,6 +471,8 @@ export default function CommunityPage() {
                                             key={suggestedUser.id}
                                             user={suggestedUser} 
                                             onAddFriend={handleAddFriend}
+                                            friendStatus={getFriendStatus(suggestedUser.id)}
+                                            isLoading={sendingRequest === suggestedUser.id}
                                         />
                                     ))}
                                 </div>
@@ -385,7 +500,16 @@ export default function CommunityPage() {
                             </h3>
                             
                             <div className="space-y-1 max-h-[calc(100vh-200px)] overflow-y-auto">
-                                {friends.length > 0 ? (
+                                {loadingFriends ? (
+                                    <div className="space-y-2">
+                                        {[...Array(4)].map((_, i) => (
+                                            <div key={i} className="flex items-center gap-3 p-2">
+                                                <div className="w-9 h-9 rounded-full bg-gray-200 animate-pulse"></div>
+                                                <div className="flex-1 h-4 bg-gray-200 rounded animate-pulse"></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : friends.length > 0 ? (
                                     friends.map((friend) => (
                                         <FriendListItem 
                                             key={friend.id} 
