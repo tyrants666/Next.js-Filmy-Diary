@@ -10,6 +10,7 @@ export async function GET(request) {
     try {
         const { searchParams } = new URL(request.url)
         const userId = searchParams.get('userId')
+        const logType = searchParams.get('type') || 'all' // 'movies', 'friends', 'all'
         const page = parseInt(searchParams.get('page') || '1')
         const limit = parseInt(searchParams.get('limit') || '20')
         const offset = (page - 1) * limit
@@ -18,68 +19,108 @@ export async function GET(request) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
         }
 
-        // Skip role check in API - handle it in the frontend
-        // The frontend already checks the role before showing the menu item
+        let allLogs = [];
+        let totalCount = 0;
 
-        // Try to fetch user movies with profiles in a single query
-        const { data: userMoviesLog, error: logError } = await supabase
-            .from('user_movies')
-            .select(`
-                id,
-                status,
-                created_at,
-                updated_at,
-                watched_date,
-                user_id,
-                profiles!user_movies_user_id_fkey (
+        // Fetch movie logs if requested
+        if (logType === 'movies' || logType === 'all') {
+            const { data: userMoviesLog, error: logError } = await supabase
+                .from('user_movies')
+                .select(`
                     id,
-                    first_name,
-                    last_name,
-                    user_email
-                ),
-                movies!user_movies_movie_id_fkey (
+                    status,
+                    created_at,
+                    updated_at,
+                    watched_date,
+                    user_id,
+                    profiles!user_movies_user_id_fkey (
+                        id,
+                        first_name,
+                        last_name,
+                        user_email
+                    ),
+                    movies!user_movies_movie_id_fkey (
+                        id,
+                        movie_id,
+                        title,
+                        poster,
+                        year,
+                        rating,
+                        rating_source,
+                        type,
+                        description
+                    )
+                `)
+                .order('updated_at', { ascending: false })
+
+            if (logError) {
+                console.error('Error fetching movie logs:', logError);
+            } else {
+                // Add log_type to each entry
+                const movieLogs = (userMoviesLog || []).map(log => ({
+                    ...log,
+                    log_type: 'movie'
+                }));
+                allLogs = [...allLogs, ...movieLogs];
+            }
+        }
+
+        // Fetch friend request logs if requested
+        if (logType === 'friends' || logType === 'all') {
+            const { data: friendRequestsLog, error: friendError } = await supabase
+                .from('friend_requests')
+                .select(`
                     id,
-                    movie_id,
-                    title,
-                    poster,
-                    year,
-                    rating,
-                    rating_source,
-                    type,
-                    description
-                )
-            `)
-            .order('updated_at', { ascending: false })
-            .range(offset, offset + limit - 1)
+                    sender_id,
+                    receiver_id,
+                    sender_email,
+                    receiver_email,
+                    status,
+                    created_at,
+                    sender:profiles!friend_requests_sender_id_fkey (
+                        id,
+                        first_name,
+                        last_name,
+                        user_email,
+                        avatar_url
+                    ),
+                    receiver:profiles!friend_requests_receiver_id_fkey (
+                        id,
+                        first_name,
+                        last_name,
+                        user_email,
+                        avatar_url
+                    )
+                `)
+                .order('created_at', { ascending: false })
 
-        if (logError) {
-            return NextResponse.json({ error: logError.message }, { status: 500 })
+            if (friendError) {
+                console.error('Error fetching friend request logs:', friendError);
+            } else {
+                // Add log_type and updated_at to each entry
+                const friendLogs = (friendRequestsLog || []).map(log => ({
+                    ...log,
+                    log_type: 'friend_request',
+                    updated_at: log.created_at // Use created_at as updated_at for sorting
+                }));
+                allLogs = [...allLogs, ...friendLogs];
+            }
         }
 
-        // Debug: Log the first item to see the data structure
-        if (userMoviesLog && userMoviesLog.length > 0) {
-            console.log('Sample log entry with joined profiles:', JSON.stringify(userMoviesLog[0], null, 2));
-        }
+        // Sort all logs by updated_at (most recent first)
+        allLogs.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
-        // Data is already enriched with profiles from the join
-        const enrichedData = userMoviesLog || [];
-
-        // Get total count for pagination
-        const { count, error: countError } = await supabase
-            .from('user_movies')
-            .select('*', { count: 'exact', head: true })
-
-        if (countError) {
-            return NextResponse.json({ error: countError.message }, { status: 500 })
-        }
+        // Apply pagination
+        totalCount = allLogs.length;
+        const paginatedLogs = allLogs.slice(offset, offset + limit);
 
         return NextResponse.json({
-            data: enrichedData,
+            data: paginatedLogs,
             pagination: {
                 page,
                 limit,
-                total: count,
-                hasMore: offset + limit < count
+                total: totalCount,
+                hasMore: offset + limit < totalCount
             }
         })
     } catch (error) {

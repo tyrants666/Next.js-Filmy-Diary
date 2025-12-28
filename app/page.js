@@ -1069,44 +1069,85 @@ export default function Home() {
                             )}
                             </div>
                             ) : !isSearchActive ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                    {/* Cute movie character SVG */}
-                                    <div className="mb-6">
-                                        <svg width="120" height="120" viewBox="0 0 200 200" className="text-gray-400">
-                                            {/* Movie reel body */}
-                                            <circle cx="100" cy="100" r="80" fill="currentColor" opacity="0.1" stroke="currentColor" strokeWidth="2"/>
-                                            <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" strokeWidth="2"/>
-                                            <circle cx="100" cy="100" r="40" fill="none" stroke="currentColor" strokeWidth="2"/>
-                                            <circle cx="100" cy="100" r="20" fill="none" stroke="currentColor" strokeWidth="2"/>
-                                            
-                                            {/* Film holes */}
-                                            <circle cx="70" cy="70" r="4" fill="currentColor"/>
-                                            <circle cx="130" cy="70" r="4" fill="currentColor"/>
-                                            <circle cx="70" cy="130" r="4" fill="currentColor"/>
-                                            <circle cx="130" cy="130" r="4" fill="currentColor"/>
-                                            <circle cx="100" cy="60" r="4" fill="currentColor"/>
-                                            <circle cx="100" cy="140" r="4" fill="currentColor"/>
-                                            <circle cx="60" cy="100" r="4" fill="currentColor"/>
-                                            <circle cx="140" cy="100" r="4" fill="currentColor"/>
-                                            
-                                            {/* Cute face */}
-                                            <circle cx="85" cy="85" r="3" fill="currentColor"/> {/* Left eye */}
-                                            <circle cx="115" cy="85" r="3" fill="currentColor"/> {/* Right eye */}
-                                            <path d="M 90 110 Q 100 120 110 110" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/> {/* Smile */}
-                                            
-                                            {/* Film strip coming out */}
-                                            <rect x="180" y="95" width="15" height="10" fill="currentColor" opacity="0.3"/>
-                                            <rect x="185" y="90" width="5" height="20" fill="currentColor" opacity="0.5"/>
-                                            <rect x="190" y="85" width="8" height="30" fill="currentColor" opacity="0.3"/>
-                                        </svg>
+                                <div className="mt-8">
+                                    {/* Welcome message for new users */}
+                                    <div className="text-center mb-8 px-4">
+                                        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                                            Welcome to Filmy Diary! 🎬
+                                        </h2>
+                                        <p className="text-gray-500 max-w-md mx-auto">
+                                            Start building your movie collection! Use the search above or click <span className="font-medium text-blue-600 cursor-pointer" onClick={() => router.push('/explore')}>Explore</span> to find movies.
+                                        </p>
                                     </div>
                                     
-                                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                        Ready to discover movies?
-                                    </h3>
-                                    <p className="text-gray-500 max-w-md">
-                                        Search for your favorite movies and TV series and start building your personal entertainment diary!
-                                    </p>
+                                    {/* TMDB Banner */}
+                                    <TMDBBanner onMovieClick={handleMovieClick} />
+                                    
+                                    {/* Currently Watching - Placeholder */}
+                                    <div className="mb-8">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <IoPlayCircle className="w-5 h-5 text-red-500" />
+                                            <h3 className="text-lg font-semibold text-gray-800">Currently Watching</h3>
+                                        </div>
+                                        <div className="flex gap-4 overflow-x-auto pb-2">
+                                            {[1, 2, 3].map((i) => (
+                                                <div 
+                                                    key={`watching-placeholder-${i}`}
+                                                    onClick={() => router.push('/explore')}
+                                                    className="flex-shrink-0 w-32 h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-red-300 transition-all group"
+                                                >
+                                                    <div className="w-10 h-10 rounded-full bg-gray-200 group-hover:bg-red-100 flex items-center justify-center mb-2 transition-colors">
+                                                        <span className="text-2xl text-gray-400 group-hover:text-red-500">+</span>
+                                                    </div>
+                                                    <span className="text-xs text-gray-400 group-hover:text-red-500 text-center px-2">Add movie</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Watchlist - Placeholder */}
+                                    <div className="mb-8">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <IoBookmark className="w-5 h-5 text-purple-600" />
+                                            <h3 className="text-lg font-semibold text-gray-800">Watchlist</h3>
+                                        </div>
+                                        <div className="flex gap-4 overflow-x-auto pb-2">
+                                            {[1, 2, 3].map((i) => (
+                                                <div 
+                                                    key={`watchlist-placeholder-${i}`}
+                                                    onClick={() => router.push('/explore')}
+                                                    className="flex-shrink-0 w-32 h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-purple-300 transition-all group"
+                                                >
+                                                    <div className="w-10 h-10 rounded-full bg-gray-200 group-hover:bg-purple-100 flex items-center justify-center mb-2 transition-colors">
+                                                        <span className="text-2xl text-gray-400 group-hover:text-purple-500">+</span>
+                                                    </div>
+                                                    <span className="text-xs text-gray-400 group-hover:text-purple-500 text-center px-2">Add movie</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Watched - Placeholder */}
+                                    <div className="mb-8">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <IoCheckmarkCircle className="w-5 h-5 text-green-600" />
+                                            <h3 className="text-lg font-semibold text-gray-800">Watched</h3>
+                                        </div>
+                                        <div className="flex gap-4 overflow-x-auto pb-2">
+                                            {[1, 2, 3].map((i) => (
+                                                <div 
+                                                    key={`watched-placeholder-${i}`}
+                                                    onClick={() => router.push('/explore')}
+                                                    className="flex-shrink-0 w-32 h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-green-300 transition-all group"
+                                                >
+                                                    <div className="w-10 h-10 rounded-full bg-gray-200 group-hover:bg-green-100 flex items-center justify-center mb-2 transition-colors">
+                                                        <span className="text-2xl text-gray-400 group-hover:text-green-500">+</span>
+                                                    </div>
+                                                    <span className="text-xs text-gray-400 group-hover:text-green-500 text-center px-2">Add movie</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             ) : null}
                         </>

@@ -10,16 +10,28 @@ import { useToast } from '../context/ToastContext';
 import { IoPeople, IoSearch, IoPersonAdd, IoTrophy, IoSparkles, IoChevronForward, IoClose, IoCheckmark, IoTime } from 'react-icons/io5';
 
 // User Card Component
-const UserCard = ({ user, onAddFriend, friendStatus = 'none', showStats = false, rank = null, isLoading = false }) => {
+const UserCard = ({ user, onAddFriend, friendStatus = 'none', showStats = false, rank = null, isLoading = false, isCurrentUser = false }) => {
     const router = useRouter();
     const initials = `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || user.user_email?.[0]?.toUpperCase() || '?';
     
     const handleClick = () => {
-        router.push(`/friend/${user.id}`);
+        if (!isCurrentUser) {
+            router.push(`/friend/${user.id}`);
+        }
     };
 
     // Determine button display based on friend status
     const renderActionButton = () => {
+        // If this is the current user's own card
+        if (isCurrentUser) {
+            return (
+                <span className="mt-3 px-4 py-1.5 bg-amber-50 text-amber-600 text-xs font-medium rounded-full flex items-center gap-1">
+                    <span className="text-base">🎬</span>
+                    That&apos;s me!
+                </span>
+            );
+        }
+        
         if (friendStatus === 'friends') {
             return (
                 <span className="mt-3 px-4 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
@@ -62,7 +74,11 @@ const UserCard = ({ user, onAddFriend, friendStatus = 'none', showStats = false,
 
     return (
         <div 
-            className="flex flex-col items-center p-4 bg-white rounded-2xl border border-gray-100 hover:border-gray-300 hover:shadow-lg transition-all duration-300 cursor-pointer group relative"
+            className={`flex flex-col items-center p-4 rounded-2xl border transition-all duration-300 group relative ${
+                isCurrentUser 
+                    ? 'bg-amber-50/50 border-amber-200 cursor-default' 
+                    : 'bg-white border-gray-100 hover:border-gray-300 hover:shadow-lg cursor-pointer'
+            }`}
             onClick={handleClick}
         >
             {/* Avatar */}
@@ -465,6 +481,7 @@ export default function CommunityPage() {
                                                 friendStatus={getFriendStatus(topUser.id)}
                                                 showStats={true}
                                                 isLoading={sendingRequest === topUser.id}
+                                                isCurrentUser={topUser.id === user?.id}
                                             />
                                         ))}
                                     </div>
@@ -501,6 +518,7 @@ export default function CommunityPage() {
                                             onAddFriend={handleAddFriend}
                                             friendStatus={getFriendStatus(suggestedUser.id)}
                                             isLoading={sendingRequest === suggestedUser.id}
+                                            isCurrentUser={suggestedUser.id === user?.id}
                                         />
                                     ))}
                                 </div>

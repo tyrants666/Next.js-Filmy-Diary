@@ -61,6 +61,19 @@ export async function DELETE(request) {
             return NextResponse.json({ error: 'User ID and Friend ID required' }, { status: 400 });
         }
 
+        // Fetch emails for logging
+        const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('user_email')
+            .eq('id', userId)
+            .single();
+
+        const { data: friendProfile } = await supabase
+            .from('profiles')
+            .select('user_email')
+            .eq('id', friendId)
+            .single();
+
         // Delete both directions of the friendship
         const { error: deleteError } = await supabase
             .from('friends')
@@ -68,6 +81,22 @@ export async function DELETE(request) {
             .or(`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`);
 
         if (deleteError) throw deleteError;
+
+        // Log the unfriend action in friend_requests table
+        const { error: logError } = await supabase
+            .from('friend_requests')
+            .insert({
+                sender_id: userId,
+                receiver_id: friendId,
+                sender_email: userProfile?.user_email || null,
+                receiver_email: friendProfile?.user_email || null,
+                status: 'unfriended'
+            });
+
+        if (logError) {
+            console.error('Error logging unfriend action:', logError);
+            // Don't fail the request, just log the error
+        }
 
         return NextResponse.json({ message: 'Friend removed successfully' });
 

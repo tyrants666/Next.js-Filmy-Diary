@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
-import { IoTime, IoPerson, IoFilm, IoEye, IoBookmark, IoCheckmarkCircle } from 'react-icons/io5';
+import { IoTime, IoPerson, IoFilm, IoEye, IoBookmark, IoCheckmarkCircle, IoPersonAdd, IoPersonRemove, IoCheckmark, IoClose } from 'react-icons/io5';
 
 export default function UserLogsPage() {
     const { user, loading: authLoading } = useAuth();
@@ -147,8 +147,8 @@ export default function UserLogsPage() {
         });
     };
 
-    // Get status icon and color
-    const getStatusInfo = (status) => {
+    // Get status icon and color for movie logs
+    const getMovieStatusInfo = (status) => {
         switch (status) {
             case 'watched':
                 return { icon: IoCheckmarkCircle, color: 'text-green-600', bg: 'bg-green-100', label: 'Watched' };
@@ -158,6 +158,22 @@ export default function UserLogsPage() {
                 return { icon: IoBookmark, color: 'text-purple-600', bg: 'bg-purple-100', label: 'Wishlist' };
             default:
                 return { icon: IoFilm, color: 'text-gray-600', bg: 'bg-gray-100', label: status };
+        }
+    };
+
+    // Get status icon and color for friend request logs
+    const getFriendStatusInfo = (status) => {
+        switch (status) {
+            case 'pending':
+                return { icon: IoPersonAdd, color: 'text-amber-600', bg: 'bg-amber-100', label: 'Request Sent' };
+            case 'accepted':
+                return { icon: IoCheckmark, color: 'text-green-600', bg: 'bg-green-100', label: 'Accepted' };
+            case 'rejected':
+                return { icon: IoClose, color: 'text-red-600', bg: 'bg-red-100', label: 'Declined' };
+            case 'unfriended':
+                return { icon: IoPersonRemove, color: 'text-red-600', bg: 'bg-red-100', label: 'Unfriended' };
+            default:
+                return { icon: IoPerson, color: 'text-gray-600', bg: 'bg-gray-100', label: status };
         }
     };
 
@@ -203,8 +219,8 @@ export default function UserLogsPage() {
             <div className="container mx-auto px-4 py-8">
                 {/* Page Header */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">User Movies Log</h1>
-                    <p className="text-gray-600">Recent movie activities from all users</p>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">User Activity Logs</h1>
+                    <p className="text-gray-600">Recent movie and friend activities from all users</p>
                 </div>
 
                 {/* Stats */}
@@ -233,9 +249,61 @@ export default function UserLogsPage() {
                 {/* Logs List */}
                 <div className="space-y-2">
                     {logs.map((log, index) => {
-                        const statusInfo = getStatusInfo(log.status);
+                        // Determine if this is a movie log or friend request log
+                        const isFriendLog = log.log_type === 'friend_request';
+                        const statusInfo = isFriendLog 
+                            ? getFriendStatusInfo(log.status) 
+                            : getMovieStatusInfo(log.status);
                         const StatusIcon = statusInfo.icon;
                         
+                        // For friend request logs, render different UI
+                        if (isFriendLog) {
+                            const senderName = log.sender?.first_name && log.sender?.last_name 
+                                ? `${log.sender.first_name} ${log.sender.last_name}`
+                                : log.sender_email || 'Unknown';
+                            const receiverName = log.receiver?.first_name && log.receiver?.last_name 
+                                ? `${log.receiver.first_name} ${log.receiver.last_name}`
+                                : log.receiver_email || 'Unknown';
+
+                            return (
+                                <div key={`friend-${log.id}-${index}`} className="bg-white rounded-lg shadow-sm p-3 hover:shadow-md transition-shadow border-l-4 border-amber-400">
+                                    <div className="flex items-center gap-3">
+                                        {/* Friend Icon */}
+                                        <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <StatusIcon className={`w-6 h-6 ${statusInfo.color}`} />
+                                        </div>
+
+                                        {/* Friend Request Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-medium text-gray-900">{senderName}</span>
+                                                <span className="text-gray-500">→</span>
+                                                <span className="font-medium text-gray-900">{receiverName}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                                                <span>{log.sender_email || log.sender?.user_email}</span>
+                                                <span>→</span>
+                                                <span>{log.receiver_email || log.receiver?.user_email}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                                                <IoTime className="w-3 h-3" />
+                                                <span>{formatDate(log.created_at)}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Status Badge */}
+                                        <div className={`flex items-center gap-1 px-3 py-1 rounded-full ${statusInfo.bg} flex-shrink-0`}>
+                                            <StatusIcon className={`w-4 h-4 ${statusInfo.color}`} />
+                                            <span className={`text-sm font-medium ${statusInfo.color}`}>
+                                                {statusInfo.label}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }
+                        
+                        // Movie log rendering (original code)
                         return (
                             <div key={`${log.id}-${index}`} className="bg-white rounded-lg shadow-sm p-3 hover:shadow-md transition-shadow">
                                 {/* Mobile Layout */}
