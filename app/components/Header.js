@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { IoBookmark, IoPlayCircle, IoCheckmarkCircle, IoCompass, IoPeople, IoNotifications, IoPersonAdd, IoClose } from 'react-icons/io5';
+import { IoBookmark, IoPlayCircle, IoCheckmarkCircle, IoCompass, IoPeople, IoNotifications, IoPersonAdd, IoClose, IoTime } from 'react-icons/io5';
 import UserDropdown from './UserDropdown';
 import GoogleLoginButton from './GoogleLoginButton';
 import SearchInput from './SearchInput';
@@ -109,7 +109,7 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
             });
             
             if (response.ok) {
-                showSuccess(`You are now friends with ${notification.from}!`);
+                showSuccess(`🎉 You are now friends with ${notification.from}!`);
                 // Update local state
                 setNotifications(prev => prev.map(n => 
                     n.id === notification.id ? { ...n, read: true, status: 'accepted', type: 'friend_accepted' } : n
@@ -147,6 +147,7 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
             });
             
             if (response.ok) {
+                showSuccess(`Declined friend request from ${notification.from}`);
                 // Remove from notifications
                 setNotifications(prev => prev.filter(n => n.id !== notification.id));
             } else {
@@ -190,51 +191,60 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
                     // Authenticated user header
                     <>
                         {/* Navigation Icons */}
-                        <div className="flex items-center">
+                        <div className="flex items-center gap-0.5">
                             <button 
                                 onClick={() => router.push('/explore')}
-                                className="p-1.5 text-blue-600"
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                 title="Explore Movies"
                             >
-                                <IoCompass className="w-5 h-5" />
+                                <IoCompass className="w-6 h-6" />
                             </button>
                             <button 
                                 onClick={() => router.push('/watchlist')}
-                                className="p-1.5 text-purple-600"
+                                className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                                 title="Watchlist"
                             >
-                                <IoBookmark className="w-5 h-5" />
+                                <IoBookmark className="w-6 h-6" />
                             </button>
                             <button 
                                 onClick={() => router.push('/watching')}
-                                className="p-1.5 text-red-600"
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                 title="Currently Watching"
                             >
-                                <IoPlayCircle className="w-5 h-5" />
+                                <IoPlayCircle className="w-6 h-6" />
                             </button>
                             <button 
                                 onClick={() => router.push('/watched')}
-                                className="p-1.5 text-green-600"
+                                className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                                 title="Watched Movies"
                             >
-                                <IoCheckmarkCircle className="w-5 h-5" />
+                                <IoCheckmarkCircle className="w-6 h-6" />
                             </button>
                             <button 
                                 onClick={() => router.push('/community')}
-                                className="p-1.5 text-[#414141]"
+                                className="p-1.5 text-[#414141] hover:bg-gray-100 rounded-lg transition-colors"
                                 title="Community"
                             >
-                                <IoPeople className="w-5 h-5" />
+                                <IoPeople className="w-6 h-6" />
+                            </button>
+
+                            {/* Friends Activity */}
+                            <button 
+                                onClick={() => router.push('/friends-log')}
+                                className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
+                                title="Friends Activity"
+                            >
+                                <IoTime className="w-6 h-6" />
                             </button>
                             
                             {/* Notification Bell */}
                             <div className="relative" ref={notificationRef}>
                                 <button 
                                     onClick={() => setShowNotifications(!showNotifications)}
-                                    className="p-1.5 text-gray-600 hover:text-gray-800 relative"
+                                    className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors relative"
                                     title="Notifications"
                                 >
-                                    <IoNotifications className="w-5 h-5" />
+                                    <IoNotifications className="w-6 h-6" />
                                     {unreadCount > 0 && (
                                         <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
                                             {unreadCount}
