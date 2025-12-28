@@ -8,7 +8,8 @@ const nextConfig = {
             'imdb-api.com',
             'assets.fanart.tv',
             'image.tmdb.org',
-            'img.omdbapi.com'
+            'img.omdbapi.com',
+            'lh3.googleusercontent.com'
         ],
         dangerouslyAllowSVG: false,
         contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",

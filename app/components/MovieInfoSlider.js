@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useMovieCache } from '../context/MovieCacheContext';
 
-const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatching, onClickWishlist, onRemoveWatched, onUpdateWatchDate, watched, wishlist, cardType = 'search', onActionComplete }) => {
+const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatching, onClickWishlist, onRemoveWatched, onUpdateWatchDate, watched, wishlist, cardType = 'search', onActionComplete, viewOnly = false }) => {
     
     const { getPosterUrl } = useMovieCache();
     
@@ -361,7 +361,8 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                 )}
                             </div>
 
-                         {/* Action Buttons - Show all buttons for search results */}
+                         {/* Action Buttons - Show all buttons for search results (hide in viewOnly mode) */}
+                         {!viewOnly && (
                          <div className="border-t pt-6">
                              <div className="space-y-3">
                                  {/* Edit Date Button - Only show if movie is in watched list */}
@@ -582,6 +583,7 @@ const MovieInfoSlider = ({ isOpen, onClose, movie, onClickWatched, onClickWatchi
                                  )}
                              </div>
                          </div>
+                         )}
                     </div>
                 </div>
             </div>
