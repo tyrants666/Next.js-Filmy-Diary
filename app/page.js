@@ -951,7 +951,7 @@ export default function Home() {
                             <TMDBBanner onMovieClick={handleMovieClick} />
                             
                             {/* Currently watching movies */}
-                            {savedMovies.some(item => item.status === 'currently_watching') && (
+                            {savedMovies.some(item => item.status === 'currently_watching') ? (
                                 <MovieSlider
                                     title="Currently Watching"
                                     icon={<IoPlayCircle className="w-5 h-5 text-red-500" />}
@@ -986,10 +986,31 @@ export default function Home() {
                                     }}
                                     cardType="watching"
                                 />
+                            ) : (
+                                <div className="mb-8">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <IoPlayCircle className="w-5 h-5 text-red-500" />
+                                        <h3 className="text-lg font-semibold text-gray-800">Currently Watching</h3>
+                                    </div>
+                                    <div className="flex gap-4 overflow-x-auto pb-2">
+                                        {[1, 2, 3].map((i) => (
+                                            <div 
+                                                key={`watching-placeholder-${i}`}
+                                                onClick={() => router.push('/explore')}
+                                                className="flex-shrink-0 w-32 h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-red-300 transition-all group"
+                                            >
+                                                <div className="w-10 h-10 rounded-full bg-gray-200 group-hover:bg-red-100 flex items-center justify-center mb-2 transition-colors">
+                                                    <span className="text-2xl text-gray-400 group-hover:text-red-500">+</span>
+                                                </div>
+                                                <span className="text-xs text-gray-400 group-hover:text-red-500 text-center px-2">Add movie</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
 
                             {/* Watchlist movies - Second */}
-                            {savedMovies.some(item => item.status === 'wishlist') && (
+                            {savedMovies.some(item => item.status === 'wishlist') ? (
                                 <MovieSlider
                                     title="Watchlist"
                                     icon={<IoBookmark className="w-5 h-5 text-purple-600" />}
@@ -1024,10 +1045,31 @@ export default function Home() {
                                     }}
                                     cardType="wishlist"
                                 />
+                            ) : (
+                                <div className="mb-8">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <IoBookmark className="w-5 h-5 text-purple-600" />
+                                        <h3 className="text-lg font-semibold text-gray-800">Watchlist</h3>
+                                    </div>
+                                    <div className="flex gap-4 overflow-x-auto pb-2">
+                                        {[1, 2, 3].map((i) => (
+                                            <div 
+                                                key={`watchlist-placeholder-${i}`}
+                                                onClick={() => router.push('/explore')}
+                                                className="flex-shrink-0 w-32 h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-purple-300 transition-all group"
+                                            >
+                                                <div className="w-10 h-10 rounded-full bg-gray-200 group-hover:bg-purple-100 flex items-center justify-center mb-2 transition-colors">
+                                                    <span className="text-2xl text-gray-400 group-hover:text-purple-500">+</span>
+                                                </div>
+                                                <span className="text-xs text-gray-400 group-hover:text-purple-500 text-center px-2">Add movie</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
 
                             {/* Watched movies - Third */}
-                            {savedMovies.some(item => item.status === 'watched') && (
+                            {savedMovies.some(item => item.status === 'watched') ? (
                                 <MovieSlider
                                     title="Watched"
                                     icon={<IoCheckmarkCircle className="w-5 h-5 text-green-600" />}
@@ -1066,6 +1108,27 @@ export default function Home() {
                                     }}
                                     cardType="watched"
                                 />
+                            ) : (
+                                <div className="mb-8">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <IoCheckmarkCircle className="w-5 h-5 text-green-600" />
+                                        <h3 className="text-lg font-semibold text-gray-800">Watched</h3>
+                                    </div>
+                                    <div className="flex gap-4 overflow-x-auto pb-2">
+                                        {[1, 2, 3].map((i) => (
+                                            <div 
+                                                key={`watched-placeholder-${i}`}
+                                                onClick={() => router.push('/explore')}
+                                                className="flex-shrink-0 w-32 h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-green-300 transition-all group"
+                                            >
+                                                <div className="w-10 h-10 rounded-full bg-gray-200 group-hover:bg-green-100 flex items-center justify-center mb-2 transition-colors">
+                                                    <span className="text-2xl text-gray-400 group-hover:text-green-500">+</span>
+                                                </div>
+                                                <span className="text-xs text-gray-400 group-hover:text-green-500 text-center px-2">Add movie</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
                             </div>
                             ) : !isSearchActive ? (

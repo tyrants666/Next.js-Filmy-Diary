@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
 import { IoTime, IoPerson, IoFilm, IoEye, IoBookmark, IoCheckmarkCircle, IoPersonAdd, IoPersonRemove, IoCheckmark, IoClose } from 'react-icons/io5';
+import Image from 'next/image';
 
 export default function UserLogsPage() {
     const { user, loading: authLoading } = useAuth();
@@ -177,18 +178,25 @@ export default function UserLogsPage() {
         }
     };
 
-    // Loading state
+    // Loading state - match community page style
     if (authLoading || (loading && logs.length === 0)) {
         return (
-            <div className="min-h-screen bg-gray-50">
-                <div className="container mx-auto px-4 pt-4">
-                    <Header />
-                </div>
-                <div className="container mx-auto px-4 py-8">
-                    <div className="flex justify-center items-center h-64">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                    </div>
-                </div>
+            <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+                <Image 
+                    src="/images/babu-rao-stickers.png" 
+                    alt="Loading" 
+                    width={240} 
+                    height={250} 
+                    className='mb-2'
+                    priority
+                />
+                <p className='text-center text-md px-4 text-gray-800'>
+                    Loading user activity logs...
+                    <svg className="animate-spin h-4 w-4 inline-block text-gray-600 ms-2 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </p>
             </div>
         );
     }
@@ -211,16 +219,19 @@ export default function UserLogsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100/30">
             <div className="container mx-auto px-4 pt-4">
                 <Header />
             </div>
             
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto px-4 py-6">
                 {/* Page Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">User Activity Logs</h1>
-                    <p className="text-gray-600">Recent movie and friend activities from all users</p>
+                <div className="mb-6">
+                    <div className="flex items-center gap-3 mb-2">
+                        <IoFilm className="w-7 h-7 text-blue-600" />
+                        <h1 className="text-2xl font-bold text-gray-900">User Activity Logs</h1>
+                    </div>
+                    <p className="text-gray-500 text-sm">Recent movie and friend activities from all users</p>
                 </div>
 
                 {/* Stats */}
@@ -450,15 +461,18 @@ export default function UserLogsPage() {
 
                 {/* Loading More Indicator */}
                 {loadingMore && (
-                    <div className="flex justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="flex justify-center py-6">
+                        <svg className="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
                     </div>
                 )}
 
                 {/* No More Data */}
                 {!hasMore && logs.length > 0 && (
-                    <div className="text-center py-8">
-                        <p className="text-gray-500">No more logs to load</p>
+                    <div className="text-center py-6">
+                        <p className="text-gray-400 text-sm">No more logs to load</p>
                     </div>
                 )}
 

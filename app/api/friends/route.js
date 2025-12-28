@@ -83,7 +83,10 @@ export async function DELETE(request) {
         if (deleteError) throw deleteError;
 
         // Log the unfriend action in friend_requests table
-        const { error: logError } = await supabase
+        // Note: Make sure your friend_requests table CHECK constraint includes 'unfriended'
+        // ALTER TABLE friend_requests DROP CONSTRAINT IF EXISTS friend_requests_status_check;
+        // ALTER TABLE friend_requests ADD CONSTRAINT friend_requests_status_check CHECK (status IN ('pending', 'accepted', 'rejected', 'unfriended'));
+        const { data: logData, error: logError } = await supabase
             .from('friend_requests')
             .insert({
                 sender_id: userId,
@@ -91,11 +94,15 @@ export async function DELETE(request) {
                 sender_email: userProfile?.user_email || null,
                 receiver_email: friendProfile?.user_email || null,
                 status: 'unfriended'
-            });
+            })
+            .select();
 
         if (logError) {
             console.error('Error logging unfriend action:', logError);
+            console.error('This might be due to CHECK constraint. Run: ALTER TABLE friend_requests DROP CONSTRAINT IF EXISTS friend_requests_status_check; ALTER TABLE friend_requests ADD CONSTRAINT friend_requests_status_check CHECK (status IN (\'pending\', \'accepted\', \'rejected\', \'unfriended\'));');
             // Don't fail the request, just log the error
+        } else {
+            console.log('Unfriend logged successfully:', logData);
         }
 
         return NextResponse.json({ message: 'Friend removed successfully' });

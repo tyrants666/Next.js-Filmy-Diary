@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
-import { IoSettings, IoLogOut, IoPerson, IoDocumentText } from 'react-icons/io5';
+import { IoSettings, IoLogOut, IoPerson, IoDocumentText, IoPeople } from 'react-icons/io5';
 
 const UserDropdown = ({ user, isSigningOut, onSignOut }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -64,6 +64,11 @@ const UserDropdown = ({ user, isSigningOut, onSignOut }) => {
         router.push('/user-logs');
     };
 
+    const handleFriendsLogClick = () => {
+        setIsOpen(false);
+        router.push('/friends-log');
+    };
+
     return (
         <div className="relative" ref={dropdownRef}>
             {/* User Icon Button */}
@@ -107,6 +112,14 @@ const UserDropdown = ({ user, isSigningOut, onSignOut }) => {
                         >
                             <IoSettings className="w-4 h-4 text-gray-500" />
                             Settings
+                        </button>
+
+                        <button
+                            onClick={handleFriendsLogClick}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                            <IoPeople className="w-4 h-4 text-gray-500" />
+                            Friends Activity
                         </button>
                         
                         <div className="border-t border-gray-100 my-1"></div>
