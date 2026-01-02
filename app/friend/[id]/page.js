@@ -623,7 +623,7 @@ export default function FriendProfilePage() {
                                         <button
                                             onClick={handleRemoveFriend}
                                             disabled={removingFriend}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 text-sm font-medium rounded-full transition-colors disabled:opacity-50"
+                                            className="ms-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 text-sm font-medium rounded-full transition-colors disabled:opacity-50"
                                             title="Remove friend"
                                         >
                                             <IoPersonRemove className="w-4 h-4" />

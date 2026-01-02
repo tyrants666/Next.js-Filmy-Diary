@@ -236,7 +236,7 @@ export default function FriendsLogPage() {
                             return (
                                 <div 
                                     key={`movie-${log.id}-${index}`} 
-                                    className={`bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow border-l-4 ${statusInfo.border}`}
+                                    className={`bg-white rounded-md shadow-sm p-4 hover:shadow-md transition-shadow border-l-4 ${statusInfo.border}`}
                                 >
                                     <div className="flex items-start gap-3">
                                         {/* Movie Poster */}
@@ -335,7 +335,7 @@ export default function FriendsLogPage() {
                             return (
                                 <div 
                                     key={`request-${log.id}-${index}`} 
-                                    className={`bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow border-l-4 ${statusInfo.border}`}
+                                    className={`bg-white rounded-md shadow-sm p-4 hover:shadow-md transition-shadow border-l-4 ${statusInfo.border}`}
                                 >
                                     <div className="flex items-center gap-3">
                                         {/* User Avatar */}

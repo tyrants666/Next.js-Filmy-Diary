@@ -77,18 +77,24 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
                 // Transform accepted sent requests into notifications (someone accepted your request!)
                 const acceptedNotifs = (sentData.requests || [])
                     .filter(req => req.status === 'accepted')
-                    .map(req => ({
-                        id: `accepted-${req.id}`,
-                        type: 'friend_accepted',
-                        from: req.receiver?.first_name && req.receiver?.last_name 
-                            ? `${req.receiver.first_name} ${req.receiver.last_name}` 
-                            : req.receiver?.username || 'Someone',
-                        receiverId: req.receiver_id,
-                        avatar: req.receiver?.avatar_url,
-                        time: getTimeAgo(req.created_at),
-                        read: localStorage.getItem(`notif_read_accepted-${req.id}`) === 'true',
-                        status: req.status
-                    }));
+                    .map(req => {
+                        const notifId = `accepted-${req.id}`;
+                        // Backward compatibility: support both old and new keys
+                        const readViaNewKey = localStorage.getItem(`notif_read_${notifId}`) === 'true';
+                        const readViaOldKey = localStorage.getItem(`notif_read_accepted-${req.id}`) === 'true';
+                        return ({
+                            id: notifId,
+                            type: 'friend_accepted',
+                            from: req.receiver?.first_name && req.receiver?.last_name 
+                                ? `${req.receiver.first_name} ${req.receiver.last_name}` 
+                                : req.receiver?.username || 'Someone',
+                            receiverId: req.receiver_id,
+                            avatar: req.receiver?.avatar_url,
+                            time: getTimeAgo(req.created_at),
+                            read: readViaNewKey || readViaOldKey,
+                            status: req.status
+                        });
+                    });
                 allNotifs = [...allNotifs, ...acceptedNotifs];
             }
             
@@ -198,12 +204,14 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
     };
 
     return (
-        <header className="py-4 m-4 mx-0 mb-0 rounded-xl text-center flex justify-between items-center">
+        <header className="py-4 mt-0 md:mt-4 mx-0 mb-0 rounded-xl text-center flex justify-between items-center">
             <Link href="/">
                 <Image
-                    src="/images/logo.png"
+                    src="/images/logo.svg"
+                    // src="/images/logo.png"
                     alt="Filmy Diary Logo"
-                    width={100}
+                    width={112}
+                    // width={100}
                     height={100}
                     priority
                     className="cursor-pointer hover:opacity-80 transition-opacity"
@@ -338,7 +346,10 @@ const Header = ({ currentPage = 'home', showSearch = false, searchProps = {} }) 
                                                                     e.stopPropagation();
                                                                     // Mark as read if it's an accepted notification
                                                                     if (notification.type === 'friend_accepted') {
+                                                                        // Write both keys for backward compatibility
                                                                         localStorage.setItem(`notif_read_${notification.id}`, 'true');
+                                                                        const legacyId = notification.id.startsWith('accepted-') ? notification.id.replace('accepted-', '') : notification.id;
+                                                                        localStorage.setItem(`notif_read_accepted-${legacyId}`, 'true');
                                                                     }
                                                                     clearNotification(notification.id);
                                                                 }}
