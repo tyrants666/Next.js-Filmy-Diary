@@ -12,17 +12,13 @@ export default function Footer() {
                     <div className="text-center md:text-left">
                         <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
                             <Image
-                                src="/images/logo.png"
+                                src="/images/logo.svg"
                                 alt="Filmy Diary Logo"
-                                width={32}
+                                width={90}
                                 height={32}
                                 className="rounded"
                             />
-                            <span className="font-semibold text-gray-800">Filmy Diary</span>
                         </div>
-                        <p className="text-sm text-gray-600">
-                            Your personal movie diary
-                        </p>
                     </div>
 
                     {/* Center Section - TMDB Attribution */}
