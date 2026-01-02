@@ -7,7 +7,7 @@ export default function Footer() {
         <footer className="bg-gray-50 border-t border-gray-200 mt-auto">
             <div className="container mx-auto px-4 py-6">
                 {/* Main Footer Content */}
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-2">
                     {/* Left Section - App Info */}
                     <div className="text-center md:text-left">
                         <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
@@ -42,8 +42,8 @@ export default function Footer() {
                     </div>
 
                     {/* Right Section - Developer Info */}
-                    <div className="text-center md:text-right">
-                        <p className="text-sm text-gray-600 mb-1">
+                    <div className="text-center md:text-right flex gap-1.5 items-center">
+                        <p className="text-sm text-gray-600">
                             Made with ❤️ by
                         </p>
                         <a 
