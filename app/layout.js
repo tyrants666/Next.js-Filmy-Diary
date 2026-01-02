@@ -30,41 +30,67 @@ const jost = Jost({
 
 export const metadata = {
   title: {
-    default: "Filmy Diary",
+    default: "Filmy Diary - Track & Share Your Movie Journey",
     template: "%s | Filmy Diary"
   },
-  description: "Keep a fun movie diary and easily share your watch list with friends and family!",
+  description: "Track movies you've watched, create watchlists, and share your film journey with friends. Your personal movie diary with social features.",
+  keywords: ["movie diary", "film tracker", "watchlist", "movie journal", "film reviews", "movie ratings", "social movie app", "track movies"],
+  authors: [{ name: "Filmy Diary" }],
+  creator: "Filmy Diary",
+  publisher: "Filmy Diary",
   applicationName: "Filmy Diary",
   metadataBase: new URL('https://filmy-diary.netlify.app'),
+  alternates: {
+    canonical: '/',
+  },
   icons: {
     icon: '/icon.png',
     apple: '/apple-icon.png',
   },
   openGraph: {
     title: {
-      default: "Filmy Diary",
+      default: "Filmy Diary - Track & Share Your Movie Journey",
       template: "%s | Filmy Diary"
     },
-    description: "Keep a fun movie diary and easily share your watch list with friends and family!",
+    description: "Track movies you've watched, create watchlists, and share your film journey with friends. Your personal movie diary with social features.",
     siteName: "Filmy Diary",
     url: "https://filmy-diary.netlify.app",
     type: "website",
+    locale: 'en_US',
     images: [
       {
         url: '/opengraph-image.png',
         width: 1200,
         height: 630,
+        alt: "Filmy Diary - Track and share your movie journey"
       }
     ]
   },
   twitter: {
     card: "summary_large_image",
     title: {
-      default: "Filmy Diary",
+      default: "Filmy Diary - Track & Share Your Movie Journey",
       template: "%s | Filmy Diary"
     },
-    description: "Keep a fun movie diary and easily share your watch list with friends and family!",
-    images: ['/twitter-image.png']
+    description: "Track movies you've watched, create watchlists, and share your film journey with friends. Your personal movie diary with social features.",
+    images: [{
+      url: '/twitter-image.png',
+      alt: "Filmy Diary - Track and share your movie journey"
+    }]
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'google-site-verification-code',
   }
 };
 
