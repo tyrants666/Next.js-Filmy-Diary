@@ -29,8 +29,43 @@ const jost = Jost({
 // });
 
 export const metadata = {
-  title: "Filmy Diary",
+  title: {
+    default: "Filmy Diary",
+    template: "%s | Filmy Diary"
+  },
   description: "Keep a fun movie diary and easily share your watch list with friends and family!",
+  applicationName: "Filmy Diary",
+  metadataBase: new URL('https://filmy-diary.netlify.app'),
+  icons: {
+    icon: '/icon.png',
+    apple: '/apple-icon.png',
+  },
+  openGraph: {
+    title: {
+      default: "Filmy Diary",
+      template: "%s | Filmy Diary"
+    },
+    description: "Keep a fun movie diary and easily share your watch list with friends and family!",
+    siteName: "Filmy Diary",
+    url: "https://filmy-diary.netlify.app",
+    type: "website",
+    images: [
+      {
+        url: '/opengraph-image.png',
+        width: 1200,
+        height: 630,
+      }
+    ]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: {
+      default: "Filmy Diary",
+      template: "%s | Filmy Diary"
+    },
+    description: "Keep a fun movie diary and easily share your watch list with friends and family!",
+    images: ['/twitter-image.png']
+  }
 };
 
 export default function RootLayout({ children }) {
