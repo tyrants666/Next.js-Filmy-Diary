@@ -35,10 +35,10 @@ export const metadata = {
   },
   description: "Track movies you've watched, create watchlists, and share your film journey with friends. Your personal movie diary with social features.",
   keywords: ["movie diary", "film tracker", "watchlist", "movie journal", "film reviews", "movie ratings", "social movie app", "track movies"],
-  authors: [{ name: "Filmy Diary" }],
+  authors: [{ name: "Akash Yadav" }],
   creator: "Filmy Diary",
-  publisher: "Filmy Diary",
-  applicationName: "Filmy Diary",
+  publisher: "Mithila Digital Labs",
+  applicationName: "Mithila Digital Labs",
   metadataBase: new URL('https://filmy-diary.netlify.app'),
   alternates: {
     canonical: '/',
